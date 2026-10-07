@@ -1,0 +1,19 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loop-simple__nested_4",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_4.py",
+  "source_text": "",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00011439993977546692,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+}

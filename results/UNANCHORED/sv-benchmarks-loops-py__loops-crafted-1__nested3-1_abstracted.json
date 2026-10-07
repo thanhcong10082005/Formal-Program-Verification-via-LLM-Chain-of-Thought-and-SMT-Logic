@@ -1,0 +1,124 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-1_abstracted",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested3-1_abstracted.py",
+  "source_text": "def f(w, x, y, z):\n    x = 0\n    y = 0\n    z = 0\n    w = 0\n    while x < 268435455:\n        while y < 268435455:\n            assert z < (268435455)\n            assert (z % 4) != 0\n            y += 1\n        assert (y % 2) != 0\n        x += 1\n    assert (x % 2) != 0\n    return\n",
+  "n_claims": 4,
+  "n_verified": 0,
+  "n_counterexample": 4,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "assert_L13",
+      "claim_text": "x % 2 != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L13:C4#0"
+        ],
+        "source_lines": [
+          13
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "x": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "",
+        "replay_diff": "REPRO_EXCEPTION: TypeError(\"f() missing 3 required positional arguments: 'w', 'y', and 'z'\")"
+      },
+      "z3_stats": {
+        "valid_ms": 0.49510004464536905
+      },
+      "reason": "Z3 found a violating model; replay_verdict=False"
+    },
+    {
+      "claim_id": "assert_L11",
+      "claim_text": "y % 2 != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L11:C8#0"
+        ],
+        "source_lines": [
+          11
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "y": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "",
+        "replay_diff": "REPRO_EXCEPTION: TypeError(\"f() missing 3 required positional arguments: 'w', 'x', and 'z'\")"
+      },
+      "z3_stats": {
+        "valid_ms": 0.458399998024106
+      },
+      "reason": "Z3 found a violating model; replay_verdict=False"
+    },
+    {
+      "claim_id": "assert_L8",
+      "claim_text": "z < 268435455",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L8:C12#0"
+        ],
+        "source_lines": [
+          8
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "z": 268435455
+        },
+        "replay_verdict": false,
+        "replay_output": "",
+        "replay_diff": "REPRO_EXCEPTION: TypeError(\"f() missing 3 required positional arguments: 'w', 'x', and 'y'\")"
+      },
+      "z3_stats": {
+        "valid_ms": 1.6591999446973205
+      },
+      "reason": "Z3 found a violating model; replay_verdict=False"
+    },
+    {
+      "claim_id": "assert_L9",
+      "claim_text": "z % 4 != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L9:C12#0"
+        ],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "z": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "",
+        "replay_diff": "REPRO_EXCEPTION: TypeError(\"f() missing 3 required positional arguments: 'w', 'x', and 'y'\")"
+      },
+      "z3_stats": {
+        "valid_ms": 0.7288999622687697
+      },
+      "reason": "Z3 found a violating model; replay_verdict=False"
+    }
+  ],
+  "elapsed_seconds": 0.3212123999837786,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

@@ -1,0 +1,57 @@
+# --- Python bytecode / cache ------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Virtual environments ---------------------------------------------------
+venv/
+.venv/
+env/
+.env/
+ENV/
+.python-version
+
+# --- Z3 model cache (nếu có dùng z3 parse cache) --------------------------
+.z3_*
+*.z3cache
+
+# --- IDE / Editor -----------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Jupyter / notebook checkpoints -----------------------------------------
+.ipynb_checkpoints/
+*.ipynb
+
+# --- Logs -------------------------------------------------------------------
+*.log
+logs/
+
+# --- Large / generated result files ----------------------------------------
+# Giữ lại cấu trúc thư mục nhưng ignore nội dung nặng để repo nhẹ.
+prototype/results/_run.log
+prototype/results/_cruxeval_py/
+prototype/results/AST_ANCHORED/*.json
+prototype/results/UNANCHORED/*.json
+
+# --- Generated dataset translations -----------------------------------------
+# Dataset gốc nằm ở ../Dataset/ (không commit trong prototype repo này).
+# Nếu người dùng translate locally thì file sẽ được gen lại.
+Dataset/sv-benchmarks-loops-py/

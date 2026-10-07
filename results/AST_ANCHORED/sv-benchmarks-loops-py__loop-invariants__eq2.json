@@ -1,0 +1,39 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loop-invariants__eq2",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq2.py",
+  "source_text": "def f(w, x, y, z):\n    while 0:\n        y += 1\n        z += 1\n    assert y == z\n    return\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 1,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "assert_L5",
+      "claim_text": "y == z",
+      "status": "UNREACHABLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L5:C4#0"
+        ],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 0.0
+      },
+      "reason": "path is unreachable (reachability UNSAT)"
+    }
+  ],
+  "elapsed_seconds": 0.0038238000124692917,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "AST_ANCHORED",
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

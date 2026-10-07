@@ -1,0 +1,19 @@
+{
+  "program_id": "cruxeval__sample_470",
+  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_470.py",
+  "source_text": "",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00016729999333620071,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "dict literals not allowed"
+}

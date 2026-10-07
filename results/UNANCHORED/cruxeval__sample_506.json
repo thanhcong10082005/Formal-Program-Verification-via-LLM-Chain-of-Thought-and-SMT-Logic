@@ -1,0 +1,19 @@
+{
+  "program_id": "cruxeval__sample_506",
+  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_506.py",
+  "source_text": "",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00029589992482215166,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"
+}

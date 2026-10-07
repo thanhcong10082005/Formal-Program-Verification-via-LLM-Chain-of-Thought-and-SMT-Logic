@@ -1,0 +1,19 @@
+{
+  "program_id": "cruxeval__sample_535",
+  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_535.py",
+  "source_text": "",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00012059998698532581,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "for-loop only over range(...)"
+}

@@ -1,0 +1,19 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested_delay_nd",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested_delay_nd.py",
+  "source_text": "",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00008729996625334024,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "baseline": "UNANCHORED",
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+}
