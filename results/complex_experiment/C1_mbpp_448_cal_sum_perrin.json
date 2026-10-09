@@ -1,0 +1,477 @@
+{
+  "id": "C1_mbpp_448_cal_sum_perrin",
+  "category": "Complex Arithmetic & Loops",
+  "description": "Perrin numbers sum (19 lines, 3 if branches, 4-variable state rotation in while loop)",
+  "code": "def cal_sum(n):\n    a = 3\n    b = 0\n    c = 2\n    if (n == 0):\n        return 3\n    if (n == 1):\n        return 3\n    if (n == 2):\n        return 5\n    sum = 5\n    while (n > 2):\n        d = a + b\n        sum = sum + d\n        a = b\n        b = c\n        c = d\n        n = n - 1\n    return sum\n",
+  "cot_trace": "We analyze the function cal_sum(n) to establish loop invariants and variable bounds. First, the early returns handle cases where n <= 2. Thus, when reaching line 11, we must have n > 2. At line 11, sum is initialized to 5, and a, b, c are 3, 0, 2 respectively. In the loop, n is decremented by 1 in each iteration, and the loop condition is n > 2. This implies that at the loop header (line 12), n >= 2 is a loop invariant. Since all variables a, b, c, and sum start as non-negative and are only updated via addition, they remain non-negative throughout the loop. Specifically, sum >= 5, a >= 0, b >= 0, and c >= 0 are invariants at line 12. Inside the loop at line 13, the loop condition guarantees n > 2. Upon loop termination, since n started > 2 and decremented by 1, we must have n == 2 at line 19, and sum >= 5 still holds.",
+  "tokens_in": 416,
+  "tokens_out": 471,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def cal_sum(n):\n    a = 3\n    b = 0\n    c = 2\n    if (n == 0):\n        return 3\n    if (n == 1):\n        return 3\n    if (n == 2):\n        return 5\n    sum = 5\n    while (n > 2):\n        d = a + b\n        sum = sum + d\n        a = b\n        b = c\n        c = d\n        n = n - 1\n    return sum\n",
+    "n_claims": 8,
+    "n_verified": 0,
+    "n_counterexample": 8,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L12",
+        "claim_text": "n >= 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.170000000456639
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_2_L12",
+        "claim_text": "sum >= 5",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "sum": 4,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'sum'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0984999998981948
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L12",
+        "claim_text": "a >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "a": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'a'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.2183999997432693
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L12",
+        "claim_text": "b >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "b": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'b'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0959000001093955
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_5_L12",
+        "claim_text": "c >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "c": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'c'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.116800000090734
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_6_L13",
+        "claim_text": "n > 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Assign:L13:C8#0"
+          ],
+          "source_lines": [
+            13
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.0317000005670707
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_7_L19",
+        "claim_text": "n == 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Return:L19:C4#0"
+          ],
+          "source_lines": [
+            19
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.0332000001653796
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_8_L19",
+        "claim_text": "sum >= 5",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Return:L19:C4#0"
+          ],
+          "source_lines": [
+            19
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "sum": 4,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'sum'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.169099999970058
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.40397350000057486,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "We analyze the function cal_sum(n) to establish loop invariants and variable bounds. First, the early returns handle cases where n <= 2. Thus, when reaching line 11, we must have n > 2. At line 11, sum is initialized to 5, and a, b, c are 3, 0, 2 respectively. In the loop, n is decremented by 1 in each iteration, and the loop condition is n > 2. This implies that at the loop header (line 12), n >= 2 is a loop invariant. Since all variables a, b, c, and sum start as non-negative and are only updated via addition, they remain non-negative throughout the loop. Specifically, sum >= 5, a >= 0, b >= 0, and c >= 0 are invariants at line 12. Inside the loop at line 13, the loop condition guarantees n > 2. Upon loop termination, since n started > 2 and decremented by 1, we must have n == 2 at line 19, and sum >= 5 still holds.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def cal_sum(n):\n    a = 3\n    b = 0\n    c = 2\n    if (n == 0):\n        return 3\n    if (n == 1):\n        return 3\n    if (n == 2):\n        return 5\n    sum = 5\n    while (n > 2):\n        d = a + b\n        sum = sum + d\n        a = b\n        b = c\n        c = d\n        n = n - 1\n    return sum\n",
+    "n_claims": 8,
+    "n_verified": 0,
+    "n_counterexample": 8,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L12",
+        "claim_text": "n >= 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.971899999967718
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_2_L12",
+        "claim_text": "sum >= 5",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "sum": 4,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'sum'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0172000002057757
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L12",
+        "claim_text": "a >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "a": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'a'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.008400000500842
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L12",
+        "claim_text": "b >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "b": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'b'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.040600000123959
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_5_L12",
+        "claim_text": "c >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@While:L12:C4#0"
+          ],
+          "source_lines": [
+            12
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "c": -1,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'c'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0686000005080132
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_6_L13",
+        "claim_text": "n > 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Assign:L13:C8#0"
+          ],
+          "source_lines": [
+            13
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.9118999996644561
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_7_L19",
+        "claim_text": "n == 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Return:L19:C4#0"
+          ],
+          "source_lines": [
+            19
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "3",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.8934999996199622
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_8_L19",
+        "claim_text": "sum >= 5",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "cal_sum@Return:L19:C4#0"
+          ],
+          "source_lines": [
+            19
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "sum": 4,
+            "n": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"cal_sum() got an unexpected keyword argument 'sum'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0071999995489023
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.34906669999963924,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "We analyze the function cal_sum(n) to establish loop invariants and variable bounds. First, the early returns handle cases where n <= 2. Thus, when reaching line 11, we must have n > 2. At line 11, sum is initialized to 5, and a, b, c are 3, 0, 2 respectively. In the loop, n is decremented by 1 in each iteration, and the loop condition is n > 2. This implies that at the loop header (line 12), n >= 2 is a loop invariant. Since all variables a, b, c, and sum start as non-negative and are only updated via addition, they remain non-negative throughout the loop. Specifically, sum >= 5, a >= 0, b >= 0, and c >= 0 are invariants at line 12. Inside the loop at line 13, the loop condition guarantees n > 2. Upon loop termination, since n started > 2 and decremented by 1, we must have n == 2 at line 19, and sum >= 5 still holds.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

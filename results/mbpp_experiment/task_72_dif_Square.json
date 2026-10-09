@@ -1,0 +1,141 @@
+{
+  "task_id": 72,
+  "name": "dif_Square",
+  "description": "Check if number can be difference of two squares (n % 4 != 2)",
+  "code": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+  "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+  "tokens_in": 264,
+  "tokens_out": 213,
+  "anchored": {
+    "program_id": "mbpp_72_dif_Square",
+    "source_path": "mbpp_72",
+    "source_text": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+    "n_claims": 2,
+    "n_verified": 1,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "n % 4 != 2",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "dif_Square@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L4",
+        "claim_text": "n % 4 == 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "dif_Square@Return:L4:C4#0"
+          ],
+          "source_lines": [
+            4
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "True",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.5468999997901847
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      }
+    ],
+    "elapsed_seconds": 0.04982230000041454,
+    "total_tokens_in": 264,
+    "total_tokens_out": 213,
+    "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_72_dif_Square",
+    "source_path": "mbpp_72",
+    "source_text": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+    "n_claims": 2,
+    "n_verified": 1,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "n % 4 != 2",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "dif_Square@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L4",
+        "claim_text": "n % 4 == 2",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "dif_Square@Return:L4:C4#0"
+          ],
+          "source_lines": [
+            4
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 0
+          },
+          "replay_verdict": true,
+          "replay_output": "True",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.6397999995897408
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      }
+    ],
+    "elapsed_seconds": 0.04520979999961128,
+    "total_tokens_in": 264,
+    "total_tokens_out": 213,
+    "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

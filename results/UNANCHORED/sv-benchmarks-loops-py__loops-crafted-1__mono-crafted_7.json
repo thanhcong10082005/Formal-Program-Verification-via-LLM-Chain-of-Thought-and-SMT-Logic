@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_7",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_7.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_7.py",
+  "source_text": "def f(x):\n    x = 0\n    y = 50000\n    z = 0\n    while x<1000000:\n        if (x<50000):\n            x++\n        else:\n            {\n\t\t\tx++\n\t\t\ty++\n\t\t}\n    while x<1000000){\n\t\tif(x<50000)\n\t\t\tx++\n\t\telse{\n\t\t\tx++\n\t\t\ty++\n\t\t}\n\t}\n\twhile(y>0:\n        y = y-2\n        x = x-2\n    assert z==x\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001558999065309763,
+  "elapsed_seconds": 0.00015050000001792796,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: unmatched ')'"

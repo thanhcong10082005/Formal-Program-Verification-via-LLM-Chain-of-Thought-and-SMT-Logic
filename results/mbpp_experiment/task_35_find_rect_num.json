@@ -1,0 +1,127 @@
+{
+  "task_id": 35,
+  "name": "find_rect_num",
+  "description": "Find n-th rectangular number: n * (n + 1)",
+  "code": "def find_rect_num(n):\n    return n * (n + 1)\n",
+  "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+  "tokens_in": 252,
+  "tokens_out": 311,
+  "anchored": {
+    "program_id": "mbpp_35_find_rect_num",
+    "source_path": "mbpp_35",
+    "source_text": "def find_rect_num(n):\n    return n * (n + 1)\n",
+    "n_claims": 2,
+    "n_verified": 2,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n * (n + 1) >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_rect_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "(n * (n + 1)) % 2 == 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_rect_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.008760300000176358,
+    "total_tokens_in": 252,
+    "total_tokens_out": 311,
+    "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_35_find_rect_num",
+    "source_path": "mbpp_35",
+    "source_text": "def find_rect_num(n):\n    return n * (n + 1)\n",
+    "n_claims": 2,
+    "n_verified": 2,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n * (n + 1) >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_rect_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "(n * (n + 1)) % 2 == 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_rect_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.007560600000033446,
+    "total_tokens_in": 252,
+    "total_tokens_out": 311,
+    "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

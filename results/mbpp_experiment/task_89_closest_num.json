@@ -1,0 +1,89 @@
+{
+  "task_id": 89,
+  "name": "closest_num",
+  "description": "Find the closest smaller number than n: n - 1",
+  "code": "def closest_num(n):\n    return n - 1\n",
+  "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+  "tokens_in": 246,
+  "tokens_out": 106,
+  "anchored": {
+    "program_id": "mbpp_89_closest_num",
+    "source_path": "mbpp_89",
+    "source_text": "def closest_num(n):\n    return n - 1\n",
+    "n_claims": 1,
+    "n_verified": 1,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n - 1 < n",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "closest_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.0019038000000364264,
+    "total_tokens_in": 246,
+    "total_tokens_out": 106,
+    "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_89_closest_num",
+    "source_path": "mbpp_89",
+    "source_text": "def closest_num(n):\n    return n - 1\n",
+    "n_claims": 1,
+    "n_verified": 1,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n - 1 < n",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "closest_num@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.0007572000004074653,
+    "total_tokens_in": 246,
+    "total_tokens_out": 106,
+    "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

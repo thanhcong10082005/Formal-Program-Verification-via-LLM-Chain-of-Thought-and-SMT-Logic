@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1b",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_1b.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_1b.py",
+  "source_text": "def f(a):\n    a = 6\n    a = 0\n    while a < 6:\n        pass\n        ++a  # for-step\n    assert a == 6\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00015350000467151403,
+  "elapsed_seconds": 0.00007760000016787671,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "standalone expressions not allowed"

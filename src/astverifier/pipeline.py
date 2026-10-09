@@ -15,7 +15,8 @@ from typing import Dict, List, Optional, Tuple
 
 import z3
 
-from .binding import Claim, extract_asserts
+from .binding import Claim, extract_asserts, bind_llm_claims
+from .llm import generate_cot_and_claims
 from .classify import (
     AnchorInfo,
     ClaimResult,
@@ -60,6 +61,9 @@ def run_pipeline(
     source_path: str = "<inline>",
     baseline: str = "AST_ANCHORED",
     do_replay: bool = True,
+    use_llm: bool = False,
+    gemini_api_key: Optional[str] = None,
+    gemini_model: str = "gemini-flash-latest",
 ) -> ProgramResult:
     """Execute the full pipeline on a single source."""
     start = time.perf_counter()
@@ -74,6 +78,7 @@ def run_pipeline(
             baseline=baseline,
             rejected=True,
             reason=sub.rejected_reason,
+            source_text=source,
         )
         result.elapsed_seconds = elapsed
         return result
@@ -85,14 +90,41 @@ def run_pipeline(
     executor = TrustedSymbolicExecutor(sub.tree, ids)
     transitions = executor.build_all_transitions()
 
-    # --- 4. Anchor binding (skipped when UNANCHORED) ---
+    # --- 4. Claim extraction & LLM Chain-of-Thought ---
+    static_claims = extract_asserts(sub.tree, ids)
+    llm_claims: List[Claim] = []
+    tokens_in = 0
+    tokens_out = 0
+    cot_trace = ""
+
+    if use_llm:
+        try:
+            llm_res = generate_cot_and_claims(source, api_key=gemini_api_key, model=gemini_model)
+            tokens_in = llm_res.tokens_in
+            tokens_out = llm_res.tokens_out
+            cot_trace = llm_res.cot_trace
+            llm_claims = bind_llm_claims(sub.tree, ids, llm_res.claims)
+        except Exception as e:
+            llm_claims = [
+                Claim(
+                    claim_id="llm_error",
+                    source_line=1,
+                    expr_source=f"LLM_ERROR: {e}",
+                    expr_node=None,
+                    anchor=None,
+                    status="TRANSLATION_ERROR",
+                )
+            ]
+
+    raw_claims = static_claims + llm_claims
+    unsupported_claims: List[Claim] = []
+
     if baseline == "AST_ANCHORED":
-        claims = extract_asserts(sub.tree, ids)
-        claims = [c for c in claims if c.status == "ANCHORED"]
+        claims = [c for c in raw_claims if c.status == "ANCHORED"]
+        unsupported_claims = [c for c in raw_claims if c.status in ("UNSUPPORTED", "TRANSLATION_ERROR")]
     else:
         # Unanchored: pretend every claim is grounded by stubbing its anchor.
-        claims = extract_asserts(sub.tree, ids)
-        # leave as-is (anchor may be None), we don't filter
+        claims = raw_claims
 
     # --- 5. Process each claim ---
     reach_list = _select_reachability(executor, claims)
@@ -102,6 +134,8 @@ def run_pipeline(
         reachability = reach_list[0]
 
     claim_results: List[ClaimResult] = []
+
+    # Process claims that passed anchor gate
     for claim in claims:
         cr = _process_claim(
             claim=claim,
@@ -113,6 +147,19 @@ def run_pipeline(
         )
         claim_results.append(cr)
 
+    # For AST_ANCHORED, record rejected claims so Hallucination Rate reflects them
+    for c in unsupported_claims:
+        st = StatusEnum.UNSUPPORTED if c.status == "UNSUPPORTED" else StatusEnum.TRANSLATION_ERROR
+        claim_results.append(
+            ClaimResult(
+                claim_id=c.claim_id,
+                claim_text=c.expr_source,
+                status=st,
+                anchor=AnchorInfo(node_ids=[], source_lines=[c.source_line], has_grounding=False),
+                reason=f"Claim rejected by Anchor Gate ({c.status})",
+            )
+        )
+
     # --- 6. Roll up to ProgramResult ---
     result = _roll_up(
         claims=claim_results,
@@ -122,6 +169,9 @@ def run_pipeline(
         baseline=baseline,
         elapsed=time.perf_counter() - start,
         transitions=transitions,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        cot_trace=cot_trace,
     )
     return result
 
@@ -145,6 +195,15 @@ def _process_claim(
     # UNANCHORED baselines also reject when the claim has no anchor at all
     if baseline == "UNANCHORED":
         anchor_info.has_grounding = True  # pretend it has grounding
+
+    if claim.expr_node is None:
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor_info,
+            reason="Expression could not be parsed to AST",
+        )
 
     # Translate the expression
     obligation = build_obligations(claim, reachability, executor)
@@ -276,6 +335,9 @@ def _roll_up(
     baseline: str,
     elapsed: float,
     transitions,
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+    cot_trace: str = "",
 ) -> ProgramResult:
     by_status: Dict[StatusEnum, int] = {s: 0 for s in StatusEnum}
     for c in claims:
@@ -294,6 +356,9 @@ def _roll_up(
         claim_results=claims,
         elapsed_seconds=elapsed,
         baseline=baseline,
+        total_tokens_in=tokens_in,
+        total_tokens_out=tokens_out,
+        cot_trace=cot_trace,
     )
 
 

@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sum_by_3",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sum_by_3.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sum_by_3.py",
+  "source_text": "def f(i, j, k, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: k (kept as param)\n    while i < n:\n        i = i + 1\n    j = i\n    while i < n ) {\n    i = i + 1\n  }\n  int j = i\n  while( j < n:\n        j = j+1\n    while i < n ) {\n    i = i + 1\n  }\n  int j = i\n  while( j < n ) {\n    j = j+1\n  }\n  k = j\n  while( k < n:\n        k = k+1\n    assert (i+j+k)/3 <= SIZE\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00004610000178217888,
+  "elapsed_seconds": 0.00003270000001975859,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: unmatched ')'"

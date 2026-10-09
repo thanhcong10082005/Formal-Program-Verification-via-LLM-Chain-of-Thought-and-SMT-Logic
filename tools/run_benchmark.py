@@ -15,10 +15,11 @@ from astverifier.classify import ProgramResult
 from astverifier.pipeline import run_pipeline
 
 
-DATASET_ROOT = Path("E:/HK261/DACN/Dataset")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATASET_ROOT = (PROJECT_ROOT.parent / "Dataset") if (PROJECT_ROOT.parent / "Dataset").exists() else (PROJECT_ROOT / "Dataset")
 PY_LOOPS_ROOT = DATASET_ROOT / "sv-benchmarks-loops-py"
 CRUXEVAL_JSONL = DATASET_ROOT / "cruxeval-main" / "data" / "cruxeval.jsonl"
-RESULT_ROOT = Path("E:/HK261/DACN/prototype/results")
+RESULT_ROOT = PROJECT_ROOT / "results"
 
 BASELINES = ("AST_ANCHORED", "UNANCHORED")
 
@@ -125,9 +126,11 @@ def _cruxeval_python_subset(limit: int = 200) -> List[Path]:
     samples whose input/output literals contain non-int/bool/None values.
     """
     out: List[Path] = []
-    if not CRUXEVAL_JSONL.exists():
-        return out
     target_dir = RESULT_ROOT / "_cruxeval_py"
+    if not CRUXEVAL_JSONL.exists():
+        if target_dir.exists():
+            return sorted(target_dir.glob("*.py"))[:limit]
+        return out
     target_dir.mkdir(parents=True, exist_ok=True)
     cnt = 0
     with CRUXEVAL_JSONL.open("r", encoding="utf-8") as fh:

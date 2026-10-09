@@ -16,7 +16,7 @@ from astverifier.classify import ProgramResult, StatusEnum
 from astverifier.metrics import aggregate, load_ground_truth
 
 
-RESULT_ROOT = Path("E:/HK261/DACN/prototype/results")
+RESULT_ROOT = (Path(__file__).resolve().parent.parent / "results")
 GT_FILE = Path(__file__).resolve().parent / "ground_truth.json"
 
 
@@ -212,6 +212,8 @@ def main() -> int:
         md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **{a_fdr:.3f}** | {u_fdr:.3f} | {(a_fdr or 0)-(u_fdr or 0):+.3f} |")
     elif a_fdr is not None:
         md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **{a_fdr:.3f}** | n/a | - |")
+    elif u_fdr is not None:
+        md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **n/a** | {u_fdr:.3f} | - |")
     else:
         md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |")
     # Token consumption

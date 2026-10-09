@@ -10,7 +10,7 @@ trên **188 programs** (73 SV-COMP loop benchmarks + 21 CRUXEval QF-LIA samples)
 
 | Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |
 |--------|-----------|--------------|------------|-----------|
-| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |
+| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **n/a** | 0.333 | - |
 | Avg Tokens (in) | $T_{in}$ | 0.0 | 0.0 | +0.0 |
 | Avg Tokens (out) | $T_{out}$ | 0.0 | 0.0 | +0.0 |
 | Avg Cost (USD) | $C_{usd}$ | 0.000000 | 0.000000 | +0.000000 |

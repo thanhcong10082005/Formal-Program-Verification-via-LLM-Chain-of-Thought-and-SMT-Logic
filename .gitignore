@@ -21,6 +21,7 @@ venv/
 env/
 .env/
 ENV/
+.env
 .python-version
 
 # --- Z3 model cache (nếu có dùng z3 parse cache) --------------------------

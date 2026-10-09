@@ -12,8 +12,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from translate_svcomp import translate_file  # noqa: E402
 
 
-SRC_ROOT = Path("E:/HK261/DACN/Dataset/sv-benchmarks-loops/c")
-DST_ROOT = Path("E:/HK261/DACN/Dataset/sv-benchmarks-loops-py")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATASET_ROOT = (PROJECT_ROOT.parent / "Dataset") if (PROJECT_ROOT.parent / "Dataset").exists() else (PROJECT_ROOT / "Dataset")
+SRC_ROOT = DATASET_ROOT / "sv-benchmarks-loops" / "c"
+DST_ROOT = DATASET_ROOT / "sv-benchmarks-loops-py"
 
 
 def main() -> int:

@@ -1,0 +1,165 @@
+{
+  "task_id": 51,
+  "name": "check_equilateral",
+  "description": "Check if triangle is equilateral (chained comparison)",
+  "code": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+  "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+  "tokens_in": 276,
+  "tokens_out": 221,
+  "anchored": {
+    "program_id": "mbpp_51_check_equilateral",
+    "source_path": "mbpp_51",
+    "source_text": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+    "n_claims": 3,
+    "n_verified": 3,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "x == y",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L3",
+        "claim_text": "y == z",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L3",
+        "claim_text": "x == z",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.007866200000535173,
+    "total_tokens_in": 276,
+    "total_tokens_out": 221,
+    "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_51_check_equilateral",
+    "source_path": "mbpp_51",
+    "source_text": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+    "n_claims": 3,
+    "n_verified": 3,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "x == y",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L3",
+        "claim_text": "y == z",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L3",
+        "claim_text": "x == z",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_equilateral@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.003792999999859603,
+    "total_tokens_in": 276,
+    "total_tokens_out": 221,
+    "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

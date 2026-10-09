@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_12.py",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_12.py",
   "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 0\n    while x<y:\n        if (x>=5000000):\n            z=z+2\n        x += 1\n    assert ( not (z%2)) != 0\n    return\n",
   "n_claims": 1,
   "n_verified": 1,
@@ -30,9 +30,10 @@
       "reason": "claim holds on every reachable execution"
     }
   ],
-  "elapsed_seconds": 0.004028300056234002,
+  "elapsed_seconds": 0.0019919999999729043,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,
   "subset_rejection_reason": null

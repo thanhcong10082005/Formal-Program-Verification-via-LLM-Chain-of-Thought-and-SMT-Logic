@@ -48,4 +48,54 @@ def extract_anchored_ids(claims: List[Claim]) -> List[NodeId]:
     return [c.anchor for c in claims if c.anchor is not None]
 
 
-__all__ = ["Claim", "extract_asserts", "extract_anchored_ids"]
+def bind_llm_claims(
+    tree: ast.Module,
+    ids: dict[ast.AST, NodeId],
+    suggested_claims: list,
+) -> List[Claim]:
+    """Map LLM-proposed claims to AST NodeId anchors, marking errors as UNSUPPORTED/TRANSLATION_ERROR."""
+    out: List[Claim] = []
+    for idx, sc in enumerate(suggested_claims):
+        line = getattr(sc, "line", 0)
+        expr_str = getattr(sc, "expression", "")
+        cid = f"llm_claim_{idx + 1}_L{line}"
+
+        expr_node = None
+        parse_err = False
+        try:
+            parsed = ast.parse(expr_str, mode="eval")
+            expr_node = parsed.body
+        except Exception:
+            parse_err = True
+
+        anchor = None
+        for node, nid in ids.items():
+            if nid.lineno == line:
+                anchor = nid
+                break
+        if anchor is None:
+            preceding = [nid for nid in ids.values() if 0 < nid.lineno <= line]
+            if preceding:
+                preceding.sort(key=lambda x: x.lineno, reverse=True)
+                anchor = preceding[0]
+
+        status = "ANCHORED"
+        if parse_err or expr_node is None:
+            status = "TRANSLATION_ERROR"
+        elif anchor is None:
+            status = "UNSUPPORTED"
+
+        out.append(
+            Claim(
+                claim_id=cid,
+                source_line=line,
+                expr_source=expr_str,
+                expr_node=expr_node,
+                anchor=anchor,
+                status=status,
+            )
+        )
+    return out
+
+
+__all__ = ["Claim", "extract_asserts", "extract_anchored_ids", "bind_llm_claims"]

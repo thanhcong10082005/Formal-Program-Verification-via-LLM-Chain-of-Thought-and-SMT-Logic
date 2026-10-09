@@ -1,7 +1,7 @@
 {
   "program_id": "cruxeval__sample_497",
-  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_497.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic\\results\\_cruxeval_py\\sample_497.py",
+  "source_text": "def f(n):\n    b = list(str(n))\n    for i in range(2,len(b)): b[i] += '+'\n    return b\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001289999345317483,
+  "elapsed_seconds": 0.00007919999984551396,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"

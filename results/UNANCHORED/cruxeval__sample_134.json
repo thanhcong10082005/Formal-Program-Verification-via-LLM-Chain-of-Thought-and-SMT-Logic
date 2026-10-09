@@ -1,7 +1,7 @@
 {
   "program_id": "cruxeval__sample_134",
-  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_134.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic\\results\\_cruxeval_py\\sample_134.py",
+  "source_text": "def f(n):\n    t = 0\n    b = ''\n    digits = list(map(int, str(n)))\n    for d in digits:\n        if d == 0: t += 1\n        else: break\n    for _ in range(t):\n        b += str(1) + '0' + str(4)\n    b += str(n)\n    return b\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00015410000924021006,
+  "elapsed_seconds": 0.00010309999993296515,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"

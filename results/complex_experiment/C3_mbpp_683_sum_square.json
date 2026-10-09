@@ -1,0 +1,321 @@
+{
+  "id": "C3_mbpp_683_sum_square",
+  "category": "Complex Arithmetic & Loops",
+  "description": "Sum of two squares representation (Nested while loops)",
+  "code": "def sum_Square(n):\n    i = 1\n    while i * i <= n:\n        j = 1\n        while (j * j <= n):\n            if (i * i + j * j == n):\n                return True\n            j = j + 1\n        i = i + 1\n    return False\n",
+  "cot_trace": "The program checks if a given integer `n` can be expressed as the sum of two squares, `i*i + j*j == n`. We analyze the loop invariants and variable bounds:\n1. The outer loop variable `i` starts at 1 and increases by 1 in each iteration. Thus, at the outer loop header (line 3), `i >= 1` is always true.\n2. Upon entering the outer loop, the condition `i * i <= n` is guaranteed to hold. This remains true throughout the outer loop body, including at the inner loop header (line 5).\n3. The inner loop variable `j` starts at 1 and increases by 1. Thus, at the inner loop header (line 5), `j >= 1` holds.\n4. Inside the inner loop (line 6), both loop conditions must hold, meaning `i * i <= n` and `j * j <= n` are both true.",
+  "tokens_in": 333,
+  "tokens_out": 354,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def sum_Square(n):\n    i = 1\n    while i * i <= n:\n        j = 1\n        while (j * j <= n):\n            if (i * i + j * j == n):\n                return True\n            j = j + 1\n        i = i + 1\n    return False\n",
+    "n_claims": 5,
+    "n_verified": 0,
+    "n_counterexample": 5,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "i >= 1",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": 0,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.4869999995426042
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_2_L5",
+        "claim_text": "j >= 1",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "j": 0,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'j'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.2956000000485801
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L5",
+        "claim_text": "i * i <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": -5,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 3.276400000686408
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L6",
+        "claim_text": "j * j <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@If:L6:C12#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "j": -6,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'j'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 12.233800000103656
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_5_L6",
+        "claim_text": "i * i <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@If:L6:C12#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": -7,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 3.2596999999441323
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.3438416999997571,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "The program checks if a given integer `n` can be expressed as the sum of two squares, `i*i + j*j == n`. We analyze the loop invariants and variable bounds:\n1. The outer loop variable `i` starts at 1 and increases by 1 in each iteration. Thus, at the outer loop header (line 3), `i >= 1` is always true.\n2. Upon entering the outer loop, the condition `i * i <= n` is guaranteed to hold. This remains true throughout the outer loop body, including at the inner loop header (line 5).\n3. The inner loop variable `j` starts at 1 and increases by 1. Thus, at the inner loop header (line 5), `j >= 1` holds.\n4. Inside the inner loop (line 6), both loop conditions must hold, meaning `i * i <= n` and `j * j <= n` are both true.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def sum_Square(n):\n    i = 1\n    while i * i <= n:\n        j = 1\n        while (j * j <= n):\n            if (i * i + j * j == n):\n                return True\n            j = j + 1\n        i = i + 1\n    return False\n",
+    "n_claims": 5,
+    "n_verified": 0,
+    "n_counterexample": 5,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "i >= 1",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": 0,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 2.2521999999298714
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_2_L5",
+        "claim_text": "j >= 1",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "j": 0,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'j'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.1264000004302943
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L5",
+        "claim_text": "i * i <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@While:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": 7,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 7.414699999571894
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L6",
+        "claim_text": "j * j <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@If:L6:C12#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "j": -8,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'j'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 6.215999999767519
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_5_L6",
+        "claim_text": "i * i <= n",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "sum_Square@If:L6:C12#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "i": -4,
+            "n": 2
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"sum_Square() got an unexpected keyword argument 'i'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 12.066799999956856
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.26842759999999544,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "The program checks if a given integer `n` can be expressed as the sum of two squares, `i*i + j*j == n`. We analyze the loop invariants and variable bounds:\n1. The outer loop variable `i` starts at 1 and increases by 1 in each iteration. Thus, at the outer loop header (line 3), `i >= 1` is always true.\n2. Upon entering the outer loop, the condition `i * i <= n` is guaranteed to hold. This remains true throughout the outer loop body, including at the inner loop header (line 5).\n3. The inner loop variable `j` starts at 1 and increases by 1. Thus, at the inner loop header (line 5), `j >= 1` holds.\n4. Inside the inner loop (line 6), both loop conditions must hold, meaning `i * i <= n` and `j * j <= n` are both true.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

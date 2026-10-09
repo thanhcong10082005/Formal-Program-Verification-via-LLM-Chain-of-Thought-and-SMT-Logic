@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__discover_list",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\discover_list.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\discover_list.py",
+  "source_text": "def f(ret):\n    # skip: 's'\n    # skip: 't'\n    # skip: 'r'\n    # skip: 'u'\n    # skip: 'c'\n    # skip: 't'\n    # skip: 's'\n    # skip: 'm'\n    # skip: 'p'\n    # skip: '_'\n    # skip: 't'\n    # skip: 'a'\n    # skip: 'r'\n    # skip: 'g'\n    # skip: 'e'\n    # skip: 't'\n    # skip: '_'\n    # skip: 'o'\n    # skip: 'b'\n    # skip: 'j'\n    # skip: 't'\n    # skip: 'o'\n    # skip: 'b'\n    # skip: 'j'\n    # skip: ';'\n    # skip: 's'\n    # skip: 't'\n    # skip: 'r'\n    # skip: 'u'\n    # skip: 'c'\n    # skip: 't'\n    # skip: 'o'\n    # skip: 'p'\n    # skip: 't'\n    # skip: 's'\n    # skip: '_'\n    # skip: 't'\n    # skip: 'o'\n    # skip: 'p'\n    # skip: 't'\n    # skip: 's'\n    # skip: ';'\n    # skip: 'u'\n    # skip: 'n'\n    # skip: 's'\n    # skip: 'i'\n    # skip: 'g'\n    # skip: 'n'\n    # skip: 'e'\n    # skip: 'd'\n    # skip: 'c'\n    # skip: 'h'\n    # skip: 'a'\n    # skip: 'r'\n    # skip: '*'\n    # skip: 'r'\n    # skip: 'e'\n    # skip: 's'\n    # skip: 'p'\n    # skip: ';'\n    resp = (unsigned char *) safe_malloc (sizeof (unsigned char))\n    # skip: 'i'\n    # skip: 'n'\n    # skip: 't'\n    ret = do_discover_list( & tobj, 0 , resp,  sizeof (resp),  & opts)\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001308000646531582,
+  "elapsed_seconds": 0.00010989999987032206,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: invalid syntax. Perhaps you forgot a comma?"

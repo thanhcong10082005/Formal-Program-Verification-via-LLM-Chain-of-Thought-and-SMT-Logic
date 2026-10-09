@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv3",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv3.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv3.py",
+  "source_text": "def f(i, j):\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    while i<SIZE:\n        if (0):\n            i = i + 8\n        else:\n            i = i + 4\n    j = i/4\n    assert (j * 4) == i\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00018789991736412048,
+  "elapsed_seconds": 0.00011150000000270666,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "binary operator Div not allowed"
