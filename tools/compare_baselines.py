@@ -199,11 +199,11 @@ def main() -> int:
 
     # --- Build Markdown ----------------------------------------------------
     md: List[str] = []
-    md.append("# Báo cáo thực nghiệm: AST-Anchored CoT Verification\n")
-    md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai chế độ baseline**.")
+    md.append("# Báo cáo thực nghiệm: AST-Anchored vs Direct Formalization\n")
+    md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.")
     md.append("Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.\n")
     md.append("- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.")
-    md.append("- `UNANCHORED`: free-predicate validity; không dùng NodeId, program state, executor hoặc reachability.\n")
+    md.append("- `UNANCHORED`: Baseline A, Direct Formalization bằng SMT-LIB2; không dùng NodeId, program state, executor hoặc reachability.\n")
 
     md.append("## 1. So sánh đối chứng — Bảng chính\n")
     md.append("| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |")
@@ -217,6 +217,16 @@ def main() -> int:
         md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **n/a** | {u_fdr:.3f} | - |")
     else:
         md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |")
+    md.append(f"| Accuracy | $(TP+TN)/N$ | **{a_metrics.accuracy:.3f}** | {u_metrics.accuracy:.3f} | {a_metrics.accuracy - u_metrics.accuracy:+.3f} |")
+    a_precision = f"{a_metrics.precision:.3f}" if a_metrics.precision is not None else "n/a"
+    u_precision = f"{u_metrics.precision:.3f}" if u_metrics.precision is not None else "n/a"
+    md.append(f"| Precision (VERIFIED) | $TP/(TP+FP)$ | **{a_precision}** | {u_precision} | - |")
+    a_recall = f"{a_metrics.recall:.3f}" if a_metrics.recall is not None else "n/a"
+    u_recall = f"{u_metrics.recall:.3f}" if u_metrics.recall is not None else "n/a"
+    md.append(f"| Recall (VERIFIED) | $TP/(TP+FN)$ | **{a_recall}** | {u_recall} | - |")
+    a_f1 = f"{a_metrics.f1:.3f}" if a_metrics.f1 is not None else "n/a"
+    u_f1 = f"{u_metrics.f1:.3f}" if u_metrics.f1 is not None else "n/a"
+    md.append(f"| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **{a_f1}** | {u_f1} | - |")
     # Token consumption
     a_in = a_metrics.token_avg_in
     u_in = u_metrics.token_avg_in
@@ -230,17 +240,23 @@ def main() -> int:
     md.append(f"| Avg Cost (USD) | $C_{{usd}}$ | {a_cost:.6f} | {u_cost:.6f} | {a_cost - u_cost:+.6f} |")
     # Hallucination
     md.append(f"| Hallucination Rate (HR) | $H = \\frac{{N_{{UNSUP}} + N_{{TE}}}}{{N_{{claims}}}}$ | **{a_metrics.hr:.3f}** | {u_metrics.hr:.3f} | {a_metrics.hr - u_metrics.hr:+.3f} |")
-    # CRVR
-    if a_metrics.crvr is not None and u_metrics.crvr is not None:
-        md.append(f"| Counterexample Replay Validity (CRVR) | $1 - \\frac{{\\text{{card}}(S.V.)}}{{\\text{{card}}(CE_{{Z3}})}}$ | **{a_metrics.crvr:.3f}** | {u_metrics.crvr:.3f} | {a_metrics.crvr - u_metrics.crvr:+.3f} |")
-    else:
-        md.append(f"| Counterexample Replay Validity (CRVR) | $1 - \\frac{{\\text{{card}}(S.V.)}}{{\\text{{card}}(CE_{{Z3}})}}$ | n/a (no counterexample) | n/a | - |")
+    # CRVR is not applicable to direct counterexamples because they have no
+    # target location and therefore no replay verdict.
+    a_crvr = f"{a_metrics.crvr:.3f}" if a_metrics.crvr is not None else "n/a"
+    u_crvr = f"{u_metrics.crvr:.3f}" if u_metrics.crvr is not None else "n/a"
+    crvr_delta = (
+        f"{a_metrics.crvr - u_metrics.crvr:+.3f}"
+        if a_metrics.crvr is not None and u_metrics.crvr is not None
+        else "-"
+    )
+    md.append(f"| Counterexample Replay Validity (CRVR) | $\\frac{{\\text{{card}}(REPRODUCED)}}{{\\text{{card}}(CE_{{Z3}})}}$ | **{a_crvr}** | {u_crvr} | {crvr_delta} |")
 
     md.append("")
     md.append("Trong đó:")
     md.append("- $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.")
     md.append("- $H$: claim bị reject vì UNSUPPORTED + TRANSLATION_ERROR.")
     md.append("- $S.V.$: Soundness Violation — counterexample từ Z3 không reproduce trên CPython.")
+    md.append("- Accuracy / Precision / Recall / F1 treat `VERIFIED` as positive; all other statuses are negative.")
     md.append("")
 
     # --- Verdict matrix ---------------------------------------------------
@@ -314,10 +330,10 @@ def main() -> int:
 
     # --- Notes -----------------------------------------------------------
     md.append("## 7. Ghi chú thực nghiệm\n")
-    md.append("1. **LLM usage is explicit**: `run_benchmark.py` is deterministic by default; `--use-llm` is required for Gemini claim generation. Token totals are copied to both baseline records for the same LLM call.")
+    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.")
     md.append("2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.")
     md.append("3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.")
-    md.append("4. **Replay boundary**: a replay is reproduced only when CPython reaches the target line and evaluates the target claim as false. A normal return alone is not confirmation.")
+    md.append("4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.")
     md.append("5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.")
     md.append("6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.")
     md.append("")
@@ -333,6 +349,7 @@ def main() -> int:
     md.append("│   ├── executor.py     # Trusted symbolic executor")
     md.append("│   ├── binding.py      # Anchor binding gate α(c)")
     md.append("│   ├── obligations.py  # Two-query Z3 protocol")
+    md.append("│   ├── direct.py       # Direct SMT-LIB2 validator")
     md.append("│   ├── replay.py       # CPython subprocess counterexample replay")
     md.append("│   ├── pipeline.py     # End-to-end orchestrator")
     md.append("│   └── metrics.py      # FDR / Tokens / HR / CRVR aggregation")

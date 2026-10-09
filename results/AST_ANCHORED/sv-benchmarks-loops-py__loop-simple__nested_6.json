@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-simple__nested_6",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_6.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-simple/nested_6.py",
   "source_text": "def f(a, b, c, d, e, f):\n    a = 6\n    b = 6\n    c = 6\n    d = 6\n    e = 6\n    f = 6\n    a = 0\n    while a < 6:\n            b = 0\n            while b < 6:\n                    c = 0\n                    while c < 6:\n                            d = 0\n                            while d < 6:\n                                    e = 0\n                                    while e < 6:\n                                            f = 0\n                                            while f < 6:\n                                                pass\n                                                ++f  # for-step\n                                        ++e  # for-step\n                                ++d  # for-step\n                        ++c  # for-step\n                ++b  # for-step\n        ++a  # for-step\n    assert  not (a == 6 && b == 6 && c == 6 && d == 6 && e == 6 && f == 6)\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00014529999998558196,
+  "elapsed_seconds": 0.00021650013513863087,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

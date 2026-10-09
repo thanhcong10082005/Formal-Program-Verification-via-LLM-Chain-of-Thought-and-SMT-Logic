@@ -2,4 +2,10 @@
 __version__ = "0.1.0"
 
 from .pipeline import run_pipeline
-from .llm import generate_cot_and_claims
+from .llm import generate_cot_and_claims, generate_direct_formalization
+
+__all__ = [
+    "run_pipeline",
+    "generate_cot_and_claims",
+    "generate_direct_formalization",
+]

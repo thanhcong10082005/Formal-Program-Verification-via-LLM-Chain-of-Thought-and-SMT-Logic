@@ -21,6 +21,10 @@ PRICE_OUT_PER_1K = 0.015
 @dataclass
 class Metrics:
     fdr: float | None = None           # False Discovery Rate
+    accuracy: float | None = None      # (TP + TN) / all labelled claims
+    precision: float | None = None     # TP / (TP + FP)
+    recall: float | None = None        # TP / (TP + FN)
+    f1: float | None = None            # VERIFIED-positive F1 score
     token_avg_in: float = 0.0
     token_avg_out: float = 0.0
     cost_avg_usd: float = 0.0
@@ -54,20 +58,28 @@ def aggregate(
     hr_n = sum(r.n_unsupported + r.n_translation_error for r in results)
     hr = hr_n / n_claims_total if n_claims_total else 0.0
 
-    # CRVR: counterexamples where replay succeeded / total counterexamples
-    ce_total = sum(r.n_counterexample for r in results)
-    ce_replayed = 0
+    # CRVR is defined only for counterexamples with an actual replay verdict.
+    # Direct Formalization deliberately stores ``replay_verdict = None`` for
+    # every model, so it must report n/a rather than treating non-replay as a
+    # failed replay.
+    replay_verdicts: list[bool] = []
     for r in results:
         for cr in r.claim_results:
             if cr.status == StatusEnum.COUNTEREXAMPLE and cr.counterexample:
-                if cr.counterexample.replay_verdict is True:
-                    ce_replayed += 1
-    crvr = (ce_replayed / ce_total) if ce_total else None
+                verdict = cr.counterexample.replay_verdict
+                if verdict is not None:
+                    replay_verdicts.append(verdict)
+    crvr = (
+        sum(verdict is True for verdict in replay_verdicts) / len(replay_verdicts)
+        if replay_verdicts
+        else None
+    )
 
-    # FDR: requires ground truth labels
-    fdr = None
+    # Classification metrics: VERIFIED is the positive class. Every other
+    # verdict is negative for this binary summary, including UNKNOWN_TIMEOUT.
+    fdr = accuracy = precision = recall = f1 = None
     if ground_truth:
-        tp, fp = 0, 0
+        tp = fp = fn = tn = 0
         for r in results:
             gt_status = ground_truth.get(_normalize_program_id(r.program_id))
             if gt_status is None:
@@ -78,14 +90,25 @@ def aggregate(
                         tp += 1
                     else:
                         fp += 1
-                # FDR is defined over positive VERIFIED reports.  A
-                # COUNTEREXAMPLE on a verified program is a false negative,
-                # not a false discovery, so it is excluded from this ratio.
+                elif gt_status.upper() == "VERIFIED":
+                    fn += 1
+                else:
+                    tn += 1
         denom = tp + fp
         fdr = (fp / denom) if denom else None
+        total = tp + fp + fn + tn
+        accuracy = ((tp + tn) / total) if total else None
+        precision = (tp / (tp + fp)) if (tp + fp) else None
+        recall = (tp / (tp + fn)) if (tp + fn) else None
+        f1_denom = 2 * tp + fp + fn
+        f1 = (2 * tp / f1_denom) if f1_denom else None
 
     return Metrics(
         fdr=fdr,
+        accuracy=accuracy,
+        precision=precision,
+        recall=recall,
+        f1=f1,
         token_avg_in=token_avg_in,
         token_avg_out=token_avg_out,
         cost_avg_usd=cost_avg,

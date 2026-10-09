@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-invariants__const",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\const.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-invariants/const.py",
   "source_text": "def f(s):\n    s = 0\n    while 0:\n        if (s != 0):\n            s += 1\n        if (s != 0) {\n      ++s\n    }\n    if (0):\n            assert s == 0\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00013610000019070867,
+  "elapsed_seconds": 0.00006425008177757263,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

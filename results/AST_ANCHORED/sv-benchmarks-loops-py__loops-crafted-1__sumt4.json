@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt4",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt4.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/sumt4.py",
   "source_text": "def f(n, v4):\n    n = 0\n    i = 0\n    k = 0\n    j = 0\n    l = 0\n    v4 = 0\n    while l < n:\n        if ( not (l%4)):\n            v4 = v4 + 1\n        else:\n            if( not (l%3))\n\t    i = i + 1\n        if ( not (l%2)):\n            j = j+1\n        else:\n            k = k+1\n        l = l+1\n    assert (i+j+k+v4) == l\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001589999999396241,
+  "elapsed_seconds": 0.00010187504813075066,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

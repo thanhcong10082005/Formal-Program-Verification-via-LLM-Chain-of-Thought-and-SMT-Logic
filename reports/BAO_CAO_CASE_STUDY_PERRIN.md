@@ -4,7 +4,8 @@
 > **Audit correction.** Đây là kết quả lịch sử. Không được đọc các verdict
 > cũ như chứng minh soundness toàn chương trình: loop unrolling là bounded,
 > claim phải được anchor tại line chính xác và state target, còn baseline
-> `UNANCHORED` là free-predicate solver không có program context. Replay chỉ
+> `UNANCHORED` là Baseline A Direct Formalization, nhận SMT-LIB2 Boolean terms
+> và không có program context. Replay chỉ
 > xác nhận khi CPython thực sự tới target line và claim bị false tại đó.
 
 ---
@@ -21,7 +22,9 @@ Báo cáo này trình bày nghiên cứu điển hình (Case Study) chuyên sâu
 1. **Quá trình suy luận Chain-of-Thought (CoT)** của LLM khi tự động trích xuất bất biến vòng lặp (Loop Invariants).
 2. **Bẫy nhận thức (Cognitive Trap)** dẫn đến sai lầm của LLM khi suy luận trên mã nguồn thực tế.
 3. **Sự khác biệt bản chất** giữa phương pháp có neo cú pháp (**`AST_ANCHORED`**) và phương pháp tiêu giảm không neo (**`UNANCHORED`**):
-   - `UNANCHORED` là free-predicate solver: nó loại bỏ location, program state và reachability, nên không thể lập luận về một claim tại một node cụ thể.
+   - `UNANCHORED` là direct SMT-LIB2 solver: nó loại bỏ location, program state và reachability, nên không thể lập luận về một claim tại một node cụ thể.
+   - Hai baseline nhận claim pool độc lập: AST dùng CoT/line-anchored Python claims,
+     còn direct dùng SMT-LIB2 terms và rationale ngắn.
    - `AST_ANCHORED` dùng Anchor Gate và Two-Query Protocol để gắn claim với target state. Đây là lợi ích về grounding và traceability; bounded loop coverage vẫn giới hạn diễn giải soundness.
 
 ---
@@ -52,8 +55,8 @@ Quy trình kiểm chứng được tổ chức thành 4 giai đoạn đối ch�
        ├────────────────────────────────────────┬───────────────────────────────────────┐
        ▼                                        ▼                                       ▼
  [3. Gemini 3.5 Flash]               [4A. Pipeline AST_ANCHORED]             [4B. Pipeline UNANCHORED]
-  Sinh Chain-of-Thought                 • Anchor Gate lọc claim                 • Free predicate validity
-  & Đề xuất Claims                      • Two-Query: Reachability -> Validity   • Không có target/state
+  Gọi riêng cho AST claims              • Anchor Gate lọc claim                 • Direct SMT-LIB2 validity
+  và direct specifications               • Two-Query: Reachability -> Validity   • Không có target/state
                                         • Định vị lỗi qua NodeId                • Không có replay location
 ```
 
@@ -172,7 +175,7 @@ sequenceDiagram
         Note over Gate: Bỏ qua anchor, location & program state
         Gate->>Z3: Gửi biểu thức rời rạc: ¬(n == 2)
         Z3-->>Gate: SAT (Model: {n: 0})
-        Gate-->>LLM: Verdict: COUNTEREXAMPLE (predicate tự do, không replay)
+        Gate-->>LLM: Verdict: COUNTEREXAMPLE (direct SMT-LIB2 term, không replay)
     end
 ```
 
@@ -187,7 +190,7 @@ sequenceDiagram
 
 #### 2. Phương pháp `UNANCHORED`:
 1. Phương pháp kiểm tra predicate `n == 2` trên biến nguyên tự do, không liên kết với node hoặc state của hàm.
-2. Z3 có thể tìm model $\{n = 0\}$, nhưng đó chỉ là counterexample cho predicate tự do.
+2. Z3 có thể tìm model $\{n = 0\}$, nhưng đó chỉ là counterexample cho direct SMT-LIB2 term.
 3. *Hạn chế*: Không có target location nên không thể nói model đó làm claim sai tại dòng 19, và replay không được áp dụng.
 
 ---
@@ -209,15 +212,15 @@ sequenceDiagram
 
 | Tiêu chí | Phương pháp KHÔNG CÓ AST (`UNANCHORED`) | Phương pháp CÓ AST (`AST_ANCHORED`) |
 | :--- | :--- | :--- |
-| **Biểu diễn đường dẫn** | Không có path/location context; chỉ có predicate tự do. | Enumerate zero-iteration path tới assertion và kiểm tra target state. |
+| **Biểu diễn đường dẫn** | Không có path/location context; chỉ có direct SMT-LIB2 term. | Enumerate zero-iteration path tới assertion và kiểm tra target state. |
 | **Công thức gửi Z3** | Kiểm tra $\neg(y == z)$ trên biến tự do. | Chạy reachability rồi validity với state equations tại target. |
 | **Kết quả từ Z3** | **`SAT`** với model, ví dụ $y=0,z=1$. | Reachability **`SAT`** qua zero-iteration; validity **`SAT`** cho $y \ne z$. |
-| **Kết luận cuối cùng** | **`COUNTEREXAMPLE`** cho predicate tự do. | **`COUNTEREXAMPLE`** tại assertion reachable. |
+| **Kết luận cuối cùng** | **`COUNTEREXAMPLE`** cho direct term. | **`COUNTEREXAMPLE`** tại assertion reachable. |
 | **Giới hạn** | Không thể suy ra lỗi ở dòng 5. | Một target nằm bên trong `while 0` mới là `UNREACHABLE`; assertion sau loop không phải target đó. |
 
 > [!CAUTION]
 > Các FDR trong bản cũ không thể dùng làm kết luận cho implementation hiện
-> tại: chúng được tính từ output hybrid và không phản ánh free-predicate
+> tại: chúng được tính từ output hybrid cũ và không phản ánh direct-formalization
 > baseline cùng target-specific path enumeration hiện nay.
 
 ---
@@ -231,7 +234,7 @@ sequenceDiagram
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **Nhóm A: Nhánh chết (Dead Code)** | `A1_dead_loop_eq2` | 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Assertion sau loop reachable qua skip path |
 | | `A2_dead_branch_loopv1`| 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Target-specific paths |
-| | `A3_unreachable_guard` | 1 | old: UNREACHABLE; current: **UNREACHABLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Free predicate không thấy guard |
+| | `A3_unreachable_guard` | 1 | old: UNREACHABLE; current: **UNREACHABLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Direct term không thấy guard |
 | **Nhóm B: Ảo giác LLM** | `B1_line_overflow` | 1 | **1 UNSUPPORTED** | **1 COUNTEREXAMPLE** | Anchor Gate chặn claim sai dòng |
 | | `B2_syntax_error` | 1 | **1 TRANSLATION_ERROR**| **1 TRANSLATION_ERROR**| Bắt lỗi cú pháp toán học |
 | **Nhóm C: Thuật toán phức tạp** | `C1_mbpp_448` (Perrin) | 8 | historical: 8 COUNTEREXAMPLE | historical: 8 COUNTEREXAMPLE | Lần chạy cũ |
@@ -249,9 +252,9 @@ sequenceDiagram
    Nếu không có anchor/state context:
    - Hệ thống không thể ngăn chặn ảo giác số dòng của LLM.
    - Không thể định vị vị trí lỗi ngược trở lại mã nguồn cho lập trình viên.
-   - Predicate tự do có thể tìm counterexample, nhưng không chứng minh được
+   - Direct SMT-LIB2 term có thể tìm counterexample, nhưng không chứng minh được
      claim tại một execution point cụ thể.
 3. **Đóng góp thực tiễn cho đồ án**:
    Kết quả hiện tại hỗ trợ một kết luận có giới hạn: **AST-Anchored cung cấp
-   grounding, target-state semantics và traceability tốt hơn free predicates**;
+   grounding, target-state semantics và traceability tốt hơn direct terms**;
    các tuyên bố về soundness toàn chương trình cần coverage đầy đủ hơn.

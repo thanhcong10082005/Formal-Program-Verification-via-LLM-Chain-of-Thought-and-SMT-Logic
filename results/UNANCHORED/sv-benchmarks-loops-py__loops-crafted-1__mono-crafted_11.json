@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_11",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_11.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/mono-crafted_11.py",
   "source_text": "def f(x):\n    x = 0\n    while x < 100000000:\n        if (x < 10000000):\n            x += 1\n        else:\n            # skip: 'x'\n            # skip: '+'\n            # skip: '='\n            # skip: '2'\n            # skip: ';'\n    assert (x%2)==0\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00010120000001734297,
+  "elapsed_seconds": 0.00006237509660422802,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

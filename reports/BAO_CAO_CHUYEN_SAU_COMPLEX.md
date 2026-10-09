@@ -1,11 +1,13 @@
 # BÁO CÁO KHOA HỌC: PHÂN TÍCH SO SÁNH QUÁ TRÌNH SUY LUẬN GIỮA PHƯƠNG PHÁP CÓ AST (AST_ANCHORED) VÀ KHÔNG CÓ AST (UNANCHORED) KẾT HỢP LLM & SMT SOLVER
 
 > **Audit correction.** Các bảng trong tài liệu này ghi lại lần chạy cũ.
-> `UNANCHORED` không phải pipeline AST rút gọn: nó là kiểm tra predicate tự
-> do, không có anchor, target location, program state hoặc reachability.
+> `UNANCHORED` không phải pipeline AST rút gọn: nó là Baseline A Direct
+> Formalization, nhận Boolean terms SMT-LIB2 độc lập và không có anchor,
+> target location, program state, reachability hoặc replay.
 > Các loop/`break`/`continue` chưa tạo thành coverage toàn bộ; kết quả hiện
 > tại sẽ dùng `UNKNOWN_TIMEOUT` khi bounded path set không hoàn chỉnh. Token
-> LLM của cùng một lần gọi được ghi vào cả hai baseline.
+> LLM của hai baseline được sinh từ hai lời gọi riêng và token totals được ghi
+> độc lập.
 
 ---
 
@@ -17,8 +19,9 @@ Các bảng bên dưới là tư liệu lịch sử của commit cũ. Chúng kh�
 chứng minh soundness toàn chương trình: mô hình loop/control-flow là bounded,
 replay phải chạm đúng target, và số liệu cũ đã chạy một baseline hybrid.
 Mã hiện tại chỉ hỗ trợ kết luận hẹp hơn: `AST_ANCHORED` kiểm tra anchor chính
-xác, target-state reachability và validity; `UNANCHORED` kiểm tra predicate tự
-do, không dùng program state hay vị trí thực thi.
+xác, target-state reachability và validity; `UNANCHORED` kiểm tra trực tiếp
+SMT-LIB2 QF-LIA terms bằng `not C`, không dùng program state hay vị trí thực
+thi.
 
 ---
 
@@ -30,17 +33,20 @@ do, không dùng program state hay vị trí thực thi.
   2. *AST Node Tagging*: Gán định danh nút duy nhất (`NodeId`) cho từng câu lệnh (ví dụ: `f@Assert:L5:C4#0`).
   3. *Anchor Gate*: Chỉ tiếp nhận các claim có tọa độ và ngữ cảnh tồn tại hợp lệ trên AST.
   4. *Two-Query Z3 Protocol*: Kiểm tra tính khả đạt của đường dẫn (`Reachability Query`) trước khi kiểm tra tính đúng đắn toán học (`Validity Query`).
-- **`UNANCHORED` (Mô hình Tiêu giảm - Ablation Baseline)**:
+- **`UNANCHORED` (Baseline A — Direct Formalization)**:
   - Không gán `NodeId`, không dựng symbolic executor và không dùng Anchor Gate.
-  - Sau subset gate, các source assert/LLM suggestion được kiểm tra như
-    predicate số nguyên tự do; location, program state và reachability bị loại
-    khỏi obligation.
+  - Sau subset gate, source assert được chuyển một lần thành SMT-LIB2; các
+    specification từ lời gọi LLM riêng được append và kiểm tra bằng `not C`.
+    Location, program state và reachability bị loại khỏi obligation.
 
 ### 2.2. Khái niệm Claim (Khẳng định logic)
 - **Claim**: Là một vị từ toán học $P(s)$ biểu diễn tính chất bất biến của trạng thái chương trình tại một điểm thực thi cụ thể.
 - **Nguồn gốc**:
   - *Tĩnh (Static asserts)*: Các lệnh `assert` do lập trình viên định nghĩa.
-  - *Do LLM sinh (LLM-generated)*: Được trích xuất tự động thông qua chuỗi suy luận Chain-of-Thought (CoT) của Gemini 3.5 Flash.
+  - *AST_ANCHORED do LLM sinh*: được trích xuất tự động qua prompt
+    Chain-of-Thought (CoT) của Gemini 3.5 Flash.
+  - *UNANCHORED do LLM sinh*: được tạo bởi lời gọi độc lập dưới dạng
+    SMT-LIB2 Boolean terms và rationale ngắn, không yêu cầu CoT.
 
 ### 2.3. Hệ thống 6 Nhãn Trạng thái (Verdict Labels)
 1. **`VERIFIED`**: Khẳng định đúng trên mọi đường dẫn được mô hình hóa đầy đủ tới target; không phải chứng nhận cho mọi execution khi coverage bounded.
@@ -69,7 +75,7 @@ do, không dùng program state hay vị trí thực thi.
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | **A. Nhánh chết (Dead Code)** | `A1_dead_loop_eq2` | 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Assertion sau loop reachable qua skip path |
 | | `A2_dead_branch_loopv1`| 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Target-specific paths |
-| | `A3_contradiction_guard`| 1 | old: UNREACHABLE; current: **UNREACHABLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Free predicate không thấy guard |
+| | `A3_contradiction_guard`| 1 | old: UNREACHABLE; current: **UNREACHABLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Direct term không thấy guard |
 | **B. Ảo giác LLM** | `B1_line_overflow` | 1 | **1 UNSUPPORTED** | **1 COUNTEREXAMPLE** | Anchor Gate chặn thành công |
 | | `B2_syntax_error` | 1 | **1 TRANSLATION_ERROR**| **1 TRANSLATION_ERROR**| Bắt lỗi cú pháp toán học |
 | **C. Thuật toán phức tạp** | `C1_mbpp_448` (Perrin) | 8 | historical: 8 COUNTEREXAMPLE | historical: 8 COUNTEREXAMPLE | Lần chạy cũ |
@@ -164,8 +170,8 @@ Hãy đối chiếu lập luận của LLM với mã nguồn thực tế:
 - **Kết luận**: Gán nhãn chính xác **`COUNTEREXAMPLE`** kèm tọa độ nút AST `cal_sum@Return:L19:C4#0`. Lập trình viên biết ngay hàm đang thiếu tiền điều kiện (`precondition: assert n >= 0`).
 
 #### 2. Phương pháp `UNANCHORED`:
-- Bỏ qua anchor, location và program state; Z3 kiểm tra predicate tự do `n == 2` trên các số nguyên.
-- Vì đây là predicate tự do, Z3 có thể trả về phản ví dụ như `n = 0`, nhưng kết quả không gắn với execution point nào và không được replay như violation tại dòng 19.
+- Baseline A kiểm tra trực tiếp term SMT-LIB2 `(= n 2)` trên các biến Int đã khai báo.
+- Z3 có thể trả về phản ví dụ như `n = 0`, nhưng kết quả không gắn với execution point nào và không được replay như violation tại dòng 19.
 
 ---
 
@@ -173,7 +179,7 @@ Hãy đối chiếu lập luận của LLM với mã nguồn thực tế:
 
 ```mermaid
 flowchart TD
-    Start["Nhận predicate tự do: 'y == z'"] --> SkipContext["Bỏ qua location & program state"]
+    Start["Nhận SMT-LIB2 term: '(= y z)'"] --> SkipContext["Bỏ qua location & program state"]
     SkipContext --> DirectFormula["Thiết lập công thức SMT: ¬(Claim)"]
     DirectFormula --> SMTCheck["Đưa vào Z3 Solver"]
     SMTCheck --> FreeModel["Z3 tìm model, ví dụ y = 0, z = 1<br>¬(y == z) là SAT"]
@@ -181,13 +187,13 @@ flowchart TD
 ```
 
 #### Phân tích chi tiết từng bước:
-1. **Bước 1: Tiếp nhận predicate**: `UNANCHORED` giữ lại biểu thức `y == z`, nhưng loại bỏ dòng, node và state của chương trình.
+1. **Bước 1: Tiếp nhận direct term**: `UNANCHORED` giữ lại SMT-LIB2 `(= y z)`, nhưng loại bỏ dòng, node và state của chương trình.
 2. **Bước 2: Truy vấn validity**: obligation là $\neg(y == z)$ trên các biến nguyên tự do, không phải $\Phi_{\text{path}} \land \neg C$.
 3. **Bước 3: Kết quả từ Z3**: công thức có model, chẳng hạn $y = 0, z = 1$.
-4. **Bước 4: Kết luận**: verdict là **`COUNTEREXAMPLE`** cho predicate tự do; không thể suy ra claim bị sai tại dòng 5 của chương trình.
+4. **Bước 4: Kết luận**: verdict là **`COUNTEREXAMPLE`** cho direct formula; không thể suy ra claim bị sai tại dòng 5 của chương trình.
 
 > [!CAUTION]
-> **Giới hạn của ví dụ:** predicate tự do không chứa đủ thông tin để nói
+> **Giới hạn của ví dụ:** direct formula không chứa đủ thông tin để nói
 > assertion ở dòng 5 reachable hay unreachable. Việc bỏ path context loại bỏ
 > vacuity, nhưng cũng loại bỏ khả năng kiểm chứng property tại location.
 
@@ -241,7 +247,7 @@ Xét bài toán hàm kẹp giá trị `clamp(val, low, high)` (6 dòng mã):
 
 | Tiêu chí | Phương pháp KHÔNG CÓ AST (`UNANCHORED`) | Phương pháp CÓ AST (`AST_ANCHORED`) |
 | :--- | :--- | :--- |
-| **Cơ chế xử lý** | Nhận predicate tự do và kiểm tra validity trên các biến nguyên, không có location để đối chiếu. | `Anchor Gate` quét cây AST `ids`, phát hiện không có bất kỳ nút nào ở dòng 42. |
+| **Cơ chế xử lý** | Nhận SMT-LIB2 term và kiểm tra `not C` trên các biến Int, không có location để đối chiếu. | `Anchor Gate` quét cây AST `ids`, phát hiện không có bất kỳ nút nào ở dòng 42. |
 | **Kết quả trả về** | **`COUNTEREXAMPLE`** (Phản ví dụ vô nghĩa trên biến tự do). | **`UNSUPPORTED`** (`Claim rejected by Anchor Gate`). |
 | **Tác động hệ thống**| Gây nhiễu dữ liệu, làm lập trình viên hoang mang vì lỗi không có thật trên code. | Cách ly claim rác ngay từ vòng gửi xe, giữ sạch báo cáo kiểm chứng. |
 
@@ -250,7 +256,7 @@ Xét bài toán hàm kẹp giá trị `clamp(val, low, high)` (6 dòng mã):
 ## 6. KẾT LUẬN & ĐỀ XUẤT CHO BÁO CÁO ĐỒ ÁN
 
 1. **Khẳng định có thể bảo vệ được**:
-   AST cung cấp anchor, target state và reachability context mà predicate tự do
+   AST cung cấp anchor, target state và reachability context mà direct term
    không thể cung cấp. Đây là lợi ích về traceability và semantics, không phải
    bằng chứng soundness toàn chương trình.
 2. **Khuyến nghị trình bày trong báo cáo / slide bảo vệ**:

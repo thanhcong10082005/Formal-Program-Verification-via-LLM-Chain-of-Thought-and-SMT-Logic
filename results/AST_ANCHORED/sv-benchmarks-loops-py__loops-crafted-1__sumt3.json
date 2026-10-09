@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt3",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt3.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/sumt3.py",
   "source_text": "def f(i, j, k, l, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: k (kept as param)\n    # declared: j (kept as param)\n    l = 0\n    while l < n:\n        if ( not (l%3)):\n            i = i + 1\n        else:\n            if( not (l%2)) \n\t\t  j = j+1\n        # skip: 'e'\n        # skip: 'l'\n        # skip: 's'\n        # skip: 'e'\n        k = k+1\n        l = l+1\n    assert (i+j+k) == l\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.000191800000038711,
+  "elapsed_seconds": 0.00010575004853308201,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

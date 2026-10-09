@@ -31,6 +31,14 @@ class TwoQueryObligations:
     validity_solver: z3.Solver
 
 
+@dataclass
+class DirectObligation:
+    """The single direct-formalization obligation ``not C``."""
+
+    formula: z3.BoolRef
+    validity_solver: z3.Solver
+
+
 def _claim_to_z3(
     expr,
     executor: Optional[TrustedSymbolicExecutor] = None,
@@ -97,7 +105,11 @@ def build_obligations(
 
 
 def build_unanchored_obligations(claim: Claim) -> TwoQueryObligations:
-    """Build a validity query for a free predicate with no program context."""
+    """Legacy helper for the former free-predicate compatibility path.
+
+    The public ``UNANCHORED`` pipeline no longer calls this function; direct
+    formalization uses :func:`build_direct_obligation` instead.
+    """
     reach_solv = z3.Solver()
     reach_solv.set("timeout", Z3_TIMEOUT_MS)
     reach_solv.add(z3.BoolVal(True))
@@ -107,6 +119,20 @@ def build_unanchored_obligations(claim: Claim) -> TwoQueryObligations:
     predicate = _claim_to_z3(claim.expr_node)
     valid_solv.add(z3.Not(predicate))
     return TwoQueryObligations(claim, reach_solv, valid_solv)
+
+
+def build_direct_obligation(formula: z3.BoolRef) -> DirectObligation:
+    """Build the direct baseline's only query: ``not C``.
+
+    There is intentionally no reachability solver, program state, target
+    location, or path relation in this protocol.
+    """
+    if not z3.is_bool(formula):
+        raise TypeError("direct obligation requires a Boolean formula")
+    solver = z3.Solver()
+    solver.set("timeout", Z3_TIMEOUT_MS)
+    solver.add(z3.Not(formula))
+    return DirectObligation(formula=formula, validity_solver=solver)
 
 
 def run_reachability(
@@ -141,6 +167,8 @@ __all__ = [
     "TwoQueryObligations",
     "build_obligations",
     "build_unanchored_obligations",
+    "DirectObligation",
+    "build_direct_obligation",
     "run_reachability",
     "run_validity",
     "Z3_TIMEOUT_MS",

@@ -13,12 +13,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from astverifier.pipeline import run_pipeline
-from astverifier.llm import generate_cot_and_claims, _get_api_key
+from astverifier.llm import (
+    _get_api_key,
+    generate_cot_and_claims,
+    generate_direct_formalization,
+)
 
 GEMINI_KEY = _get_api_key()
 
 OUT_DIR = PROJECT_ROOT / "results" / "complex_experiment"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+CACHE_VERSION = 2
 
 # -----------------------------------------------------------------------------
 # 1. TEST PROGRAMS DEFINITION
@@ -90,7 +95,14 @@ TEST_SUITE = [
         "inject_claims": [
             # Line 0 or 42 beyond file boundaries
             {"id": "halluc_line_42", "line": 42, "expression": "val >= low and val <= high"}
-        ]
+        ],
+        "inject_direct_specs": [
+            {
+                "formula": "(and (>= val low) (<= val high))",
+                "variables": ["val", "low", "high"],
+                "rationale": "The clamp output lies between its bounds.",
+            }
+        ],
     },
     {
         "id": "B2_hallucination_syntax_error",
@@ -104,7 +116,14 @@ TEST_SUITE = [
         "use_llm": False,
         "inject_claims": [
             {"id": "halluc_syntax", "line": 3, "expression": "2x == y"}
-        ]
+        ],
+        "inject_direct_specs": [
+            {
+                "formula": "(= (* x y) 0)",
+                "variables": ["x", "y"],
+                "rationale": "Intentional nonlinear direct-formalization rejection.",
+            }
+        ],
     },
 
     # --- Group C: Complex Multi-branch & Nested Loops (MBPP Advanced + Gemini) ---
@@ -210,52 +229,85 @@ def run_benchmark():
             print("    [Cache Hit] Reusing existing results.")
             with open(cache_file, "r", encoding="utf-8") as f:
                 cached_data = json.load(f)
-            all_results.append(cached_data)
-            continue
+            if cached_data.get("generation_version") == CACHE_VERSION:
+                all_results.append(cached_data)
+                continue
+            print("    [Stale Cache] Regenerating independent baseline inputs.")
 
         if use_llm:
-            print("    Calling Gemini 3.5 Flash for CoT & Invariants...")
+            print("    Calling Gemini 3.5 Flash independently for both baselines...")
             t0 = time.time()
-            llm_res = generate_cot_and_claims(code, api_key=GEMINI_KEY, model="gemini-3.5-flash")
-            dur = time.time() - t0
-            cot_trace = llm_res.cot_trace
-            tokens_in = llm_res.tokens_in
-            tokens_out = llm_res.tokens_out
-            raw_claims_data = llm_res.claims
-            print(f"    Gemini CoT completed in {dur:.2f}s (In: {tokens_in}, Out: {tokens_out} tokens)")
-            print(f"    Suggested {len(raw_claims_data)} claims.")
+            anchored_llm = generate_cot_and_claims(
+                code,
+                api_key=GEMINI_KEY,
+                model="gemini-3.5-flash",
+            )
+            anchored_dur = time.time() - t0
+            cot_trace = anchored_llm.cot_trace
+            raw_claims_data = anchored_llm.claims
+            print(
+                f"    AST_ANCHORED Gemini completed in {anchored_dur:.2f}s "
+                f"(In: {anchored_llm.tokens_in}, Out: {anchored_llm.tokens_out}; "
+                f"{len(raw_claims_data)} claims)"
+            )
             time.sleep(13)  # Respect free tier rate limit
+            t0 = time.time()
+            direct_llm = generate_direct_formalization(
+                code,
+                api_key=GEMINI_KEY,
+                model="gemini-3.5-flash",
+            )
+            direct_dur = time.time() - t0
+            raw_direct_specs = direct_llm.specifications
+            print(
+                f"    UNANCHORED Direct Formalization completed in {direct_dur:.2f}s "
+                f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out}; "
+                f"{len(raw_direct_specs)} specifications)"
+            )
         else:
             # Synthetic / injected claims
             raw_claims_data = item.get("inject_claims", [])
+            raw_direct_specs = item.get("inject_direct_specs")
+            anchored_llm = None
+            direct_llm = None
+            cot_trace = ""
 
-        # Run AST_ANCHORED
-        # For injected claims, we pass them as if extracted / generated
         ast_result = run_pipeline_with_claims(
             code,
             raw_claims_data,
             baseline="AST_ANCHORED",
             cot_trace=cot_trace,
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
+            tokens_in=anchored_llm.tokens_in if anchored_llm else 0,
+            tokens_out=anchored_llm.tokens_out if anchored_llm else 0,
         )
         un_result = run_pipeline_with_claims(
             code,
             raw_claims_data,
             baseline="UNANCHORED",
-            cot_trace=cot_trace,
-            tokens_in=tokens_in,
-            tokens_out=tokens_out,
+            direct_specs=raw_direct_specs,
+            tokens_in=direct_llm.tokens_in if direct_llm else 0,
+            tokens_out=direct_llm.tokens_out if direct_llm else 0,
         )
 
         res_entry = {
+            "generation_version": CACHE_VERSION,
             "id": p_id,
             "category": category,
             "description": desc,
             "code": code,
-            "cot_trace": cot_trace,
-            "tokens_in": tokens_in,
-            "tokens_out": tokens_out,
+            "ast_generation": {
+                "model": anchored_llm.model_name if anchored_llm else "deterministic",
+                "cot_trace": cot_trace,
+                "tokens_in": anchored_llm.tokens_in if anchored_llm else 0,
+                "tokens_out": anchored_llm.tokens_out if anchored_llm else 0,
+                "claim_count": len(raw_claims_data),
+            },
+            "direct_generation": {
+                "model": direct_llm.model_name if direct_llm else "deterministic",
+                "tokens_in": direct_llm.tokens_in if direct_llm else 0,
+                "tokens_out": direct_llm.tokens_out if direct_llm else 0,
+                "specification_count": len(raw_direct_specs or []),
+            },
             "ast_anchored": ast_result.model_dump(),
             "unanchored": un_result.model_dump()
         }
@@ -278,22 +330,26 @@ def run_pipeline_with_claims(
     code: str,
     raw_claims: list,
     baseline: str,
+    direct_specs: list | None = None,
     cot_trace: str = "",
     tokens_in: int = 0,
     tokens_out: int = 0,
 ):
-    """Run an injected-claim experiment through the public pipeline."""
-    return run_pipeline(
-        code,
+    """Run one baseline through the public pipeline with its own input pool."""
+    kwargs = {}
+    if baseline == "AST_ANCHORED":
+        kwargs.update(suggested_claims=raw_claims, cot_trace=cot_trace)
+    elif direct_specs is not None:
+        kwargs.update(direct_specifications=direct_specs)
+    kwargs.update(
         program_id="<test>",
         source_path="<test>",
         baseline=baseline,
         do_replay=True,
-        suggested_claims=raw_claims,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
-        cot_trace=cot_trace,
     )
+    return run_pipeline(code, **kwargs)
 
 
 if __name__ == "__main__":

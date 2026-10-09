@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-invariants__eq1",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq1.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-invariants/eq1.py",
   "source_text": "def f(w, x, y, z):\n    while 0:\n        if (0):\n            w += 1\n            x += 1\n        else:\n            y -= 1\n            z -= 1\n    assert w == x && y == z\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00013230000013209064,
+  "elapsed_seconds": 0.00007062498480081558,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

@@ -2,11 +2,11 @@
 
 > **Audit correction.** Các số liệu trong báo cáo này là kết quả lịch sử của
 > commit cũ. Diễn giải đúng của mã hiện tại là: `AST_ANCHORED` dùng anchor
-> chính xác, state tại target và path reachability bounded; `UNANCHORED`
-> kiểm tra claim như predicate số nguyên tự do, không dùng `NodeId`, program
-> state, location hay reachability. `VERIFIED` không bao hàm mọi execution
-> khi loop/control-flow coverage chưa đầy đủ; replay chỉ thành công khi
-> runtime chạm target line và claim false tại đó.
+> chính xác, state tại target và path reachability bounded; `UNANCHORED` là
+> Baseline A Direct Formalization, nhận SMT-LIB2 Boolean terms độc lập và
+> không dùng `NodeId`, program state, location, reachability hay replay.
+> `VERIFIED` không bao hàm mọi execution khi loop/control-flow coverage chưa
+> đầy đủ.
 
 ---
 
@@ -18,10 +18,11 @@ Thí nghiệm này nhằm so sánh hiệu quả và độ tin cậy giữa hai c
    - LLM sinh Chain-of-Thought (CoT) và các suy diễn logic (Invariants / Claims) kèm số dòng chương trình.
    - **Anchor Gate**: Ánh xạ dòng mã do LLM gợi ý vào các nút cụ thể trên cây cú pháp trừu tượng (**AST `NodeId`**). Nếu LLM ảo giác (Hallucination) dòng mã hoặc suy diễn tại vị trí không tồn tại, claim sẽ bị chặn ngay lập tức (`TRANSLATION_ERROR` / `UNSUPPORTED`).
    - **Path Reachability Check**: Z3 kiểm tra tính khả đạt (reachability) của nhánh điều khiển dẫn tới node đó trước khi kiểm chứng, loại bỏ hiện tượng **chân lý rỗng (Vacuous Truth)** do tiền đề sai ($False \implies Claim$).
-2. **Phương pháp không có AST (`UNANCHORED` - Baseline Ablation)**:
-   - LLM sinh CoT và Claims nhưng baseline không dùng anchor hoặc program context.
+2. **Baseline A không có AST (`UNANCHORED`)**:
+   - Một lời gọi LLM riêng sinh các specification SMT-LIB2 với biến Int và
+     rationale ngắn; không tái sử dụng claim pool của `AST_ANCHORED`.
    - Bỏ qua Anchor Gate và Path Reachability Check; kiểm chứng trực tiếp
-     predicate tự do, không gắn với state/location của chương trình.
+     từng Boolean term bằng `not C`, không gắn với state/location chương trình.
 
 ### Tập dữ liệu thực nghiệm
 - **10 bài toán MBPP (Mostly Basic Python Problems)** được chọn làm các ứng viên
@@ -118,9 +119,9 @@ Các tỷ lệ 16/21 bên dưới là output lịch sử của commit cũ, khôn
 của baseline hiện tại. Giá trị của AST thể hiện ở 3 khía cạnh:
 
 1. **Ngăn chặn Ảo giác Neo (Grounding & Hallucination Defense)**:
-   - Trong phương pháp **Unanchored**, predicate được kiểm tra trên biến tự do
-     (ví dụ `x >= 0`) nhưng không thể cho biết nó áp dụng trước khi khởi tạo,
-     trong nhánh chết hay tại target nào.
+   - Trong phương pháp **Unanchored**, mỗi direct SMT-LIB2 term được kiểm tra
+     trên các biến Int đã khai báo (ví dụ `(>= x 0)`), nhưng không thể cho
+     biết nó áp dụng trước khi khởi tạo, trong nhánh chết hay tại target nào.
    - Trong **AST_ANCHORED**, claim phải có tọa độ AST hợp lệ (`NodeId`). Không thể xảy ra tình trạng "đúng về mặt toán học nhưng sai về ngữ nghĩa thực thi của chương trình".
 
 2. **Khả năng giải thích và định vị lỗi (Explainability & Traceability)**:

@@ -1,6 +1,6 @@
 {
   "program_id": "cruxeval__sample_85",
-  "source_path": "E:\\BTL\\Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic\\results\\_cruxeval_py\\sample_85.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/results/_cruxeval_py/sample_85.py",
   "source_text": "def f(n):\n    values = {0: 3, 1: 4.5, 2: '-'}\n    res = {}\n    for i, j in values.items():\n        if i % n != 2:\n            res[j] = n // 2\n    return sorted(res)\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,11 +10,11 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00015000000007603376,
+  "elapsed_seconds": 0.00009704101830720901,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
-  "subset_rejection_reason": "dict literals not allowed"
+  "subset_rejection_reason": "expression type Dict not in the supported subset"
 }

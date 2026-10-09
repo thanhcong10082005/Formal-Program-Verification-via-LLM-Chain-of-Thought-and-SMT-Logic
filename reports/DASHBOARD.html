@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<title>AST-Anchored Verification Dashboard</title>
+<style>
+:root{--bg:#0f1220;--card:#181c2e;--fg:#e7e9f4;--mut:#8b90ad;--acc:#7aa2f7;--ok:#9ece6a;--ce:#f7768e;--ur:#bb9af7;--un:#e0af68}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--fg);padding:28px}
+h1{font-size:24px;margin:0 0 4px}h2{font-size:17px;margin:26px 0 12px;color:var(--acc)}
+.lead{color:var(--mut);margin-bottom:24px}
+.cards{display:flex;gap:14px;flex-wrap:wrap}
+.card{background:var(--card);border-radius:12px;padding:16px 20px;min-width:150px}
+.card .n{font-size:30px;font-weight:700}
+.card .l{color:var(--mut);font-size:12px;margin-top:2px}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--mut);margin:6px 0 10px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #262b45}
+th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
+.b-a{background:#1d3a2a;color:var(--ok)}.b-c{background:#3a1d26;color:var(--ce)}.b-u{background:#2a2240;color:var(--ur)}.b-x{background:#403317;color:var(--un)}
+.rowbar{display:flex;align-items:center;gap:8px;margin:14px 0}
+.rowbar .lbl{width:210px;font-size:13px;text-align:right;color:var(--fg);flex-shrink:0}
+.rowbar .lbl small{display:block;color:var(--mut);font-size:11px}
+.track{flex:1;display:flex;flex-direction:column;gap:4px}
+.barline{display:flex;align-items:center;gap:8px}
+.barline .bside{width:76px;font-size:10.5px;color:var(--mut);flex-shrink:0}
+.bar{height:15px;border-radius:4px;min-width:2px}
+.seg-v{background:var(--ok)}.seg-ce{background:var(--ce)}.seg-ur{background:var(--ur)}.seg-x{background:var(--un)}
+.val{font-size:11.5px;color:var(--mut);margin-left:6px}
+.note{background:#1d2340;border-left:3px solid var(--acc);padding:10px 14px;border-radius:6px;font-size:13px;color:var(--mut);margin-top:14px}
+.tokchart{display:flex;align-items:flex-end;gap:10px;height:170px;padding:10px 4px}
+.tokbar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.tokbar .stack{width:34px;display:flex;flex-direction:column;justify-content:flex-end;border-radius:5px 5px 0 0;overflow:hidden}
+.tin{background:var(--acc)}.tout{background:#2f3a5e}
+.tokbar .cap{font-size:10.5px;color:var(--mut);margin-top:5px;text-align:center}
+</style></head><body>
+<h1>AST-Anchored vs Direct Formalization Dashboard</h1>
+<div class="lead">AST_ANCHORED uses anchored Python claims; UNANCHORED is Baseline A Direct Formalization with independent SMT-LIB2 specifications and no replay.</div>
+
+<h2>MBPP Experiment — 10 tasks</h2>
+<div class="cards">
+<div class="card"><div class="n">10</div><div class="l">Tasks (QF-LIA)</div></div>
+<div class="card"><div class="n">21</div><div class="l">LLM claims generated</div></div>
+<div class="card"><div class="n" style="color:var(--ok)">76.2%</div><div class="l">Verified by Z3</div></div>
+<div class="card"><div class="n" style="color:var(--ce)">5</div><div class="l">Counterexamples</div></div>
+<div class="card"><div class="n" style="color:var(--acc)">100%</div><div class="l">Anchor accuracy</div></div>
+<div class="card"><div class="n">2,641</div><div class="l">AST tokens in</div></div>
+<div class="card"><div class="n">2,211</div><div class="l">AST tokens out</div></div>
+<div class="card"><div class="n">0</div><div class="l">Direct tokens in</div></div>
+<div class="card"><div class="n">0</div><div class="l">Direct tokens out</div></div>
+</div>
+<div class="legend">
+<span><span class="dot seg-v"></span>VERIFIED</span>
+<span><span class="dot seg-ce"></span>COUNTEREXAMPLE</span>
+<span><span class="dot seg-ur"></span>UNREACHABLE</span>
+<span><span class="dot seg-x"></span>UNSUPPORTED / TRANS_ERROR</span>
+</div>
+<table>
+<tr><th>Task</th><th>Name</th><th>AST_ANCHORED</th><th>UNANCHORED</th></tr>
+<tr><td><b>17</b></td><td>square_perimeter</td><td> <span class="badge b-c">COUNTEREX 1</span>  </td><td> <span class="badge b-c">COUNTEREX 1</span>  </td></tr>
+<tr><td><b>35</b></td><td>find_rect_num</td><td><span class="badge b-v">VERIFIED 2</span>   </td><td><span class="badge b-v">VERIFIED 2</span>   </td></tr>
+<tr><td><b>36</b></td><td>find_Nth_Digit</td><td><span class="badge b-v">VERIFIED 2</span> <span class="badge b-c">COUNTEREX 1</span>  </td><td><span class="badge b-v">VERIFIED 2</span> <span class="badge b-c">COUNTEREX 1</span>  </td></tr>
+<tr><td><b>51</b></td><td>check_equilateral</td><td><span class="badge b-v">VERIFIED 3</span>   </td><td><span class="badge b-v">VERIFIED 3</span>   </td></tr>
+<tr><td><b>52</b></td><td>parallelogram_area</td><td> <span class="badge b-c">COUNTEREX 1</span>  </td><td> <span class="badge b-c">COUNTEREX 1</span>  </td></tr>
+<tr><td><b>59</b></td><td>is_octagonal</td><td><span class="badge b-v">VERIFIED 2</span>   </td><td><span class="badge b-v">VERIFIED 2</span>   </td></tr>
+<tr><td><b>72</b></td><td>dif_Square</td><td><span class="badge b-v">VERIFIED 1</span> <span class="badge b-c">COUNTEREX 1</span>  </td><td><span class="badge b-v">VERIFIED 1</span> <span class="badge b-c">COUNTEREX 1</span>  </td></tr>
+<tr><td><b>86</b></td><td>centered_hexagonal_number</td><td><span class="badge b-v">VERIFIED 4</span>   </td><td><span class="badge b-v">VERIFIED 4</span>   </td></tr>
+<tr><td><b>89</b></td><td>closest_num</td><td><span class="badge b-v">VERIFIED 1</span>   </td><td><span class="badge b-v">VERIFIED 1</span>   </td></tr>
+<tr><td><b>138</b></td><td>is_Sum_Of_Powers_Of_Two</td><td><span class="badge b-v">VERIFIED 1</span> <span class="badge b-c">COUNTEREX 1</span>  </td><td><span class="badge b-v">VERIFIED 1</span> <span class="badge b-c">COUNTEREX 1</span>  </td></tr>
+</table>
+
+<h2>Complex Experiment — A/B/C categories</h2>
+<div class="legend">
+<span><span class="dot seg-v"></span>VERIFIED</span>
+<span><span class="dot seg-ce"></span>COUNTEREXAMPLE</span>
+<span><span class="dot seg-ur"></span>UNREACHABLE</span>
+<span><span class="dot seg-x"></span>rejected / unsupported</span>
+<span style="margin-left:12px">Top row = AST_ANCHORED · Bottom = UNANCHORED</span>
+</div>
+<div id="complex"></div>
+<div class="note"><b>Direct baseline</b>: UNANCHORED checks only the negation of each validated SMT-LIB2 formula, so its counterexamples have no target location or replay verdict. <b>Grounding</b>: AST_ANCHORED retains exact NodeId binding and target-state replay.</div>
+<script>
+const C={"mbpp": [{"id": 17, "name": "square_perimeter", "anchored": [0, 1, 0, 0], "unanchored": [0, 1, 0, 0], "ast_tok_in": 254, "ast_tok_out": 103, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 35, "name": "find_rect_num", "anchored": [2, 0, 0, 0], "unanchored": [2, 0, 0, 0], "ast_tok_in": 252, "ast_tok_out": 311, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 36, "name": "find_Nth_Digit", "anchored": [2, 1, 0, 0], "unanchored": [2, 1, 0, 0], "ast_tok_in": 302, "ast_tok_out": 233, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 51, "name": "check_equilateral", "anchored": [3, 0, 0, 0], "unanchored": [3, 0, 0, 0], "ast_tok_in": 276, "ast_tok_out": 221, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 52, "name": "parallelogram_area", "anchored": [0, 1, 0, 0], "unanchored": [0, 1, 0, 0], "ast_tok_in": 255, "ast_tok_out": 112, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 59, "name": "is_octagonal", "anchored": [2, 0, 0, 0], "unanchored": [2, 0, 0, 0], "ast_tok_in": 254, "ast_tok_out": 336, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 72, "name": "dif_Square", "anchored": [1, 1, 0, 0], "unanchored": [1, 1, 0, 0], "ast_tok_in": 264, "ast_tok_out": 213, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 86, "name": "centered_hexagonal_number", "anchored": [4, 0, 0, 0], "unanchored": [4, 0, 0, 0], "ast_tok_in": 259, "ast_tok_out": 395, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 89, "name": "closest_num", "anchored": [1, 0, 0, 0], "unanchored": [1, 0, 0, 0], "ast_tok_in": 246, "ast_tok_out": 106, "direct_tok_in": 0, "direct_tok_out": 0}, {"id": 138, "name": "is_Sum_Of_Powers_Of_Two", "anchored": [1, 1, 0, 0], "unanchored": [1, 1, 0, 0], "ast_tok_in": 279, "ast_tok_out": 181, "direct_tok_in": 0, "direct_tok_out": 0}], "mbppTot": {"v": 16, "ce": 5, "ur": 0, "unsup": 0, "te": 0, "ast_tok_in": 2641, "ast_tok_out": 2211, "direct_tok_in": 0, "direct_tok_out": 0}, "mbppSummary": {"tasks": 10, "claims": 21, "verified": 16, "ce": 5, "verRate": 76.2, "hallucRate": 0.0, "astTokIn": 2641, "astTokOut": 2211, "directTokIn": 0, "directTokOut": 0}, "complex": [{"id": "A1_dead_loop_eq2", "category": "Dead Code / Vacuous Truth", "desc": "Loop with while 0 condition (dead loop from SV-COMP)", "anchored": [0, 0, 1, 0], "unanchored": [1, 0, 0, 0]}, {"id": "A2_dead_branch_loopv1", "category": "Dead Code / Vacuous Truth", "desc": "Loop with if 0 dead branch (SV-COMP loopv1)", "anchored": [0, 0, 1, 0], "unanchored": [1, 0, 0, 0]}, {"id": "A3_unreachable_contradiction", "category": "Dead Code / Vacuous Truth", "desc": "Unreachable guard (x > 10 and x < 5) enclosing an assertion", "anchored": [0, 0, 1, 0], "unanchored": [1, 0, 0, 0]}, {"id": "B1_hallucination_line_overflow", "category": "LLM Hallucination", "desc": "LLM hallucinates line number 42 on a 6-line function", "anchored": [0, 0, 0, 1], "unanchored": [0, 1, 0, 0]}, {"id": "B2_hallucination_syntax_error", "category": "LLM Hallucination", "desc": "LLM outputs non-Python / invalid math syntax (e.g. 2x == y)", "anchored": [0, 0, 0, 1], "unanchored": [0, 0, 0, 1]}, {"id": "C1_mbpp_448_cal_sum_perrin", "category": "Complex Arithmetic & Loops", "desc": "Perrin numbers sum (19 lines, 3 if branches, 4-variable state rotation in while loop)", "anchored": [0, 8, 0, 0], "unanchored": [0, 8, 0, 0]}, {"id": "C2_mbpp_711_product_equal", "category": "Complex Arithmetic & Loops", "desc": "Product equal at even/odd digits (16 lines, while loop with inner break, floor div & mod)", "anchored": [0, 8, 0, 0], "unanchored": [0, 8, 0, 0]}, {"id": "C3_mbpp_683_sum_square", "category": "Complex Arithmetic & Loops", "desc": "Sum of two squares representation (Nested while loops)", "anchored": [0, 5, 0, 0], "unanchored": [0, 5, 0, 0]}]};
+// complex grouped bars
+const colors=["seg-v","seg-ce","seg-ur","seg-x"], names=["VERIFIED","COUNTEREX","UNREACH","REJECT"];
+document.getElementById('complex').innerHTML = C.complex.map(c=>{
+  const max=Math.max(1,...c.anchored,...c.unanchored);
+  const line=(arr,side)=>{
+    let segs='',cur=0;
+    arr.forEach((v,i)=>{if(v){segs+=`<div class="bar ${colors[i]}" style="width:${v/max*82}%" title="${names[i]}: ${v}"></div>`;}});
+    const tags=arr.map((v,i)=>v?`<span class="badge b-${'vcux'[i]}">${names[i]} ${v}</span>`:'').join(' ')||'<span style="color:#8b90ad">—</span>';
+    return `<div class="barline"><span class="bside">${side}</span><div class="track" style="flex-direction:row;flex-wrap:wrap;gap:6px">${tags}</div></div>`;
+  };
+  return `<div style="background:var(--card);border-radius:12px;padding:14px 18px;margin:10px 0">
+    <div style="font-weight:700;font-size:14px">${c.id} <span style="color:var(--mut);font-weight:400;font-size:12px">· ${c.category}</span></div>
+    <div style="color:var(--mut);font-size:12px;margin-bottom:6px">${c.desc}</div>${line(c.anchored,'anchored')}${line(c.unanchored,'unanchored')}
+  </div>`;}).join('');
+</script>
+</body></html>

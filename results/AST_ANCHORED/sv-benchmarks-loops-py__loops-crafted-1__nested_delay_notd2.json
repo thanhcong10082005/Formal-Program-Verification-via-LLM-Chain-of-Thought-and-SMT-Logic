@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested_delay_notd2",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested_delay_notd2.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/nested_delay_notd2.py",
   "source_text": "def f(a):\n    while 1:\n        c=0\n        while c<SIZE:\n                if (c>=last):\n                    st = 0\n            c++  # for-step\n        if (c>=last)  { st = 0 }\n\t\t}\n\t\tif(st==0 && c==last+1):\n            # skip: 'a'\n            # skip: '+'\n            # skip: '='\n            # skip: '3'\n            # skip: ';'\n            # skip: 'b'\n            # skip: '+'\n            # skip: '='\n            # skip: '3'\n            # skip: ';'\n        else:\n            # skip: 'a'\n            # skip: '+'\n            # skip: '='\n            # skip: '2'\n            # skip: ';'\n            # skip: 'b'\n            # skip: '+'\n            # skip: '='\n            # skip: '2'\n            # skip: ';'\n        if (c>=last)  { st = 0 }\n\t\t}\n\t\tif(st==0 && c==last+1){\n\t\t\ta+=3 b+=3}\n\t\telse { a+=2 b+=2 } \n\t\tif(c==last && st==0):\n            a = a+1\n        if (c>=last)  { st = 0 }\n\t\t}\n\t\tif(st==0 && c==last+1){\n\t\t\ta+=3 b+=3}\n\t\telse { a+=2 b+=2 } \n\t\tif(c==last && st==0) { \n\t\t\ta = a+1\n\t\t}\n\t\telse if(st==1 && last>=SIZE):\n            d += 1\n        if (c>=last)  { st = 0 }\n\t\t}\n\t\tif(st==0 && c==last+1){\n\t\t\ta+=3 b+=3}\n\t\telse { a+=2 b+=2 } \n\t\tif(c==last && st==0) { \n\t\t\ta = a+1\n\t\t}\n\t\telse if(st==1 && last>=SIZE) { \n\t\t\td++\n\t\t}\n\t\tif(d == SIZE):\n            a = 0\n            b = 1\n        assert a==b && c==SIZE\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00019829999996545666,
+  "elapsed_seconds": 0.000023999949917197227,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

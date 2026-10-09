@@ -15,7 +15,12 @@ from typing import List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from astverifier.classify import ProgramResult
-from astverifier.llm import LLMResult, generate_cot_and_claims
+from astverifier.llm import (
+    DirectLLMResult,
+    LLMResult,
+    generate_cot_and_claims,
+    generate_direct_formalization,
+)
 from astverifier.pipeline import run_pipeline
 
 
@@ -26,6 +31,7 @@ CRUXEVAL_JSONL = DATASET_ROOT / "cruxeval-main" / "data" / "cruxeval.jsonl"
 RESULT_ROOT = PROJECT_ROOT / "results"
 
 BASELINES = ("AST_ANCHORED", "UNANCHORED")
+DEFAULT_MODEL = "gemini-3.5-flash"
 
 
 # --- Ground-truth labelling -------------------------------------------------
@@ -250,6 +256,7 @@ def _run_one(
     *,
     use_llm: bool = False,
     llm_result: LLMResult | None = None,
+    direct_llm_result: DirectLLMResult | None = None,
     llm_error_message: str | None = None,
 ) -> ProgramResult:
     source = source_path.read_text(encoding="utf-8")
@@ -260,7 +267,9 @@ def _run_one(
     except ValueError:
         # File is outside the dataset root (e.g. CRUXEval temp dir)
         program_id = f"cruxeval__{source_path.stem}"
-    if llm_result is not None or llm_error_message is not None:
+    if baseline == "AST_ANCHORED" and (
+        llm_result is not None or llm_error_message is not None
+    ):
         return run_pipeline(
             source,
             program_id=program_id,
@@ -271,6 +280,22 @@ def _run_one(
             tokens_in=llm_result.tokens_in if llm_result is not None else 0,
             tokens_out=llm_result.tokens_out if llm_result is not None else 0,
             cot_trace=llm_result.cot_trace if llm_result is not None else "",
+            llm_error_message=llm_error_message,
+        )
+    if baseline == "UNANCHORED" and (
+        direct_llm_result is not None or llm_error_message is not None
+    ):
+        return run_pipeline(
+            source,
+            program_id=program_id,
+            source_path=str(source_path),
+            baseline=baseline,
+            do_replay=True,
+            direct_specifications=(
+                direct_llm_result.specifications if direct_llm_result is not None else []
+            ),
+            tokens_in=direct_llm_result.tokens_in if direct_llm_result is not None else 0,
+            tokens_out=direct_llm_result.tokens_out if direct_llm_result is not None else 0,
             llm_error_message=llm_error_message,
         )
     return run_pipeline(
@@ -285,10 +310,18 @@ def _run_one(
 
 def main(argv: List[str]) -> int:
     use_llm = "--use-llm" in argv[1:]
+    model = DEFAULT_MODEL
+    if "--model" in argv[1:]:
+        model_index = argv.index("--model")
+        if model_index + 1 >= len(argv):
+            raise SystemExit("--model requires a model name")
+        model = argv[model_index + 1]
     RESULT_ROOT.mkdir(parents=True, exist_ok=True)
     sources = _collect_svcomp_sources()
     print(f"Collected {len(sources)} SV-COMP Python sources")
-    print("Claim generation:", "Gemini LLM" if use_llm else "deterministic source assertions")
+    print("Claim generation:", "two independent Gemini calls" if use_llm else "deterministic source assertions")
+    if use_llm:
+        print("Gemini model:", model)
     crux = _cruxeval_python_subset(limit=300)
     print(f"Collected {len(crux)} CRUXEval samples (int/bool/None only)")
 
@@ -298,16 +331,27 @@ def main(argv: List[str]) -> int:
     t0 = time.perf_counter()
 
     for src_path in all_sources:
-        generated: LLMResult | None = None
-        generation_error: str | None = None
+        anchored_generated: LLMResult | None = None
+        direct_generated: DirectLLMResult | None = None
+        anchored_error: str | None = None
+        direct_error: str | None = None
         if use_llm:
             try:
-                generated = generate_cot_and_claims(
-                    src_path.read_text(encoding="utf-8")
+                anchored_generated = generate_cot_and_claims(
+                    src_path.read_text(encoding="utf-8"),
+                    model=model,
                 )
             except Exception as exc:
-                generation_error = str(exc)
-                print(f"  [llm error] {src_path.name}: {generation_error}")
+                anchored_error = str(exc)
+                print(f"  [anchored llm error] {src_path.name}: {anchored_error}")
+            try:
+                direct_generated = generate_direct_formalization(
+                    src_path.read_text(encoding="utf-8"),
+                    model=model,
+                )
+            except Exception as exc:
+                direct_error = str(exc)
+                print(f"  [direct llm error] {src_path.name}: {direct_error}")
         for baseline in BASELINES:
             t1 = time.perf_counter()
             try:
@@ -315,8 +359,11 @@ def main(argv: List[str]) -> int:
                     src_path,
                     baseline,
                     use_llm=False,
-                    llm_result=generated,
-                    llm_error_message=generation_error,
+                    llm_result=anchored_generated,
+                    direct_llm_result=direct_generated,
+                    llm_error_message=(
+                        anchored_error if baseline == "AST_ANCHORED" else direct_error
+                    ),
                 )
             except Exception as e:
                 print(f"  [error] {src_path.name} {baseline}: {e}")

@@ -1,0 +1,185 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\anchored}{\texttt{AST\_ANCHORED}}
+\newcommand{\unanchored}{\texttt{UNANCHORED}}
+
+\title{Smoke-Test Evaluation of AST-Anchored and Direct Formalization Verification}
+\author{Standalone experimental note}
+\date{10 October 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report presents a small end-to-end smoke test of the proposed
+AST-anchored verification method and Baseline A Direct Formalization.  The
+experiment compares an anchored baseline, which binds claims to program
+locations and states, with the compatibility-named \unanchored{} baseline,
+which receives independent SMT-LIB2 specifications and checks only their
+negations.  The refreshed deterministic run produced 0.000 F1 and 0.059
+accuracy for both baselines over the available ground-truth labels.  The
+result is an engineering check for the research prototype; it is not a claim
+of complete soundness for arbitrary Python programs.
+\end{abstract}
+
+\section{Purpose and Scope}
+
+The accompanying proposal describes a pipeline in which an LLM proposes
+program claims, an AST supplies the trusted program context, symbolic
+execution produces constraints, and an SMT solver checks reachability and
+claim validity.  This document is a separate smoke-test report.  It does not
+modify or extend the proposal; it records whether the central design can be
+executed end to end and whether AST grounding changes the observed results.
+
+The experiment is deliberately small.  Its purpose is to establish
+engineering and empirical viability, identify a measurable baseline gap, and
+make the next evaluation steps concrete.  It should not be read as a final
+benchmark or as a proof that the implementation handles all Python control
+flow.
+
+\section{Compared Baselines}
+
+The baselines use separate input contracts.  The distinction is both the
+claim representation and the verification context supplied to it:
+
+\begin{description}
+  \item[\anchored.] The claim is bound to an exact source location and
+  program scope.  The verifier uses the target node, the symbolic state at
+  that location, target-specific path constraints, and counterexample replay.
+  Claims affected by incomplete bounded path coverage are reported as
+  \texttt{UNKNOWN\_TIMEOUT} rather than silently treated as verified.
+  \item[\unanchored.] Baseline A Direct Formalization receives one Boolean
+  SMT-LIB2 term and declared Int symbols.  It does not use a \texttt{NodeId},
+  program state, symbolic executor, target location, reachability query, or
+  replay; Z3 checks only $\neg C$ and stores any integer model.
+\end{description}
+
+When LLM mode is enabled, each source receives one anchored claim-generation
+call and one direct-formalization call.  The persisted token totals are
+therefore independent; deterministic runs record zero tokens for both.
+
+\section{Smoke-Test Protocol}
+
+The run used 94 source programs: 73 programs from the loop benchmark and 21
+usable Python programs extracted from CRUXEval.  The arithmetic subset gate
+accepted 12 programs and rejected 82 programs.  No LLM call was made for this
+refreshed deterministic report.  An LLM run, when requested, uses the
+configured `gemini-3.5-flash` model separately for the anchored Python-claim
+contract and the direct SMT-LIB2 contract; token totals are persisted
+independently.
+
+The run produced 188 persisted program records, 94 for each baseline.  The
+accepted programs yielded 17 source-assert claims per baseline.  The curated
+ground-truth comparison covers 17 claims.  The reported values below are computed from the
+persisted JSON results and the aggregated summary.
+
+For the classification metrics, \texttt{VERIFIED} is the positive class and
+every other status is negative.  Accuracy, precision, recall, and F1 are
+computed only on the 17 ground-truth claims.  This convention makes the
+comparison explicit while keeping \texttt{UNKNOWN\_TIMEOUT},
+\texttt{COUNTEREXAMPLE}, and translation errors visible in the status table.
+
+\section{Results}
+
+\subsection{Claim-level comparison}
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Metrics from the persisted smoke-test run.}
+\label{tab:metrics}
+\begin{tabularx}{\textwidth}{@{}Yrr@{}}
+\toprule
+Metric & \anchored & \unanchored \\
+\midrule
+False Discovery Rate (FDR) & n/a & n/a \\
+Accuracy (\texttt{VERIFIED} positive) & \textbf{0.059} & 0.059 \\
+Precision (\texttt{VERIFIED}) & n/a & n/a \\
+Recall (\texttt{VERIFIED}) & 0.000 & 0.000 \\
+F1 (\texttt{VERIFIED}) & 0.000 & 0.000 \\
+Average input tokens / program & 0.0 & 0.0 \\
+Average output tokens / program & 0.0 & 0.0 \\
+Average recorded cost / program & \$0.000000 & \$0.000000 \\
+Hallucination Rate (HR) & 0.000 & 0.000 \\
+Counterexample Replay Validity (CRVR) & \textbf{0.250} & n/a$^{*}$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The anchored mode produced 8 \texttt{COUNTEREXAMPLE} claims and 9
+\texttt{UNKNOWN\_TIMEOUT} claims among accepted programs.  Baseline A produced
+17 direct SMT-LIB2 \texttt{COUNTEREXAMPLE} claims.  In addition, 82 programs
+were rejected by the subset
+gate for each baseline; these are program-level rejections and are not
+included as claim verdicts.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Claim-level confusion matrix against the available ground truth.}
+\label{tab:matrix}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+Baseline & TP & FP & FN & TN & FDR \\
+\midrule
+\anchored & 0 & 0 & 16 & 1 & n/a \\
+\unanchored & 0 & 0 & 16 & 1 & n/a \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The refreshed deterministic matrix contains no \texttt{VERIFIED} claims.  The
+single true-negative claim gives accuracy $1/17 = 0.059$ for each baseline;
+there are no positive predictions from which to compute precision or FDR.
+The equal zero token totals reflect deterministic source-assert input; this
+refresh contains no LLM-generation comparison.
+
+\noindent\textsuperscript{*}\,The direct-formalization mode has no executable target
+location for replay, so CRVR is not applicable to its counterexamples.
+
+\section{Interpretation}
+
+This smoke test supports three limited conclusions:
+
+\begin{enumerate}
+  \item The complete pipeline can process a dataset, generate claims, bind
+  them to source programs, invoke SMT reasoning, classify outcomes, and write
+  reproducible per-program records.
+  \item The two contracts produce different evidence: AST counterexamples can
+  be replayed at grounded targets, while direct counterexamples are only
+  integer models for $\neg C$.  This deterministic run alone does not support
+  a claim of superiority.
+  \item The status taxonomy is useful operationally: incomplete bounded
+  reasoning is exposed as \texttt{UNKNOWN\_TIMEOUT}, while unsupported inputs
+  and provider failures remain visible rather than being counted as successes.
+\end{enumerate}
+
+The evidence has important boundaries.  Only 12 of 94 programs passed the
+current arithmetic subset gate, the deterministic run used no LLM requests,
+and the symbolic executor uses bounded approximations
+for some loops and control-flow constructs.  Consequently, the result is a
+viability signal for the proposed method, not a universal soundness claim.
+The next evaluation should enlarge the accepted subset, add independently
+validated labels, and measure target-location replay on a broader set of
+counterexamples.
+
+\section{Reproducibility Artifacts}
+
+The numerical source for this report is stored in the repository under
+\texttt{results/AST\_ANCHORED/}, \texttt{results/UNANCHORED/}, and
+\texttt{results/summary.md}.  The implementation regression suite passed with
+\texttt{PYTHONPATH=src pytest -q tests}: 16 tests passed.  The companion
+Markdown metrics report is \texttt{reports/E2E\_METRICS\_REPORT.md}.
+
+\end{document}

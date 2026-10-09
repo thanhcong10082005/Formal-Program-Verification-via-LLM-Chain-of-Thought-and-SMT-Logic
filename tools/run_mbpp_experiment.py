@@ -16,7 +16,12 @@ if hasattr(sys.stdout, "reconfigure"):
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from astverifier.llm import generate_cot_and_claims, _get_api_key, SuggestedClaim
+from astverifier.llm import (
+    _get_api_key,
+    generate_cot_and_claims,
+    generate_direct_formalization,
+    SuggestedClaim,
+)
 from astverifier.pipeline import run_pipeline
 
 
@@ -84,6 +89,8 @@ MBPP_TASKS = [
     },
 ]
 
+CACHE_VERSION = 2
+
 
 def run_experiment_on_program(
     task: Dict[str, Any],
@@ -102,40 +109,48 @@ def run_experiment_on_program(
     tokens_in = 0
     tokens_out = 0
 
-    # 1. Check if cached LLM result exists
+    # 1. Check only caches written with the independent-generation schema.
+    # Older files paired one Python-claim response with both baselines and are
+    # stale after the Direct Formalization semantic change.
     if cache_file.exists():
         try:
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
-            if cached_data.get("cot_trace"):
-                cot_trace = cached_data["cot_trace"]
-                tokens_in = cached_data.get("tokens_in", 0)
-                tokens_out = cached_data.get("tokens_out", 0)
-                # Recover claims from anchored prog result or raw
-                if "anchored" in cached_data and "claim_results" in cached_data["anchored"]:
-                    for cr in cached_data["anchored"]["claim_results"]:
-                        line = cr["anchor"]["source_lines"][0] if cr["anchor"]["source_lines"] else 1
-                        suggested_claims.append(SuggestedClaim(line=line, expression=cr["claim_text"]))
-                print(f"    [Cache Hit] Reusing cached Gemini CoT & {len(suggested_claims)} claims.")
+            if cached_data.get("generation_version") == CACHE_VERSION:
+                print("    [Cache Hit] Reusing independent AST/direct generations.")
+                return cached_data
         except Exception:
             pass
 
-    if not cot_trace:
-        # Call Gemini API
-        t0 = time.perf_counter()
-        llm_res = generate_cot_and_claims(code, api_key=api_key, model="gemini-flash-latest")
-        llm_elapsed = time.perf_counter() - t0
-        cot_trace = llm_res.cot_trace
-        suggested_claims = llm_res.claims
-        tokens_in = llm_res.tokens_in
-        tokens_out = llm_res.tokens_out
-        print(f"    Gemini CoT completed in {llm_elapsed:.2f}s (In: {tokens_in}, Out: {tokens_out} tokens)")
-        print(f"    Suggested {len(suggested_claims)} claims.")
-        # Rate limit safety delay for next call
-        time.sleep(13)
+    # AST_ANCHORED and Direct Formalization are separate Gemini requests.
+    t0 = time.perf_counter()
+    anchored_llm = generate_cot_and_claims(
+        code,
+        api_key=api_key,
+        model="gemini-3.5-flash",
+    )
+    anchored_elapsed = time.perf_counter() - t0
+    cot_trace = anchored_llm.cot_trace
+    suggested_claims = anchored_llm.claims
+    print(
+        f"    AST_ANCHORED Gemini completed in {anchored_elapsed:.2f}s "
+        f"(In: {anchored_llm.tokens_in}, Out: {anchored_llm.tokens_out} tokens; "
+        f"{len(suggested_claims)} claims)"
+    )
+    time.sleep(13)
 
-    # Both baselines use the same LLM response, but their execution paths are
-    # implemented by the public pipeline so token accounting and semantics do
-    # not drift between experiment runners.
+    t0 = time.perf_counter()
+    direct_llm = generate_direct_formalization(
+        code,
+        api_key=api_key,
+        model="gemini-3.5-flash",
+    )
+    direct_elapsed = time.perf_counter() - t0
+    print(
+        f"    UNANCHORED Direct Formalization completed in {direct_elapsed:.2f}s "
+        f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out} tokens; "
+        f"{len(direct_llm.specifications)} specifications)"
+    )
+
     anchored_prog = run_pipeline(
         code,
         program_id=f"mbpp_{task_id}_{name}",
@@ -143,8 +158,8 @@ def run_experiment_on_program(
         baseline="AST_ANCHORED",
         do_replay=True,
         suggested_claims=suggested_claims,
-        tokens_in=tokens_in,
-        tokens_out=tokens_out,
+        tokens_in=anchored_llm.tokens_in,
+        tokens_out=anchored_llm.tokens_out,
         cot_trace=cot_trace,
     )
     unanchored_prog = run_pipeline(
@@ -153,23 +168,33 @@ def run_experiment_on_program(
         source_path=f"mbpp_{task_id}",
         baseline="UNANCHORED",
         do_replay=True,
-        suggested_claims=suggested_claims,
-        tokens_in=tokens_in,
-        tokens_out=tokens_out,
-        cot_trace=cot_trace,
+        direct_specifications=direct_llm.specifications,
+        tokens_in=direct_llm.tokens_in,
+        tokens_out=direct_llm.tokens_out,
     )
 
     print(f"    AST_ANCHORED: V={anchored_prog.n_verified}, CE={anchored_prog.n_counterexample}, UN={anchored_prog.n_unreachable}, UNSUP={anchored_prog.n_unsupported}")
     print(f"    UNANCHORED  : V={unanchored_prog.n_verified}, CE={unanchored_prog.n_counterexample}, UN={unanchored_prog.n_unreachable}, UNSUP={unanchored_prog.n_unsupported}")
 
     res_dict = {
+        "generation_version": CACHE_VERSION,
         "task_id": task_id,
         "name": name,
         "description": task["description"],
         "code": code,
-        "cot_trace": cot_trace,
-        "tokens_in": tokens_in,
-        "tokens_out": tokens_out,
+        "ast_generation": {
+            "model": anchored_llm.model_name,
+            "cot_trace": cot_trace,
+            "tokens_in": anchored_llm.tokens_in,
+            "tokens_out": anchored_llm.tokens_out,
+            "claim_count": len(suggested_claims),
+        },
+        "direct_generation": {
+            "model": direct_llm.model_name,
+            "tokens_in": direct_llm.tokens_in,
+            "tokens_out": direct_llm.tokens_out,
+            "specification_count": len(direct_llm.specifications),
+        },
         "anchored": anchored_prog.model_dump(),
         "unanchored": unanchored_prog.model_dump(),
     }

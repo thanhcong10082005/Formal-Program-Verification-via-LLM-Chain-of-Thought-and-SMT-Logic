@@ -1,26 +1,31 @@
-# Báo cáo thực nghiệm: AST-Anchored CoT Verification
+# Báo cáo thực nghiệm: AST-Anchored vs Direct Formalization
 
-Framework kiểm tra các chương trình đã qua subset gate với **hai chế độ baseline**.
+Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.
 Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.
 
 - `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.
-- `UNANCHORED`: free-predicate validity; không dùng NodeId, program state, executor hoặc reachability.
+- `UNANCHORED`: Baseline A, Direct Formalization bằng SMT-LIB2; không dùng NodeId, program state, executor hoặc reachability.
 
 ## 1. So sánh đối chứng — Bảng chính
 
 | Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |
 |--------|-----------|--------------|------------|-----------|
-| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **n/a** | 0.333 | - |
+| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |
+| Accuracy | $(TP+TN)/N$ | **0.059** | 0.059 | +0.000 |
+| Precision (VERIFIED) | $TP/(TP+FP)$ | **n/a** | n/a | - |
+| Recall (VERIFIED) | $TP/(TP+FN)$ | **0.000** | 0.000 | - |
+| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **0.000** | 0.000 | - |
 | Avg Tokens (in) | $T_{in}$ | 0.0 | 0.0 | +0.0 |
 | Avg Tokens (out) | $T_{out}$ | 0.0 | 0.0 | +0.0 |
 | Avg Cost (USD) | $C_{usd}$ | 0.000000 | 0.000000 | +0.000000 |
 | Hallucination Rate (HR) | $H = \frac{N_{UNSUP} + N_{TE}}{N_{claims}}$ | **0.000** | 0.000 | +0.000 |
-| Counterexample Replay Validity (CRVR) | $1 - \frac{\text{card}(S.V.)}{\text{card}(CE_{Z3})}$ | **0.143** | 0.143 | +0.000 |
+| Counterexample Replay Validity (CRVR) | $\frac{\text{card}(REPRODUCED)}{\text{card}(CE_{Z3})}$ | **0.250** | n/a | - |
 
 Trong đó:
 - $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.
 - $H$: claim bị reject vì UNSUPPORTED + TRANSLATION_ERROR.
 - $S.V.$: Soundness Violation — counterexample từ Z3 không reproduce trên CPython.
+- Accuracy / Precision / Recall / F1 treat `VERIFIED` as positive; all other statuses are negative.
 
 ## 2. Verdict Matrix (against SV-COMP ground truth)
 
@@ -30,11 +35,11 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 | Baseline | TP | FP | FN | TN | FDR |
 |----------|---:|---:|---:|---:|----:|
 | AST_ANCHORED | 0 | 0 | 16 | 1 | **n/a** |
-| UNANCHORED   | 2 | 1 | 14 | 0 | 0.333 |
+| UNANCHORED   | 0 | 0 | 16 | 1 | n/a |
 
 **Diễn giải:**
 - AST_ANCHORED: 0 VERIFIED verdicts (0 TP, 0 FP) → FDR = n/a.
-- UNANCHORED: 3 VERIFIED verdicts (2 TP, 1 FP) → FDR = 0.333.
+- UNANCHORED: 0 VERIFIED verdicts (0 TP, 0 FP) → FDR = n/a.
 
 ## 3. Phân bố trạng thái (claim-level)
 
@@ -43,8 +48,8 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 | Status | Count | % |
 |--------|------:|--:|
 | REJECTED | 82 | 81.2% |
-| COUNTEREXAMPLE | 14 | 13.9% |
-| UNREACHABLE | 3 | 3.0% |
+| UNKNOWN_TIMEOUT | 9 | 8.9% |
+| COUNTEREXAMPLE | 8 | 7.9% |
 | NO_CLAIMS | 2 | 2.0% |
 
 ### UNANCHORED
@@ -52,8 +57,7 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 | Status | Count | % |
 |--------|------:|--:|
 | REJECTED | 82 | 81.2% |
-| COUNTEREXAMPLE | 14 | 13.9% |
-| VERIFIED | 3 | 3.0% |
+| COUNTEREXAMPLE | 17 | 16.8% |
 | NO_CLAIMS | 2 | 2.0% |
 
 ## 4. Program-level Coverage
@@ -69,14 +73,14 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 | Program | Claims | V | CE | UNREACH | UNSUP | TE |
 |---------|-------:|--:|---:|--------:|------:|---:|
 | `cruxeval/sample_51` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `loop-invariants/eq2` | 1 | 0 | 0 | 1 | 0 | 0 |
-| `loops-crafted-1/Mono3_1` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/Mono4_1` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/loopv1` | 1 | 0 | 0 | 1 | 0 | 0 |
-| `loops-crafted-1/mono-crafted_12` | 1 | 0 | 0 | 1 | 0 | 0 |
+| `loop-invariants/eq2` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/Mono3_1` | 1 | 0 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/Mono4_1` | 1 | 0 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/loopv1` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/mono-crafted_12` | 1 | 0 | 0 | 0 | 0 | 0 |
 | `loops-crafted-1/mono-crafted_9` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-1` | 3 | 0 | 3 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-1_abstracted` | 4 | 0 | 4 | 0 | 0 | 0 |
+| `loops-crafted-1/nested3-1` | 3 | 0 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/nested3-1_abstracted` | 4 | 0 | 1 | 0 | 0 | 0 |
 | `loops-crafted-1/nested3-2` | 3 | 0 | 3 | 0 | 0 | 0 |
 | `loops-crafted-1/net_reset` | 0 | 0 | 0 | 0 | 0 | 0 |
 | `loops-crafted-1/sumt2` | 1 | 0 | 1 | 0 | 0 | 0 |
@@ -85,27 +89,21 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 
 | Claim | Model bindings | Replay verdict | Replay output |
 |-------|----------------|----------------|---------------|
-| `assert_L10` | y=0 | NOT_REPRODUCED |  |
-| `assert_L10` | x=0, y=0 | NOT_REPRODUCED |  |
-| `assert_L10` | y=1, x=0 | REPRODUCED | None |
-| `assert_L14` | x=0 | NOT_REPRODUCED |  |
-| `assert_L12` | y=0 | NOT_REPRODUCED |  |
-| `assert_L10` | z=0 | NOT_REPRODUCED |  |
-| `assert_L13` | x=0 | NOT_REPRODUCED |  |
-| `assert_L11` | y=0 | NOT_REPRODUCED |  |
-| `assert_L8` | z=268435455 | NOT_REPRODUCED |  |
-| `assert_L9` | z=0 | NOT_REPRODUCED |  |
-| `assert_L14` | x=1 | NOT_REPRODUCED |  |
-| `assert_L12` | y=1 | NOT_REPRODUCED |  |
-| `assert_L10` | z=1 | NOT_REPRODUCED |  |
-| `assert_L12` | l=1, n=1, i=0, j=0 | REPRODUCED | None |
+| `assert_L5_#5` | y=1, z=0, w=0, _state_2512195878482767437_w=0, _state_2512195878482767437_z=0 | REPRODUCED | None |
+| `assert_L10_#5` | n=1, i=1, j=0, _state_1160043897638109363_j=0, _state_1160043897638109363_i=1 | REPRODUCED | None |
+| `assert_L10_#7` | _state_3578772684183996446_y=500000, _state_3578772684183996446_x=1 | NOT_REPRODUCED | None |
+| `assert_L9_#37` | _state_1695543961181983335_x=0, _state_1695543961181983335_z=0, _state_1695543961181983335_y=0, _state_1695543961181983335_w=0 | NOT_REPRODUCED | None |
+| `assert_L14_#9` | _state_2004503844709881656_y=1, _state_2004503844709881656_w=0, _state_2004503844709881656_z=1, _state_2004503844709881656_x=1 | NOT_REPRODUCED | None |
+| `assert_L12_#25` | _state_7317074119006952051_x=0, _state_7317074119006952051_z=1, _state_7317074119006952051_w=0, _state_7317074119006952051_y=1 | NOT_REPRODUCED | None |
+| `assert_L10_#37` | _state_5881341219498615900_z=1, _state_5881341219498615900_x=0, _state_5881341219498615900_w=0, _state_5881341219498615900_y=0 | NOT_REPRODUCED | None |
+| `assert_L12_#6` | n=0, i=1, j=0, _state_1870059617629343542_j=0, _state_1870059617629343542_n=0 | NOT_REPRODUCED | None |
 
 ## 7. Ghi chú thực nghiệm
 
-1. **LLM usage is explicit**: `run_benchmark.py` is deterministic by default; `--use-llm` is required for Gemini claim generation. Token totals are copied to both baseline records for the same LLM call.
+1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.
 2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.
 3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.
-4. **Replay boundary**: a replay is reproduced only when CPython reaches the target line and evaluates the target claim as false. A normal return alone is not confirmation.
+4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.
 5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.
 6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.
 
@@ -120,6 +118,7 @@ prototype/
 │   ├── executor.py     # Trusted symbolic executor
 │   ├── binding.py      # Anchor binding gate α(c)
 │   ├── obligations.py  # Two-query Z3 protocol
+│   ├── direct.py       # Direct SMT-LIB2 validator
 │   ├── replay.py       # CPython subprocess counterexample replay
 │   ├── pipeline.py     # End-to-end orchestrator
 │   └── metrics.py      # FDR / Tokens / HR / CRVR aggregation

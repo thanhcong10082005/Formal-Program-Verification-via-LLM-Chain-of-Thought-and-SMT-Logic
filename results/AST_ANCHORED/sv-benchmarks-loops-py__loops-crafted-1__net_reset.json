@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__net_reset",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\net_reset.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/net_reset.py",
   "source_text": "def f():\n    # skip: 's'\n    # skip: 't'\n    # skip: 'r'\n    # skip: 'u'\n    # skip: 'c'\n    # skip: 't'\n    # skip: 'h'\n    # skip: 'o'\n    # skip: 's'\n    # skip: 't'\n    # skip: 'e'\n    # skip: 'n'\n    # skip: 't'\n    # skip: 'h'\n    # skip: ';'\n    # skip: 'n'\n    # skip: 'e'\n    # skip: 't'\n    # skip: '_'\n    # skip: 'r'\n    # skip: 'e'\n    # skip: 'o'\n    # skip: 'p'\n    # skip: 'e'\n    # skip: 'n'\n    # skip: '('\n    # skip: '&'\n    # skip: 'h'\n    # skip: ')'\n    # skip: ';'\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001523000000815955,
+  "elapsed_seconds": 0.000116333132609725,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

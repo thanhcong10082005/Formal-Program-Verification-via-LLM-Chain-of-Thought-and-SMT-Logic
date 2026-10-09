@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-invariants__linear-inequality-inv-a",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\linear-inequality-inv-a.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-invariants/linear-inequality-inv-a.py",
   "source_text": "def f(i, s):\n    while i < n:\n        v = __VERIFIER_nondet_uchar()\n        # skip: 's'\n        # skip: '+'\n        # skip: '='\n        # skip: 'v'\n        # skip: ';'\n        i += 1\n    assert n == 0) {\n    return 0\n  }\n  unsigned char v = 0\n  unsigned int  s = 0\n  unsigned int  i = 0\n  while (i < n) {\n    v = __VERIFIER_nondet_uchar()\n    s += v\n    ++i\n  }\n  if (s < v\n    assert s < v) {\n    reach_error()\n    return 1\n  }\n  if (s > 65025\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.000047799999947528704,
+  "elapsed_seconds": 0.00003233295865356922,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import Iterable, List, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional
 
 from .nodes import NodeId, lookup_containing
 from .subset import ALLOWED_BUILTINS, validate_expression
@@ -20,8 +20,13 @@ class Claim:
     expr_source: str
     expr_node: Optional[ast.expr]
     anchor: Optional[NodeId]
-    status: str  # "ANCHORED", "UNSUPPORTED", or "TRANSLATION_ERROR"
+    status: str  # "ANCHORED", "DIRECT", "UNSUPPORTED", or "TRANSLATION_ERROR"
     anchor_node: Optional[ast.AST] = None
+    explanation: str = ""
+    # Direct Formalization claims carry a validated Z3 Boolean term instead of
+    # a Python expression tied to a source node.
+    direct_expression: Optional[Any] = None
+    direct_variables: tuple[str, ...] = ()
 
 
 def extract_asserts(
@@ -77,11 +82,10 @@ def claims_without_anchors(claims: Iterable[Claim]) -> List[Claim]:
 
 
 def parse_unanchored_asserts(claim_infos: Iterable) -> List[Claim]:
-    """Convert subset-gate assert inputs into free predicates.
+    """Legacy parser retained for callers of the old helper API.
 
-    This intentionally does not run anchor lookup or definite-initialization
-    checks.  The subset gate has already parsed the expressions; the
-    unanchored baseline discards their source locations before solving.
+    ``run_pipeline(..., baseline="UNANCHORED")`` does not call this function;
+    it converts assertions to validated SMT-LIB2 terms through ``direct.py``.
     """
     return [
         Claim(
@@ -170,7 +174,7 @@ def bind_llm_claims(
 
 
 def parse_unanchored_claims(suggested_claims: Iterable) -> List[Claim]:
-    """Parse claim predicates without consulting a program AST or location."""
+    """Legacy parser retained for old callers; not part of Baseline A."""
     out: List[Claim] = []
     for idx, sc in enumerate(suggested_claims):
         line = getattr(sc, "line", 0)

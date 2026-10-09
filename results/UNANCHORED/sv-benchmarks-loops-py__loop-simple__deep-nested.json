@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-simple__deep-nested",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\deep-nested.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-simple/deep-nested.py",
   "source_text": "def f():\n    a = 0\n    while a < uint32_max - 1:\n            b = 0\n            while b < uint32_max - 1:\n                    c = 0\n                    while c < uint32_max - 1:\n                            d = 0\n                            while d < uint32_max - 1:\n                                    e = 0\n                                    while e < uint32_max - 1:\n                                            assert (a == b) && (b == c) && (c == d) && (d == e) && (e == (uint32_max - 2))\n                                        ++e  # for-step\n                                ++d  # for-step\n                        ++c  # for-step\n                ++b  # for-step\n        ++a  # for-step\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00016249999998763087,
+  "elapsed_seconds": 0.00029791705310344696,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

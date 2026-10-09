@@ -19,17 +19,20 @@ Framework đặt mục tiêu kiểm chứng chương trình Python theo hướng
   vacuous verification), rồi truy vấn validity, cuối cùng replay counterexample
    trên CPython thật để kiểm tra soundness.
 
-So với baseline `UNANCHORED` (predicate tự do, không program state và không
-reachability), ta đo được 4 metric: FDR, token consumption, Hallucination
-Rate, CRVR.
+`UNANCHORED` giữ tên tương thích nhưng hiện là **Baseline A — Direct
+Formalization**: LLM trả về các Boolean term SMT-LIB2 và khai báo biến Int.
+Baseline này không có AST anchoring, program state hay reachability; mỗi claim
+được kiểm tra bằng đúng một truy vấn $\neg C$. Ta đo được 4 metric: FDR, token
+consumption, Hallucination Rate, CRVR.
 
 ### Audit boundary
 
 `AST_ANCHORED` chỉ gọi một claim là anchored khi line khớp chính xác một
 statement, biểu thức parse được và mọi tên biến thuộc scope của function.
 Mỗi claim dùng các path bounded dẫn tới chính `NodeId` đó. `UNANCHORED`
-không tạo `NodeId`, transition, target state hay reachability query; các
-assert trong source chỉ được xem như claim input và location bị loại bỏ.
+không tạo `NodeId`, transition, target state hay reachability query. Mỗi
+`assert` trong source được chuyển đúng một lần thành SMT-LIB2 formula; các
+specification LLM được append như một claim pool riêng và location bị loại bỏ.
 
 Loop unrolling và control effects chưa đủ để chứng minh toàn bộ execution
 space. Vì vậy coverage không đầy đủ được trả về là `UNKNOWN_TIMEOUT`, và
@@ -52,7 +55,8 @@ prototype/
 │       ├── classify.py                 # Phase 1: Pydantic schemas
 │       ├── executor.py                 # Phase 2: Trusted symbolic executor
 │       ├── binding.py                  # Phase 2: Anchor binding gate α(c)
-│       ├── obligations.py              # Phase 3: Two-query Z3
+│       ├── obligations.py              # Two-query + direct not-C Z3
+│       ├── direct.py                   # SMT-LIB2 direct validator
 │       ├── replay.py                   # Phase 3: CPython subprocess replay
 │       ├── pipeline.py                 # Phase 4: end-to-end orchestrator
 │       └── metrics.py                  # Phase 4: 4-metric aggregation
@@ -209,8 +213,8 @@ thật với inputs từ z3 model.
 2. AST_ANCHORED: assign_ids + trusted transitions + exact anchor gate.
 3. AST_ANCHORED: enumerate target-specific paths and build target state relation.
 4. For each anchored path: reachability, then validity, then target-aware replay.
-5. UNANCHORED: parse claim predicates as free integer formulas; skip node IDs,
-   executor, target state and reachability.
+5. UNANCHORED: convert source asserts and validate independent SMT-LIB2
+   specifications; skip node IDs, executor, target state and reachability.
 6. Roll-up counts into `ProgramResult`.
 ```
 
@@ -218,19 +222,35 @@ thật với inputs từ z3 model.
 
 `aggregate(results, ground_truth=None)` tính:
 
-- `token_avg_in`, `token_avg_out` (0 for deterministic runs; populated when
-  `--use-llm` is requested)
+- `token_avg_in`, `token_avg_out` (0 for deterministic runs; with
+  `--use-llm`, AST_ANCHORED and UNANCHORED are charged from separate calls)
 - `cost_avg_usd` = `(in × $0.005 + out × $0.015) / 1000`
 - `hr` = (UNSUPPORTED + TRANSLATION_ERROR) / total_claims
-- `crvr` = REPRODUCED / total_COUNTEREXAMPLE
+- `crvr` = REPRODUCED / total replayed_COUNTEREXAMPLE (n/a for direct models)
 - `fdr` (nếu có ground truth) = FP / (TP + FP)
 
-### 6.3 `tools/run_benchmark.py`
+### 6.3 Direct Formalization contract
+
+`llm.py` keeps the original anchored response schema and prompt unchanged. A
+separate `DirectSpecification` schema contains:
+
+- `formula`: one SMT-LIB2 Boolean term;
+- `variables`: declared Int symbols;
+- `rationale`: a brief explanation, not a Chain-of-Thought trace.
+
+`direct.py` parses the formula with Z3 and rejects malformed terms,
+quantifiers, nonlinear multiplication, variable divisors, non-Int symbols, and
+operators outside the QF-LIA whitelist. `build_direct_obligation` adds only
+`not(C)`. Direct counterexamples retain the Z3 integer model, empty anchor
+fields, and `replay_verdict = None`.
+
+### 6.4 `tools/run_benchmark.py`
 
 - Thu thập 73 file SV-COMP `.c` → dịch sang `.py` bằng `translate_svcomp.py`.
 - Lấy 21 sample CRUXEval QF-LIA (int/bool/None args only, không nested fn).
-- Với mỗi program × baseline → chạy `run_pipeline(...)`, dump JSON. Mặc định
-  claim source assertions được dùng deterministic; `--use-llm` enables Gemini.
+- Với mỗi program, `AST_ANCHORED` và `UNANCHORED` nhận hai lời gọi Gemini
+  độc lập khi `--use-llm` bật; token usage được ghi riêng. Mặc định source
+  assertions được chuyển deterministic thành direct SMT-LIB2 claims.
 
 ### 6.4 `tools/compare_baselines.py`
 
@@ -398,10 +418,10 @@ hiện tính claim-level matrix từ mọi `claim_result` và sinh diễn giải
 
 ---
 
-## 9. Kết quả persisted của lần chạy lịch sử
+## 9. Kết quả persisted của lần refresh deterministic
 
 ```
-Done in 3.2s (188 runs, 0 errors)
+188 runs completed (0 errors)
 ```
 
 Toàn bộ 188 chương trình (94 mỗi baseline) chạy không lỗi:
@@ -411,19 +431,23 @@ Toàn bộ 188 chương trình (94 mỗi baseline) chạy không lỗi:
 
 **Subset pass rate của persisted run**: 12/94 = 12.8% (cả hai baseline).
 Phần lớn SV-COMP file bị subset reject do translator xuất ra syntax lỗi.
-Đây là số liệu lịch sử; chạy lại `run_benchmark.py` sẽ tạo output mới.
+Đây là kết quả deterministic hiện tại; chạy lại `run_benchmark.py` sẽ tạo
+output mới với thời gian Z3 khác nhau.
 
-**Verdict matrix của persisted run** (chỉ 72 programs có trong ground-truth):
+**Verdict matrix của persisted run** (claim-level trên 17 claims có
+ground-truth):
 
 
 | Baseline     | TP  | FP  | FN  | TN  | FDR   |
 | ------------ | --- | --- | --- | --- | ----- |
-| AST_ANCHORED | 0   | 0   | 59  | 13  | n/a   |
-| UNANCHORED   | 2   | 1   | 57  | 12  | 0.333 |
+| AST_ANCHORED | 0   | 0   | 16  | 1   | n/a   |
+| UNANCHORED   | 0   | 0   | 16  | 1   | n/a   |
 
 
-**Counterexample Replay (CRVR) của persisted run**: 14 counterexamples, 2
-reproduce thành công trên CPython subprocess → CRVR = 1 − 12/14 = 0.143.
+**Counterexample Replay (CRVR) của persisted run**: AST_ANCHORED có 8
+counterexamples, 2 reproduce thành công trên CPython subprocess → CRVR =
+2/8 = 0.250. Direct Formalization không replay counterexamples nên CRVR là
+n/a.
 
 **Hallucination Rate của persisted run**: 0.0. Đây không phải bằng chứng rằng
 mọi claim historical đều grounded.
@@ -439,7 +463,8 @@ mọi claim historical đều grounded.
    COUNTEREXAMPLE thay vì VERIFIED. Cần thêm invariant generation
    (vd predicate abstraction, ICE).
 3. **LLM là opt-in**: benchmark mặc định deterministic từ source assertions;
-  dùng `--use-llm` để gọi Gemini và ghi token totals vào cả hai baseline.
+  dùng `--use-llm` để gọi Gemini độc lập cho hai baseline và ghi token totals
+  riêng.
 4. **Test coverage**: `tests/test_regressions.py` bao phủ các lỗi audit chính;
   vẫn cần mở rộng nếu executor hỗ trợ thêm control-flow.
 

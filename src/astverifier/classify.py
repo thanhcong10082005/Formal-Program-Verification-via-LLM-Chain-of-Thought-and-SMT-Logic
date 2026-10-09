@@ -45,6 +45,7 @@ class ClaimResult(BaseModel):
     counterexample: Optional[CounterexampleInfo] = None
     z3_stats: Dict[str, float] = {}
     reason: str = ""
+    explanation: str = ""
 
 
 class ProgramResult(BaseModel):

@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-invariants__odd",
-  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\odd.py",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loop-invariants/odd.py",
   "source_text": "def f(x):\n    x = 1\n    while 0:\n        # skip: 'x'\n        # skip: '+'\n        # skip: '='\n        # skip: '2'\n        # skip: ';'\n    assert (x % 2) != 0\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00008019999995667604,
+  "elapsed_seconds": 0.000026458175852894783,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",
