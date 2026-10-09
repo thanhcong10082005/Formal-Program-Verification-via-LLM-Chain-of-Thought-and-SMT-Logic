@@ -1,14 +1,24 @@
 # BÁO CÁO KHOA HỌC: PHÂN TÍCH SO SÁNH QUÁ TRÌNH SUY LUẬN GIỮA PHƯƠNG PHÁP CÓ AST (AST_ANCHORED) VÀ KHÔNG CÓ AST (UNANCHORED) KẾT HỢP LLM & SMT SOLVER
 
+> **Audit correction.** Các bảng trong tài liệu này ghi lại lần chạy cũ.
+> `UNANCHORED` không phải pipeline AST rút gọn: nó là kiểm tra predicate tự
+> do, không có anchor, target location, program state hoặc reachability.
+> Các loop/`break`/`continue` chưa tạo thành coverage toàn bộ; kết quả hiện
+> tại sẽ dùng `UNKNOWN_TIMEOUT` khi bounded path set không hoàn chỉnh. Token
+> LLM của cùng một lần gọi được ghi vào cả hai baseline.
+
 ---
 
 ## 1. TÓM TẮT NGHIÊN CỨU (ABSTRACT)
 
 Nghiên cứu này đánh giá vai trò của **Cây cú pháp trừu tượng (Abstract Syntax Tree - AST)** trong quy trình kiểm chứng hình thức chương trình tự động (**Automated Formal Program Verification**) kết hợp Mô hình Ngôn ngữ Lớn (LLM - Gemini 3.5 Flash) và bộ giải SMT (Z3 Solver). 
 
-Thông qua thực nghiệm đối chứng trên 26 khẳng định logic (claims) thuộc các bài toán có **nhánh chết (Dead Code)**, **ảo giác dòng mã (Hallucination)** và **vòng lặp lồng nhau phức tạp**, nghiên cứu đã chứng minh:
-- Phương pháp không có AST (**`UNANCHORED`**) gặp lỗ hổng hình thức nghiêm trọng mang tên **Chân lý rỗng (Vacuous Truth)** với tỷ lệ phát hiện sai **$\text{FDR} = 100\%$** trên các đoạn mã không chạm tới được.
-- Phương pháp có AST (**`AST_ANCHORED`**) bảo toàn tính đúng đắn hình thức (**Soundness**) nhờ giao thức hai truy vấn (Two-Query Protocol) và màng lọc **Anchor Gate**, định vị lỗi chính xác đến từng dòng lệnh và cột thực thi.
+Các bảng bên dưới là tư liệu lịch sử của commit cũ. Chúng không đủ để
+chứng minh soundness toàn chương trình: mô hình loop/control-flow là bounded,
+replay phải chạm đúng target, và số liệu cũ đã chạy một baseline hybrid.
+Mã hiện tại chỉ hỗ trợ kết luận hẹp hơn: `AST_ANCHORED` kiểm tra anchor chính
+xác, target-state reachability và validity; `UNANCHORED` kiểm tra predicate tự
+do, không dùng program state hay vị trí thực thi.
 
 ---
 
@@ -21,8 +31,10 @@ Thông qua thực nghiệm đối chứng trên 26 khẳng định logic (claims
   3. *Anchor Gate*: Chỉ tiếp nhận các claim có tọa độ và ngữ cảnh tồn tại hợp lệ trên AST.
   4. *Two-Query Z3 Protocol*: Kiểm tra tính khả đạt của đường dẫn (`Reachability Query`) trước khi kiểm tra tính đúng đắn toán học (`Validity Query`).
 - **`UNANCHORED` (Mô hình Tiêu giảm - Ablation Baseline)**:
-  - Bỏ qua tầng AST và Anchor Gate; xem mọi claim đều có cơ sở thực tế.
-  - Bỏ qua bước kiểm tra tính khả đạt của đường dẫn, đưa trực tiếp điều kiện đường dẫn vào giải tính đúng đắn.
+  - Không gán `NodeId`, không dựng symbolic executor và không dùng Anchor Gate.
+  - Sau subset gate, các source assert/LLM suggestion được kiểm tra như
+    predicate số nguyên tự do; location, program state và reachability bị loại
+    khỏi obligation.
 
 ### 2.2. Khái niệm Claim (Khẳng định logic)
 - **Claim**: Là một vị từ toán học $P(s)$ biểu diễn tính chất bất biến của trạng thái chương trình tại một điểm thực thi cụ thể.
@@ -31,8 +43,8 @@ Thông qua thực nghiệm đối chứng trên 26 khẳng định logic (claims
   - *Do LLM sinh (LLM-generated)*: Được trích xuất tự động thông qua chuỗi suy luận Chain-of-Thought (CoT) của Gemini 3.5 Flash.
 
 ### 2.3. Hệ thống 6 Nhãn Trạng thái (Verdict Labels)
-1. **`VERIFIED`**: Khẳng định đúng trên mọi đường dẫn thực thi khả đạt.
-2. **`COUNTEREXAMPLE`**: Tồn tại giá trị đầu vào làm khẳng định bị sai (kèm mô hình Z3 và kết quả CPython Replay).
+1. **`VERIFIED`**: Khẳng định đúng trên mọi đường dẫn được mô hình hóa đầy đủ tới target; không phải chứng nhận cho mọi execution khi coverage bounded.
+2. **`COUNTEREXAMPLE`**: Z3 tìm thấy mô hình vi phạm; replay chỉ được xem là xác nhận khi runtime chạm target và claim sai tại đó.
 3. **`UNREACHABLE`**: Nhánh mã chứa khẳng định là bất khả thi (không bao giờ chạm tới).
 4. **`UNSUPPORTED`**: Bị Anchor Gate từ chối do số dòng không có thật hoặc biến ngoài phạm vi.
 5. **`TRANSLATION_ERROR`**: Biểu thức logic lỗi cú pháp, không phân tích được sang AST.
@@ -47,17 +59,23 @@ Thông qua thực nghiệm đối chứng trên 26 khẳng định logic (claims
 
 ## 3. BẢNG TỔNG HỢP KẾT QUẢ THỰC NGHIỆM ĐỐI CHỨNG
 
+> **Lưu ý về provenance:** các verdict trong bảng này là output lịch sử của
+> pipeline hybrid ở commit cũ. Chúng được giữ lại để đối chiếu, không phải
+> kết quả của baseline hiện tại. Đặc biệt, A1 có assertion sau vòng `while 0`,
+> nên target vẫn reachable qua zero-iteration path; nó không phải một target
+> unreachable.
+
 | Nhóm thử thách | Chương trình | Số Claims | AST_ANCHORED | UNANCHORED | Khác biệt mấu chốt |
 | :--- | :--- | :---: | :---: | :---: | :--- |
-| **A. Nhánh chết (Dead Code)** | `A1_dead_loop_eq2` | 1 | **1 UNREACHABLE** | **1 VERIFIED** ⚠️ | Khác biệt Vacuous Truth |
-| | `A2_dead_branch_loopv1`| 1 | **1 UNREACHABLE** | **1 VERIFIED** ⚠️ | Khác biệt Vacuous Truth |
-| | `A3_contradiction_guard`| 1 | **1 UNREACHABLE** | **1 VERIFIED** ⚠️ | Khác biệt Vacuous Truth |
+| **A. Nhánh chết (Dead Code)** | `A1_dead_loop_eq2` | 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Assertion sau loop reachable qua skip path |
+| | `A2_dead_branch_loopv1`| 1 | old: UNREACHABLE; current: **COUNTEREXAMPLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Target-specific paths |
+| | `A3_contradiction_guard`| 1 | old: UNREACHABLE; current: **UNREACHABLE** | old: VERIFIED; current: **COUNTEREXAMPLE** | Free predicate không thấy guard |
 | **B. Ảo giác LLM** | `B1_line_overflow` | 1 | **1 UNSUPPORTED** | **1 COUNTEREXAMPLE** | Anchor Gate chặn thành công |
 | | `B2_syntax_error` | 1 | **1 TRANSLATION_ERROR**| **1 TRANSLATION_ERROR**| Bắt lỗi cú pháp toán học |
-| **C. Thuật toán phức tạp** | `C1_mbpp_448` (Perrin) | 8 | **8 COUNTEREXAMPLE** | **8 COUNTEREXAMPLE** | Z3 lật tẩy thiếu precondition |
-| | `C2_mbpp_711` (Digits) | 8 | **8 COUNTEREXAMPLE** | **8 COUNTEREXAMPLE** | Bắt góc chết số âm / chia dư |
-| | `C3_mbpp_683` (Squares)| 5 | **5 COUNTEREXAMPLE** | **5 COUNTEREXAMPLE** | Bắt góc chết biên vòng lặp |
-| **TỔNG CỘNG** | **8 chương trình** | **26** | **FDR = 0.0%** | **FDR = 100.0% (trên Dead Code)** | AST bảo toàn Soundness |
+| **C. Thuật toán phức tạp** | `C1_mbpp_448` (Perrin) | 8 | historical: 8 COUNTEREXAMPLE | historical: 8 COUNTEREXAMPLE | Lần chạy cũ |
+| | `C2_mbpp_711` (Digits) | 8 | historical: 8 COUNTEREXAMPLE | historical: 8 COUNTEREXAMPLE | Lần chạy cũ |
+| | `C3_mbpp_683` (Squares)| 5 | historical: 5 COUNTEREXAMPLE | historical: 5 COUNTEREXAMPLE | Lần chạy cũ |
+| **TỔNG CỘNG** | **8 chương trình** | **26** | historical FDR = 0.0% | historical FDR = 100.0% trên dead-code cases | Không phải kết luận hiện tại |
 
 ---
 
@@ -138,16 +156,16 @@ Hãy đối chiếu lập luận của LLM với mã nguồn thực tế:
   - `cal_sum@Return:L19:C4#0`
 - `Anchor Gate` ánh xạ thành công cả 8 claims vào các nút AST tương ứng.
 - **Z3 SMT Solver kiểm chứng hình thức**:
-  - Khi kiểm tra tính đúng đắn của claim `n == 2` tại `Return:L19`, Z3 kiểm tra điều kiện vi phạm:
-    $$\text{PathCondition} \land \neg(n == 2)$$
+  - Khi kiểm tra tính đúng đắn của claim `n == 2` tại `Return:L19`, Z3 kiểm tra target-state relation cùng điều kiện vi phạm:
+    $$R_\pi(s_0,s) \land \neg(n == 2)$$
   - Z3 lập tức chỉ ra phản ví dụ cụ thể:
-    $$\mathbf{Model: \{n = 0\}} \quad (\text{hoặc bất kỳ } n < 0)$$
-  - Cơ chế **CPython Replay** tái hiện phản ví dụ: chạy `cal_sum(0)` $\rightarrow$ trả về kết quả 3, nhưng giá trị $n$ không thỏa mãn invariant.
+    $$\mathbf{Model: \{n = -1\}}$$
+  - Cơ chế **CPython Replay** chỉ có thể xác nhận phản ví dụ nếu chạy `cal_sum(-1)` tới đúng dòng 19; các early return như `cal_sum(0)` không chạm target đó.
 - **Kết luận**: Gán nhãn chính xác **`COUNTEREXAMPLE`** kèm tọa độ nút AST `cal_sum@Return:L19:C4#0`. Lập trình viên biết ngay hàm đang thiếu tiền điều kiện (`precondition: assert n >= 0`).
 
-#### 2. Phương pháp KHÔNG CÓ AST (`UNANCHORED`):
-- Bỏ qua cấu trúc AST. Khi Z3 trả về phản ví dụ `n = 0`, hệ thống chỉ có một công thức toán học trừu tượng trôi nổi `n == 2` bị vi phạm.
-- **Hạn chế**: Không có thông tin về phạm vi khối lệnh hay tọa độ câu lệnh trong mã nguồn, người phát triển không thể truy vết ngược lại xem lỗi xảy ra ở vòng lặp hay lệnh return.
+#### 2. Phương pháp `UNANCHORED`:
+- Bỏ qua anchor, location và program state; Z3 kiểm tra predicate tự do `n == 2` trên các số nguyên.
+- Vì đây là predicate tự do, Z3 có thể trả về phản ví dụ như `n = 0`, nhưng kết quả không gắn với execution point nào và không được replay như violation tại dòng 19.
 
 ---
 
@@ -155,33 +173,23 @@ Hãy đối chiếu lập luận của LLM với mã nguồn thực tế:
 
 ```mermaid
 flowchart TD
-    Start["Nhận Claim: 'y == z'"] --> SkipAST["Bỏ qua kiểm tra AST & Tọa độ dòng"]
-    SkipAST --> DirectFormula["Thiết lập công thức SMT: Phi(Path) ∧ ¬(Claim)"]
+    Start["Nhận predicate tự do: 'y == z'"] --> SkipContext["Bỏ qua location & program state"]
+    SkipContext --> DirectFormula["Thiết lập công thức SMT: ¬(Claim)"]
     DirectFormula --> SMTCheck["Đưa vào Z3 Solver"]
-    SMTCheck --> FalsePremise["Vì Phi(Path) = False do 'while 0' mâu thuẫn<br>False ∧ ¬(y == z) ≡ False (UNSAT)"]
-    FalsePremise --> WrongVerdict["Kết luận: VERIFIED (Sai lầm!)<br>Khẳng định được chứng minh đúng!"]
+    SMTCheck --> FreeModel["Z3 tìm model, ví dụ y = 0, z = 1<br>¬(y == z) là SAT"]
+    FreeModel --> FreeVerdict["Kết luận: COUNTEREXAMPLE<br>Không có target location để replay"]
 ```
 
 #### Phân tích chi tiết từng bước:
-1. **Bước 1: Tiếp nhận Claim**:
-   Phương pháp tiếp nhận khẳng định $C \equiv (y == z)$. Do không có AST, nó xem khẳng định này như một biểu thức logic trôi nổi, gán cờ `has_grounding = True` một cách hình thức.
-2. **Bước 2: Thiết lập mệnh đề SMT**:
-   Nó thu thập điều kiện đường dẫn thực thi đi qua thân vòng lặp:
-   $$\Phi_{\text{path}} \equiv (\text{guard}_{\text{while}} == \text{True}) \equiv (0 \ne 0) \equiv \text{False}$$
-3. **Bước 3: Truy vấn tính đúng đắn (Validity Query)**:
-   Để kiểm tra xem claim có luôn đúng hay không, bộ giải kiểm tra xem có tồn tại trạng thái nào **vi phạm** claim hay không:
-   $$\text{Obligation} = \Phi_{\text{path}} \land \neg C \equiv \text{False} \land \neg(y == z)$$
-4. **Bước 4: Kết quả của Z3**:
-   Vì $\text{False} \land \text{Bất kỳ điều gì} \equiv \text{False}$, Z3 trả về kết quả **`UNSAT`** (không thể tìm thấy bất kỳ trạng thái nào vi phạm)!
-5. **Bước 5: Kết luận sai lầm của `UNANCHORED`**:
-   Vì Z3 báo `UNSAT` (không vi phạm), pipeline kết luận:
-   $$\text{Verdict} = \mathbf{VERIFIED} \quad \text{("Claim holds on every reachable execution")}$$
+1. **Bước 1: Tiếp nhận predicate**: `UNANCHORED` giữ lại biểu thức `y == z`, nhưng loại bỏ dòng, node và state của chương trình.
+2. **Bước 2: Truy vấn validity**: obligation là $\neg(y == z)$ trên các biến nguyên tự do, không phải $\Phi_{\text{path}} \land \neg C$.
+3. **Bước 3: Kết quả từ Z3**: công thức có model, chẳng hạn $y = 0, z = 1$.
+4. **Bước 4: Kết luận**: verdict là **`COUNTEREXAMPLE`** cho predicate tự do; không thể suy ra claim bị sai tại dòng 5 của chương trình.
 
 > [!CAUTION]
-> **TẠI SAO ĐÂY LÀ MỘT LỖI NGHIÊM TRỌNG?**
-> Đây chính là nghịch lý kinh điển **Chân lý rỗng (Vacuous Truth)** trong logic toán học:
-> Mệnh đề điều kiện $P \implies Q$ luôn có giá trị chân lý là **ĐÚNG** khi tiền đề $P = \text{False}$, bất kể kết luận $Q$ đúng hay sai.
-> `UNANCHORED` đã cấp chứng nhận an toàn tuyệt đối cho một câu lệnh sẽ gây sập chương trình ngay khi chạy thực tế!
+> **Giới hạn của ví dụ:** predicate tự do không chứa đủ thông tin để nói
+> assertion ở dòng 5 reachable hay unreachable. Việc bỏ path context loại bỏ
+> vacuity, nhưng cũng loại bỏ khả năng kiểm chứng property tại location.
 
 ---
 
@@ -193,9 +201,9 @@ flowchart TD
     BuildAST --> AnchorGate["Anchor Gate: Xác nhận dòng 5 tồn tại nút Assert hợp lệ"]
     AnchorGate --> SymExec["Symbolic Execution: Xây dựng quan hệ chuyển đổi trạng thái"]
     SymExec --> Query1["Truy vấn 1: Reachability Query: Check(Phi_path)"]
-    Query1 --> UnsatFound["Z3 trả về: UNSAT (Đường dẫn bất khả thi!)"]
-    UnsatFound --> EarlyStop["DỪNG NGAY LẬP TỨC: Không chạy Validity Query"]
-    EarlyStop --> RightVerdict["Kết luận: UNREACHABLE (Chính xác tuyệt đối!)<br>Từ chối cấp chứng nhận VERIFIED"]
+    Query1 --> SatFound["Z3 trả về: SAT trên zero-iteration path"]
+    SatFound --> Query2["Truy vấn 2: Validity tại target-state"]
+    Query2 --> Counterexample["Model y = 0, z = 1<br>Kết luận: COUNTEREXAMPLE"]
 ```
 
 #### Phân tích chi tiết từng bước:
@@ -206,19 +214,23 @@ flowchart TD
 2. **Bước 2: Màng lọc Anchor Gate**:
    Hàm `bind_llm_claims` đối chiếu khẳng định với bảng ký hiệu của AST. Claim `y == z` được xác nhận gắn đúng vào `NodeId` hợp lệ, trạng thái được chuyển thành `ANCHORED`.
 3. **Bước 3: Xây dựng quan hệ chuyển đổi trạng thái (Symbolic Transitions)**:
-   Bộ thực thi tượng trưng `TrustedSymbolicExecutor` xây dựng điều kiện thực thi đường dẫn dẫn tới nút này:
-   $$\text{Relation}_{\text{reach}} \equiv \text{PathCondition} \equiv (0 \ne 0)$$
+   `TrustedSymbolicExecutor` enumerates zero-iteration and body paths. Với
+   assertion sau vòng lặp, zero-iteration path có guard khả đạt và state tại
+   target giữ nguyên các tham số `y`, `z`; relation cũng chứa state equations.
 4. **Bước 4: Giao thức 2 Truy vấn Z3 (Two-Query Protocol)**:
-   - **Truy vấn 1 (Reachability Check)**: Trước khi làm bất cứ điều gì, hệ thống hỏi Z3: *"Liệu có tồn tại bất kỳ bộ tham số đầu vào $(w, x, y, z)$ nào để chương trình chạm tới được dòng 5 không?"*
-     $$\text{Solver}_{\text{reach}}.\text{check}() \implies \text{Z3 trả về: } \mathbf{UNSAT}$$
-   - **Cơ chế ngắt sớm (Early Termination)**: 
-     Vì đường dẫn dẫn tới nút `f@Assert:L5:C4#0` là bất khả thi, hệ thống **LẬP TỨC DỪNG LẠI**, không gửi truy vấn Validity.
+   - **Truy vấn 1 (Reachability Check)**: hỏi liệu có input nào đi tới
+     `f@Assert:L5:C4#0` qua zero-iteration path hay không. Câu trả lời là
+     `SAT` vì `while 0` có thể được bỏ qua.
+   - **Truy vấn 2 (Validity Check)**: kiểm tra relation của target-state cùng
+     với $\neg(y == z)$; model `y = 0, z = 1` là một vi phạm khả thi.
 5. **Bước 5: Kết luận chính xác của `AST_ANCHORED`**:
-   $$\text{Verdict} = \mathbf{UNREACHABLE} \quad \text{("Path is unreachable (reachability UNSAT)")}$$
+   $$\text{Verdict} = \mathbf{COUNTEREXAMPLE}$$
 
 > [!TIP]
 > **Ý NGHĨA KHOA HỌC:**
-> Bằng cách sử dụng AST để xác định tọa độ câu lệnh và bắt buộc kiểm tra tính khả đạt trước, phương pháp **`AST_ANCHORED` đã triệt tiêu hoàn toàn hiện tượng Chân lý rỗng**, đảm bảo tính đúng đắn toàn vẹn (**Soundness**) của hệ thống kiểm chứng.
+> `AST_ANCHORED` tránh kết luận từ một path bất khả đạt bằng cách chạy
+> reachability riêng cho target. Tuy nhiên, đây vẫn là bounded analysis; chỉ
+> các target path được mô hình hóa đầy đủ mới được phép nhận `VERIFIED`.
 
 ---
 
@@ -229,7 +241,7 @@ Xét bài toán hàm kẹp giá trị `clamp(val, low, high)` (6 dòng mã):
 
 | Tiêu chí | Phương pháp KHÔNG CÓ AST (`UNANCHORED`) | Phương pháp CÓ AST (`AST_ANCHORED`) |
 | :--- | :--- | :--- |
-| **Cơ chế xử lý** | Nhận bừa claim, gán cờ `has_grounding = True` giả tạo. Đưa vào Z3 giải mù quáng. | `Anchor Gate` quét cây AST `ids`, phát hiện không có bất kỳ nút nào ở dòng 42. |
+| **Cơ chế xử lý** | Nhận predicate tự do và kiểm tra validity trên các biến nguyên, không có location để đối chiếu. | `Anchor Gate` quét cây AST `ids`, phát hiện không có bất kỳ nút nào ở dòng 42. |
 | **Kết quả trả về** | **`COUNTEREXAMPLE`** (Phản ví dụ vô nghĩa trên biến tự do). | **`UNSUPPORTED`** (`Claim rejected by Anchor Gate`). |
 | **Tác động hệ thống**| Gây nhiễu dữ liệu, làm lập trình viên hoang mang vì lỗi không có thật trên code. | Cách ly claim rác ngay từ vòng gửi xe, giữ sạch báo cáo kiểm chứng. |
 
@@ -237,9 +249,12 @@ Xét bài toán hàm kẹp giá trị `clamp(val, low, high)` (6 dòng mã):
 
 ## 6. KẾT LUẬN & ĐỀ XUẤT CHO BÁO CÁO ĐỒ ÁN
 
-1. **Khẳng định tính ưu việt của đề tài**:
-   Cây cú pháp trừu tượng (AST) không chỉ là một cấu trúc dữ liệu trung gian, mà là **xương sống ngữ nghĩa bắt buộc** trong bài toán kiểm chứng hình thức có LLM tham gia.
+1. **Khẳng định có thể bảo vệ được**:
+   AST cung cấp anchor, target state và reachability context mà predicate tự do
+   không thể cung cấp. Đây là lợi ích về traceability và semantics, không phải
+   bằng chứng soundness toàn chương trình.
 2. **Khuyến nghị trình bày trong báo cáo / slide bảo vệ**:
-   - Dùng Case Study **`A1_dead_loop_eq2`** làm điểm nhấn lý thuyết để giải thích cơ chế phòng thủ **Vacuous Truth** ($False \implies Claim$).
+   - Dùng Case Study **`A1_dead_loop_eq2`** để minh họa zero-iteration path và sự khác nhau giữa target reachable với loop body dead.
+   - Dùng một assertion nằm bên trong `while 0` hoặc guard mâu thuẫn để minh họa verdict `UNREACHABLE`.
    - Dùng Case Study **`B1_line_overflow`** để chứng minh năng lực phòng thủ **Ảo giác số dòng của LLM** bằng `Anchor Gate`.
-   - Dùng bảng ma trận 26 claims để chứng minh tính tổng quát và độ bền bỉ của hệ thống trên các thuật toán phức tạp.
+   - Ghi rõ bảng ma trận 26 claims là output lịch sử, không dùng nó để chứng minh tính tổng quát hoặc soundness.

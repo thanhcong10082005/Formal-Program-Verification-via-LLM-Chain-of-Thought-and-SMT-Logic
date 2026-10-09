@@ -4,9 +4,9 @@
 > GVHD: TS. Lê Xuân Bách
 
 Framework thực hiện kiểm chứng neuro-symbolic cho chương trình Python: **AST
-là trusted backbone duy nhất**, không quyết định nào đến từ LLM. Mọi claim
-phải được ràng buộc (anchor binding) với `NodeId` của AST, và hai-truy vấn
-Z3 (reachability + validity) được dùng để xác minh tính đúng đắn.
+là trusted backbone của chế độ `AST_ANCHORED`**, không quyết định nào đến từ
+LLM. Mọi claim được kiểm tra với `NodeId` trong chế độ này, và hai-truy vấn
+Z3 (reachability + validity) được dùng cho từng claim target.
 
 ## Cấu trúc
 
@@ -51,12 +51,15 @@ python tools/demo_gemini_verify.py --file path/to/code.py
 # 1. (Tuỳ chọn) dịch SV-COMP .c sang Python QF-LIA nếu chưa có
 python tools/run_svcomp_translate.py
 
-# 2. Chạy benchmark end-to-end
+# 2. Chạy benchmark end-to-end (mặc định deterministic, không gọi LLM)
 python tools/run_benchmark.py
 
 # 3. Generate báo cáo Markdown
 python tools/compare_baselines.py
 # → results/summary.md
+
+# Muốn benchmark sinh claim bằng Gemini thì bật rõ ràng:
+python tools/run_benchmark.py --use-llm
 ```
 
 ## Smoke test pipeline
@@ -88,6 +91,19 @@ print(r.n_claims, r.claim_results[0].status.value, r.claim_results[0].reason)
   `n_translation_error`, `n_unknown_timeout`
   - `claim_results`: list `ClaimResult` với anchor NodeId, Z3 model, replay verdict.
   - `rejected_by_subset`: True nếu source không phải QF-LIA subset.
+
+## Diễn giải kết quả
+
+- `AST_ANCHORED` yêu cầu dòng chính xác, scope biến hợp lệ và kiểm tra các
+  path bounded dẫn tới đúng `NodeId`.
+- `UNANCHORED` không xây dựng `NodeId`, symbolic executor, state relation hay
+  reachability query; claim được kiểm tra như predicate tự do trên các biến
+  số nguyên. Anchor/location fields của kết quả luôn rỗng.
+- Loop unrolling và `break`/`continue` chưa tạo thành chứng minh toàn bộ
+  execution space. Khi coverage không đầy đủ, kết quả là `UNKNOWN_TIMEOUT`
+  thay vì `VERIFIED`.
+- Replay chỉ được tính là thành công khi CPython thực sự chạm target line và
+  đánh giá claim là false tại dòng đó.
 
 ## 4 metrics
 

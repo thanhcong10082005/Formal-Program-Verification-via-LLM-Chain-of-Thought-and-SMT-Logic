@@ -29,8 +29,10 @@ class SymState:
     def copy(self) -> "SymState":
         return SymState(dict(self.bindings))
 
-    def get(self, name: str) -> Optional[z3.ExprRef]:
-        return self.bindings.get(name)
+    def get(
+        self, name: str, default: Optional[z3.ExprRef] = None
+    ) -> Optional[z3.ExprRef]:
+        return self.bindings.get(name, default)
 
     def set(self, name: str, value: z3.ExprRef) -> None:
         self.bindings[name] = value
@@ -50,8 +52,10 @@ class Transition:
 @dataclass
 class Reachability:
     path: List[NodeId]
-    relation: z3.BoolRef  # R_pi(s0, s) : existence of a model
+    relation: z3.BoolRef  # R_pi(s0, s): path condition plus state equations
     path_condition: z3.BoolRef
+    state: SymState = field(default_factory=SymState)
+    complete: bool = True
 
 
 # --- Trusted branch exceptions ---------------------------------------------------
@@ -75,6 +79,8 @@ class TrustedSymbolicExecutor:
         self.tree = tree
         self.ids = ids
         self.transitions: Dict[NodeId, Transition] = {}
+        self.path_coverage_complete = True
+        self.last_path_enumeration_complete = True
 
     # --- Public entry points --------------------------------------------------
 
@@ -100,38 +106,240 @@ class TrustedSymbolicExecutor:
                 break
         return paths
 
-    def build_reachability(self, path: List[NodeId]) -> Reachability:
-        """Compose transitions along `path` into a single reachability relation."""
+    def build_reachability(
+        self,
+        path: Optional[List[NodeId]],
+        branch_guards: Optional[List[z3.BoolRef]] = None,
+    ) -> Reachability:
+        """Build a target-state relation for one concrete symbolic path.
+
+        The transition builder stores expressions in the state at each source
+        location.  The final transition's pre-state is therefore the state
+        visible at the target node.  We retain that state and expose fresh
+        output symbols in ``relation`` so the relation is not confused with
+        its path condition.
+        """
         if not path:
             # Trivial reachability: true
-            return Reachability(path=[], relation=z3.BoolVal(True), path_condition=z3.BoolVal(True))
-        # Start from the pre-state of the first transition
-        first = self.transitions[path[0]]
-        cur = first.pre.copy()
-        # Renaming: variables in `cur` become s0; variables in `post` become s
-        s0 = self._rename(cur, "_s0_")
-        s = s0
-        path_cond: z3.BoolRef = z3.BoolVal(True)
-        for nid in path:
-            t = self.transitions[nid]
-            # Bind pre names -> current s
-            pre = self._apply_renaming(t.pre, s)
-            # Compute post with bound variables
-            new_s = self._apply_renaming(t.post, pre)
-            s = new_s
-            # Coerce guard to Bool if needed
-            g = t.guard
-            if not z3.is_bool(g):
-                g = g != 0
-            path_cond = z3.And(path_cond, g)
-        # Build relation: ∃s0 . (path_condition ∧ s = f(s0))
-        # We just return path_condition as the relation; Z3 will check existence.
-        return Reachability(path=path, relation=path_cond, path_condition=path_cond)
+            return Reachability(
+                path=[],
+                relation=z3.BoolVal(True),
+                path_condition=z3.BoolVal(True),
+                state=SymState(),
+                complete=self.last_path_enumeration_complete,
+            )
+
+        target = self.transitions[path[-1]]
+        target_state = target.pre.copy()
+        guards = branch_guards
+        if guards is None:
+            guards = []
+            for nid in path:
+                guard = self.transitions[nid].guard
+                guards.append(guard if z3.is_bool(guard) else guard != 0)
+        path_cond = z3.And(*guards) if guards else z3.BoolVal(True)
+
+        equations: list[z3.BoolRef] = []
+        suffix = abs(hash(tuple(path)))
+        for name, value in target_state.bindings.items():
+            if z3.is_bool(value):
+                state_var = z3.Bool(f"_state_{suffix}_{name}")
+            else:
+                state_var = z3.Int(f"_state_{suffix}_{name}")
+            equations.append(state_var == value)
+        relation = z3.And(path_cond, *equations)
+        return Reachability(
+            path=path,
+            relation=relation,
+            path_condition=path_cond,
+            state=target_state,
+            complete=self.last_path_enumeration_complete,
+        )
+
+    def enumerate_target_paths(
+        self,
+        target: NodeId,
+        *,
+        max_paths: int = 256,
+        max_depth: int = 40,
+    ) -> List[Tuple[List[NodeId], List[z3.BoolRef]]]:
+        """Enumerate paths that reach ``target`` and their branch guards.
+
+        Loops are deliberately represented by a zero-iteration path and one
+        body path.  This is still an approximation, but each claim now gets
+        the paths that lead to its own node rather than one program-wide path.
+        """
+        for stmt in self.tree.body:
+            if (
+                isinstance(stmt, ast.FunctionDef)
+                and self.ids.get(stmt)
+                and self.ids[stmt].func == target.func
+            ):
+                self.path_coverage_complete = True
+                results = self._paths_to_target(
+                    stmt.body, target, [], [], max_paths, max_depth
+                )
+                self.last_path_enumeration_complete = self.path_coverage_complete
+                return results[:max_paths]
+        self.last_path_enumeration_complete = True
+        return []
+
+    def _paths_to_target(
+        self,
+        stmts: List[ast.stmt],
+        target: NodeId,
+        prefix: List[NodeId],
+        guards: List[z3.BoolRef],
+        max_paths: int,
+        depth: int,
+    ) -> List[Tuple[List[NodeId], List[z3.BoolRef]]]:
+        if depth <= 0:
+            self.path_coverage_complete = False
+            return []
+
+        for index, stmt in enumerate(stmts):
+            nid = self.ids.get(stmt)
+            before = stmts[:index]
+            prior_paths = self._enumerate_block_end(
+                before, prefix, guards, max_paths, depth
+            )
+            if not prior_paths:
+                continue
+
+            if nid == target:
+                return [
+                    (p + [nid], g)
+                    for p, g in prior_paths[:max_paths]
+                ]
+
+            if isinstance(stmt, ast.If):
+                cond = self._node_guard(nid)
+                results: list[tuple[List[NodeId], List[z3.BoolRef]]] = []
+                for p, g in prior_paths:
+                    results.extend(
+                        self._paths_to_target(
+                            stmt.body,
+                            target,
+                            p + ([nid] if nid else []),
+                            g + [cond],
+                            max_paths,
+                            depth - 1,
+                        )
+                    )
+                    else_guard = z3.Not(cond)
+                    results.extend(
+                        self._paths_to_target(
+                            stmt.orelse,
+                            target,
+                            p + ([nid] if nid else []),
+                            g + [else_guard],
+                            max_paths,
+                            depth - 1,
+                        )
+                    )
+                if results:
+                    return results[:max_paths]
+                continue
+
+            if isinstance(stmt, (ast.For, ast.While)):
+                cond = self._node_guard(nid)
+                if not z3.is_false(z3.simplify(cond)):
+                    self.path_coverage_complete = False
+                results = []
+                for p, g in prior_paths:
+                    results.extend(
+                        self._paths_to_target(
+                            stmt.body,
+                            target,
+                            p + ([nid] if nid else []),
+                            g + [cond],
+                            max_paths,
+                            depth - 1,
+                        )
+                    )
+                if results:
+                    return results[:max_paths]
+                continue
+
+        return []
+
+    def _enumerate_block_end(
+        self,
+        stmts: List[ast.stmt],
+        prefix: List[NodeId],
+        guards: List[z3.BoolRef],
+        max_paths: int,
+        depth: int,
+    ) -> List[Tuple[List[NodeId], List[z3.BoolRef]]]:
+        """Return bounded path prefixes after executing a statement block."""
+        paths: list[tuple[List[NodeId], List[z3.BoolRef]]] = [(prefix, guards)]
+        if depth <= 0:
+            self.path_coverage_complete = False
+            return paths
+
+        for stmt in stmts:
+            nid = self.ids.get(stmt)
+            expanded: list[tuple[List[NodeId], List[z3.BoolRef]]] = []
+            for p, g in paths:
+                if isinstance(stmt, ast.If):
+                    cond = self._node_guard(nid)
+                    branches = [
+                        (stmt.body, p + ([nid] if nid else []), g + [cond]),
+                        (stmt.orelse, p + ([nid] if nid else []), g + [z3.Not(cond)]),
+                    ]
+                    for branch, bp, bg in branches:
+                        expanded.extend(
+                            self._enumerate_block_end(
+                                branch, bp, bg, max_paths, depth - 1
+                            )
+                        )
+                elif isinstance(stmt, (ast.For, ast.While)):
+                    cond = self._node_guard(nid)
+                    loop_is_dead = z3.is_false(z3.simplify(cond))
+                    if not loop_is_dead:
+                        self.path_coverage_complete = False
+                    # A zero-iteration path skips the loop node entirely.
+                    expanded.append((p, g + [z3.Not(cond)]))
+                    expanded.extend(
+                        self._enumerate_block_end(
+                            stmt.body,
+                            p + ([nid] if nid else []),
+                            g + [cond],
+                            max_paths,
+                            depth - 1,
+                        )
+                    )
+                else:
+                    if isinstance(stmt, (ast.Return, ast.Break, ast.Continue)):
+                        self.path_coverage_complete = False
+                        # These statements do not fall through to the next
+                        # statement in the current block.  A target after
+                        # them must not inherit a fabricated path prefix.
+                        continue
+                    expanded.append((p + ([nid] if nid else []), g))
+            paths = expanded[:max_paths]
+            if not paths:
+                break
+        return paths
+
+    def _node_guard(self, nid: Optional[NodeId]) -> z3.BoolRef:
+        if nid is None or nid not in self.transitions:
+            return z3.BoolVal(True)
+        guard = self.transitions[nid].guard
+        return guard if z3.is_bool(guard) else guard != 0
+
+    @staticmethod
+    def _as_bool(value: z3.ExprRef) -> z3.BoolRef:
+        return value if z3.is_bool(value) else value != 0
 
     # --- Helpers --------------------------------------------------------------
 
     def _declare_params(self, state: SymState, func: ast.FunctionDef) -> None:
-        for arg in func.args.args:
+        for arg in (
+            list(func.args.posonlyargs)
+            + list(func.args.args)
+            + list(func.args.kwonlyargs)
+        ):
             name = getattr(arg, "arg", None) or getattr(arg, "name", None)
             state.set(name, z3.Int(name))
 
@@ -166,7 +374,10 @@ class TrustedSymbolicExecutor:
                 )
             old = pre.get(stmt.target.id)
             if old is None:
-                old = z3.Int(stmt.target.id)
+                raise TrustedBranchViolation(
+                    f"variable {stmt.target.id!r} used before initialization",
+                    node.lineno,
+                )
             rhs = self._eval_expr(stmt.value, pre)
             op = stmt.op
             if isinstance(op, ast.Add):
@@ -185,8 +396,8 @@ class TrustedSymbolicExecutor:
                 )
             post.set(stmt.target.id, new)
         elif isinstance(stmt, ast.If):
-            cond_expr = self._eval_expr(stmt.test, pre)
-            then_pre = pre
+            cond_expr = self._as_bool(self._eval_expr(stmt.test, pre))
+            then_pre = pre.copy()
             else_pre = pre.copy()
             then_post = self._build_block_transitions(stmt.body, then_pre, current_func)
             else_post = self._build_block_transitions(stmt.orelse, else_pre, current_func)
@@ -237,7 +448,7 @@ class TrustedSymbolicExecutor:
             post.set(loop_var, z3.Int(f"_loopvar_out_{stmt.lineno}"))
             guard = z3.And(start_v < stop_v, step_v > 0)
         elif isinstance(stmt, ast.While):
-            cond_expr = self._eval_expr(stmt.test, pre)
+            cond_expr = self._as_bool(self._eval_expr(stmt.test, pre))
             body_pre = pre.copy()
             body_post = self._build_block_transitions(stmt.body, body_pre, current_func)
             # Approximate by joining pre/post via the cond
@@ -289,8 +500,6 @@ class TrustedSymbolicExecutor:
         # Iterative unrolling with fresh naming each round
         state = pre.copy()
         state.set("_loopvar_for", i_sym)
-        # Bound i to [start_v, stop_v)
-        state.bindings["_loopvar_for"] = z3.And(i_sym >= start_v, i_sym < stop_v) and i_sym or i_sym  # keep as Int
         # Single composition round (symbolic)
         post = self._build_block_transitions(body, state, current_func)
         return post.bindings
@@ -334,9 +543,10 @@ class TrustedSymbolicExecutor:
         if isinstance(expr, ast.Name):
             v = state.get(expr.id)
             if v is None:
-                # Treat as symbolic Int with the name (free variable)
-                v = z3.Int(expr.id)
-                state.set(expr.id, v)
+                raise TrustedBranchViolation(
+                    f"variable {expr.id!r} is outside the symbolic state",
+                    getattr(expr, "lineno", -1),
+                )
             return v
         if isinstance(expr, ast.UnaryOp):
             inner = self._eval_expr(expr.operand, state)
@@ -369,7 +579,7 @@ class TrustedSymbolicExecutor:
                 f"binary operator {type(op).__name__} not allowed", expr.lineno
             )
         if isinstance(expr, ast.BoolOp):
-            vals = [self._eval_expr(v, state) for v in expr.values]
+            vals = [self._as_bool(self._eval_expr(v, state)) for v in expr.values]
             if isinstance(expr.op, ast.And):
                 return z3.And(*vals)
             if isinstance(expr.op, ast.Or):
@@ -402,7 +612,7 @@ class TrustedSymbolicExecutor:
                 l = r
             return result
         if isinstance(expr, ast.IfExp):
-            cond = self._eval_expr(expr.test, state)
+            cond = self._as_bool(self._eval_expr(expr.test, state))
             t_val = self._eval_expr(expr.body, state)
             f_val = self._eval_expr(expr.orelse, state)
             return z3.If(cond, t_val, f_val)

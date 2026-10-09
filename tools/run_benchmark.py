@@ -1,6 +1,9 @@
 """
 run_benchmark.py - Run the framework over SV-COMP loops + a CRUXEval subset,
 collect ProgramResults for both baselines, and emit per-program JSON files.
+
+The default run is deterministic and uses source assertions. Pass
+``--use-llm`` to make the claim-generation step call Gemini explicitly.
 """
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ from typing import List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from astverifier.classify import ProgramResult
+from astverifier.llm import LLMResult, generate_cot_and_claims
 from astverifier.pipeline import run_pipeline
 
 
@@ -240,7 +244,14 @@ def _literal_value(node) -> object:
     return _UNSET
 
 
-def _run_one(source_path: Path, baseline: str) -> ProgramResult:
+def _run_one(
+    source_path: Path,
+    baseline: str,
+    *,
+    use_llm: bool = False,
+    llm_result: LLMResult | None = None,
+    llm_error_message: str | None = None,
+) -> ProgramResult:
     source = source_path.read_text(encoding="utf-8")
     program_id = source_path.stem
     try:
@@ -249,19 +260,35 @@ def _run_one(source_path: Path, baseline: str) -> ProgramResult:
     except ValueError:
         # File is outside the dataset root (e.g. CRUXEval temp dir)
         program_id = f"cruxeval__{source_path.stem}"
+    if llm_result is not None or llm_error_message is not None:
+        return run_pipeline(
+            source,
+            program_id=program_id,
+            source_path=str(source_path),
+            baseline=baseline,
+            do_replay=True,
+            suggested_claims=llm_result.claims if llm_result is not None else [],
+            tokens_in=llm_result.tokens_in if llm_result is not None else 0,
+            tokens_out=llm_result.tokens_out if llm_result is not None else 0,
+            cot_trace=llm_result.cot_trace if llm_result is not None else "",
+            llm_error_message=llm_error_message,
+        )
     return run_pipeline(
         source,
         program_id=program_id,
         source_path=str(source_path),
         baseline=baseline,
         do_replay=True,
+        use_llm=use_llm,
     )
 
 
 def main(argv: List[str]) -> int:
+    use_llm = "--use-llm" in argv[1:]
     RESULT_ROOT.mkdir(parents=True, exist_ok=True)
     sources = _collect_svcomp_sources()
     print(f"Collected {len(sources)} SV-COMP Python sources")
+    print("Claim generation:", "Gemini LLM" if use_llm else "deterministic source assertions")
     crux = _cruxeval_python_subset(limit=300)
     print(f"Collected {len(crux)} CRUXEval samples (int/bool/None only)")
 
@@ -271,10 +298,26 @@ def main(argv: List[str]) -> int:
     t0 = time.perf_counter()
 
     for src_path in all_sources:
+        generated: LLMResult | None = None
+        generation_error: str | None = None
+        if use_llm:
+            try:
+                generated = generate_cot_and_claims(
+                    src_path.read_text(encoding="utf-8")
+                )
+            except Exception as exc:
+                generation_error = str(exc)
+                print(f"  [llm error] {src_path.name}: {generation_error}")
         for baseline in BASELINES:
             t1 = time.perf_counter()
             try:
-                result = _run_one(src_path, baseline)
+                result = _run_one(
+                    src_path,
+                    baseline,
+                    use_llm=False,
+                    llm_result=generated,
+                    llm_error_message=generation_error,
+                )
             except Exception as e:
                 print(f"  [error] {src_path.name} {baseline}: {e}")
                 continue

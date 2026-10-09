@@ -5,7 +5,6 @@ Includes caching and 14s rate-limiting to strictly respect Gemini Free Tier 5 RP
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -17,14 +16,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from astverifier.binding import bind_llm_claims, extract_asserts, Claim
-from astverifier.classify import AnchorInfo, ClaimResult, ProgramResult, StatusEnum
-from astverifier.executor import Reachability, TrustedSymbolicExecutor
 from astverifier.llm import generate_cot_and_claims, _get_api_key, SuggestedClaim
-from astverifier.nodes import assign_ids
-from astverifier.obligations import build_obligations, run_reachability, run_validity
-from astverifier.pipeline import _process_claim, _select_reachability, _roll_up
-from astverifier.subset import check_and_normalize
+from astverifier.pipeline import run_pipeline
 
 
 # 10 clean MBPP tasks (pure arithmetic, conditionals, loops)
@@ -140,74 +133,27 @@ def run_experiment_on_program(
         # Rate limit safety delay for next call
         time.sleep(13)
 
-    # Parse AST
-    sub = check_and_normalize(code)
-    ids = assign_ids(sub.tree)
-    executor = TrustedSymbolicExecutor(sub.tree, ids)
-    transitions = executor.build_all_transitions()
-
-    # 2. Evaluate AST_ANCHORED
-    t_anchored_start = time.perf_counter()
-    anchored_claims = bind_llm_claims(sub.tree, ids, suggested_claims)
-    valid_anchored = [c for c in anchored_claims if c.status == "ANCHORED"]
-    unsupported_anchored = [c for c in anchored_claims if c.status in ("UNSUPPORTED", "TRANSLATION_ERROR")]
-
-    reach_list = _select_reachability(executor, valid_anchored)
-    reachability = reach_list[0] if reach_list else Reachability(path=[], relation=None, path_condition=None)
-
-    anchored_results: List[ClaimResult] = []
-    for c in valid_anchored:
-        cr = _process_claim(c, executor, reachability, baseline="AST_ANCHORED", source=code, do_replay=True)
-        anchored_results.append(cr)
-    for c in unsupported_anchored:
-        st = StatusEnum.UNSUPPORTED if c.status == "UNSUPPORTED" else StatusEnum.TRANSLATION_ERROR
-        anchored_results.append(
-            ClaimResult(
-                claim_id=c.claim_id,
-                claim_text=c.expr_source,
-                status=st,
-                anchor=AnchorInfo(node_ids=[], source_lines=[c.source_line], has_grounding=False),
-                reason=f"Claim rejected by Anchor Gate ({c.status})",
-            )
-        )
-    anchored_prog = _roll_up(
-        claims=anchored_results,
+    # Both baselines use the same LLM response, but their execution paths are
+    # implemented by the public pipeline so token accounting and semantics do
+    # not drift between experiment runners.
+    anchored_prog = run_pipeline(
+        code,
         program_id=f"mbpp_{task_id}_{name}",
         source_path=f"mbpp_{task_id}",
-        source=code,
         baseline="AST_ANCHORED",
-        elapsed=time.perf_counter() - t_anchored_start,
-        transitions=transitions,
+        do_replay=True,
+        suggested_claims=suggested_claims,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cot_trace=cot_trace,
     )
-
-    # 3. Evaluate UNANCHORED (ablation: bypass anchor gate, skip reachability)
-    t_unanchored_start = time.perf_counter()
-    unanchored_results: List[ClaimResult] = []
-    for c in anchored_claims:
-        if c.expr_node is None:
-            unanchored_results.append(
-                ClaimResult(
-                    claim_id=c.claim_id,
-                    claim_text=c.expr_source,
-                    status=StatusEnum.TRANSLATION_ERROR,
-                    anchor=AnchorInfo(node_ids=[], source_lines=[c.source_line], has_grounding=True),
-                    reason="Translation error",
-                )
-            )
-        else:
-            cr = _process_claim(c, executor, reachability, baseline="UNANCHORED", source=code, do_replay=True)
-            unanchored_results.append(cr)
-    unanchored_prog = _roll_up(
-        claims=unanchored_results,
+    unanchored_prog = run_pipeline(
+        code,
         program_id=f"mbpp_{task_id}_{name}",
         source_path=f"mbpp_{task_id}",
-        source=code,
         baseline="UNANCHORED",
-        elapsed=time.perf_counter() - t_unanchored_start,
-        transitions=transitions,
+        do_replay=True,
+        suggested_claims=suggested_claims,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cot_trace=cot_trace,
@@ -265,4 +211,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

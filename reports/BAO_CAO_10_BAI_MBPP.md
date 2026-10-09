@@ -1,5 +1,13 @@
 # BÁO CÁO THỰC NGHIỆM ĐÁNH GIÁ: PHƯƠNG PHÁP CÓ AST (AST-ANCHORED) VS KHÔNG CÓ AST (UNANCHORED) KẾT HỢP LLM & SMT SOLVER TRÊN 10 BÀI TOÁN MBPP
 
+> **Audit correction.** Các số liệu trong báo cáo này là kết quả lịch sử của
+> commit cũ. Diễn giải đúng của mã hiện tại là: `AST_ANCHORED` dùng anchor
+> chính xác, state tại target và path reachability bounded; `UNANCHORED`
+> kiểm tra claim như predicate số nguyên tự do, không dùng `NodeId`, program
+> state, location hay reachability. `VERIFIED` không bao hàm mọi execution
+> khi loop/control-flow coverage chưa đầy đủ; replay chỉ thành công khi
+> runtime chạm target line và claim false tại đó.
+
 ---
 
 ## 1. Giới thiệu & Mục tiêu thí nghiệm
@@ -11,11 +19,15 @@ Thí nghiệm này nhằm so sánh hiệu quả và độ tin cậy giữa hai c
    - **Anchor Gate**: Ánh xạ dòng mã do LLM gợi ý vào các nút cụ thể trên cây cú pháp trừu tượng (**AST `NodeId`**). Nếu LLM ảo giác (Hallucination) dòng mã hoặc suy diễn tại vị trí không tồn tại, claim sẽ bị chặn ngay lập tức (`TRANSLATION_ERROR` / `UNSUPPORTED`).
    - **Path Reachability Check**: Z3 kiểm tra tính khả đạt (reachability) của nhánh điều khiển dẫn tới node đó trước khi kiểm chứng, loại bỏ hiện tượng **chân lý rỗng (Vacuous Truth)** do tiền đề sai ($False \implies Claim$).
 2. **Phương pháp không có AST (`UNANCHORED` - Baseline Ablation)**:
-   - LLM sinh CoT và Claims mà không có cơ chế neo vào cấu trúc AST.
-   - Bỏ qua Anchor Gate và Path Reachability Check. Kiểm chứng trực tiếp công thức logic mà không đối chiếu với cấu trúc khối/phạm vi biến tại nút lệnh.
+   - LLM sinh CoT và Claims nhưng baseline không dùng anchor hoặc program context.
+   - Bỏ qua Anchor Gate và Path Reachability Check; kiểm chứng trực tiếp
+     predicate tự do, không gắn với state/location của chương trình.
 
 ### Tập dữ liệu thực nghiệm
-- **10 bài toán MBPP (Mostly Basic Python Problems)** thuộc tập con số học nguyên (QF-LIA: Quantifier-Free Linear Integer Arithmetic):
+- **10 bài toán MBPP (Mostly Basic Python Problems)** được chọn làm các ứng viên
+  cho tập số học nguyên. Subset gate hiện tại kiểm tra lại từng bài; phép nhân
+  biến-biến và chia/mod với mẫu biến bị loại, nên không được mặc định rằng cả
+  danh sách là QF-LIA:
   - Task 17: `square_perimeter`
   - Task 35: `find_rect_num`
   - Task 36: `find_Nth_Digit`
@@ -27,7 +39,7 @@ Thí nghiệm này nhằm so sánh hiệu quả và độ tin cậy giữa hai c
   - Task 89: `closest_num`
   - Task 138: `is_Sum_Of_Powers_Of_Two`
 - **Mô hình LLM**: Google Gemini 3.5 Flash (`google-genai` SDK, Structured Output JSON Schema).
-- **SMT Solver**: Z3 Solver (Logic: QF-LIA).
+- **SMT Solver**: Z3 Solver trên các obligation đã qua subset gate.
 
 ---
 
@@ -37,7 +49,7 @@ Thí nghiệm này nhằm so sánh hiệu quả và độ tin cậy giữa hai c
 ========================================================================================
                                 TỔNG QUAN KẾT QUẢ THỰC NGHIỆM
 ========================================================================================
- Tổng số bài toán (Tasks)        : 10 bài toán (100% Python QF-LIA hợp lệ)
+ Tổng số bài toán (Tasks)        : 10 bài toán (subset gate được kiểm tra lại)
  Tổng số Claim do LLM sinh ra     : 21 claims
  Token Input tiêu thụ            : 2,641 tokens (Trung bình ~264 tokens/task)
  Token Output tiêu thụ           : 2,211 tokens (Trung bình ~221 tokens/task)
@@ -53,7 +65,7 @@ Thí nghiệm này nhằm so sánh hiệu quả và độ tin cậy giữa hai c
 | **Được chứng minh (`VERIFIED`)** | **16 (76.2%)** | **16 (76.2%)** | Z3 chứng minh đúng hình thức |
 | **Phản ví dụ (`COUNTEREXAMPLE`)** | **5 (23.8%)** | **5 (23.8%)** | Z3 tìm thấy mô hình vi phạm thực tế |
 | **Không khả đạt (`UNREACHABLE`)** | **0 (0.0%)** | *Không kiểm tra (N/A)* | AST loại trừ nguy cơ Vacuous Truth |
-| **Từ chối cú pháp (`SUBSET_REJECT`)**| **0 (0.0%)** | **0 (0.0%)** | 100% mã nguồn thuộc tập QF-LIA |
+| **Từ chối subset (`SUBSET_REJECT`)**| **Theo run persisted** | **Theo run persisted** | Gate kiểm tra lại từng source; không suy ra 100% QF-LIA từ tên benchmark |
 | **Độ chính xác neo (`Anchor Accuracy`)**| **100% (21/21)** | **0% (Không neo)** | Toàn bộ 21 claims được gắn vào đúng Node AST |
 | **Khả năng giải thích phản ví dụ** | **Có (Model + AST Node)** | **Chỉ có Model tự do** | AST định vị chính xác vị trí phát sinh lỗi |
 
@@ -102,10 +114,13 @@ Trong 5 trường hợp xuất hiện `COUNTEREXAMPLE`, Z3 đã thể hiện s�
    - Khi SMT biểu diễn biến trạng thái mà không có ràng buộc tiền gán (unconstrained input environment), Z3 phân biệt rõ giữa biến đầu vào tự do và biểu thức gán, yêu cầu hệ thống phải đồng bộ chặt chẽ ngữ nghĩa SSA.
 
 ### 4.2. So sánh vai trò của `AST_ANCHORED` đối với độ tin cậy
-Mặc dù trên tập 10 bài toán MBPP tinh gọn, tỷ lệ Verified giữa 2 phương pháp tương đương (16/21) do code Python thuần túy và LLM không chỉ định sai dòng, sự vượt trội của phương pháp có AST thể hiện ở 3 khía cạnh:
+Các tỷ lệ 16/21 bên dưới là output lịch sử của commit cũ, không phải kết quả
+của baseline hiện tại. Giá trị của AST thể hiện ở 3 khía cạnh:
 
 1. **Ngăn chặn Ảo giác Neo (Grounding & Hallucination Defense)**:
-   - Trong phương pháp **Unanchored**, nếu LLM đưa ra một bất biến toán học đúng trừu tượng (ví dụ: `x >= 0`) nhưng áp dụng sai phạm vi (ví dụ: áp dụng trước khi khởi tạo biến hoặc trong nhánh chết), phương pháp không có AST vẫn đánh giá là đúng.
+   - Trong phương pháp **Unanchored**, predicate được kiểm tra trên biến tự do
+     (ví dụ `x >= 0`) nhưng không thể cho biết nó áp dụng trước khi khởi tạo,
+     trong nhánh chết hay tại target nào.
    - Trong **AST_ANCHORED**, claim phải có tọa độ AST hợp lệ (`NodeId`). Không thể xảy ra tình trạng "đúng về mặt toán học nhưng sai về ngữ nghĩa thực thi của chương trình".
 
 2. **Khả năng giải thích và định vị lỗi (Explainability & Traceability)**:
@@ -113,15 +128,21 @@ Mặc dù trên tập 10 bài toán MBPP tinh gọn, tỷ lệ Verified giữa 2
    - Người phát triển phần mềm biết chính xác dòng mã và câu lệnh cần đặt assert hoặc xử lý ngoại lệ.
 
 3. **Triệt tiêu hiện tượng Chân lý rỗng (Vacuous Truth)**:
-   - `AST_ANCHORED` kết hợp bộ kiểm tra đường dẫn `check_path_reachability`. Nếu một assertion được đặt ở nhánh mã không bao giờ chạm tới (dead code), `AST_ANCHORED` đánh dấu là `UNREACHABLE` thay vì công nhận `VERIFIED` như các hệ thống naive thông thường.
+   - `AST_ANCHORED` kiểm tra path tới đúng target. Chỉ assertion thực sự nằm
+     trong nhánh không thể chạm tới mới nhận `UNREACHABLE`; assertion sau một
+     loop dead vẫn có thể reachable qua zero-iteration path.
 
 ---
 
 ## 5. Kết luận & Khuyến nghị
 
 1. **Hiệu quả thực tế**:
-   - Việc tích hợp **Gemini 3.5 Flash** sinh Chain-of-Thought kết hợp **Z3 SMT Solver** cho phép tự động trích xuất và chứng minh thành công **76.2%** các suy diễn logic mà không cần con người viết tay các formal invariant.
+   - Lần chạy lịch sử với **Gemini 3.5 Flash** và **Z3 SMT Solver** ghi nhận
+     76.2% `VERIFIED`; con số này không phải đánh giá hiện tại và không thay
+     thế coverage analysis.
    - Mô hình bắt được các corner case toán học tinh tế (ví dụ: $N \le 0$ trong phép chia cột số học).
 
 2. **Giá trị cốt lõi của AST**:
-   - Cây cú pháp trừu tượng (AST) đóng vai trò là "mỏ neo ngữ nghĩa" (Semantic Anchor) không thể thiếu, đảm bảo LLM không phát biểu suy diễn ngoài ngữ cảnh và cung cấp tọa độ lỗi chuẩn xác đến từng dòng mã, vị trí cột (`Line:Col`).
+   - Cây cú pháp trừu tượng (AST) cung cấp anchor, target-state context và tọa
+     độ lỗi (`Line:Col`). Đây là grounding/traceability, không phải chứng
+     nhận soundness cho mọi execution.

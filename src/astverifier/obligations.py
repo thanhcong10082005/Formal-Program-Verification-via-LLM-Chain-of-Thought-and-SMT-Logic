@@ -8,6 +8,7 @@ The Validity solver is only run if Reachability is SAT.
 """
 from __future__ import annotations
 
+import ast
 import time
 from dataclasses import dataclass
 from typing import Optional, Tuple
@@ -15,7 +16,7 @@ from typing import Optional, Tuple
 import z3
 
 from .binding import Claim
-from .executor import Reachability, TrustedSymbolicExecutor
+from .executor import Reachability, SymState, TrustedSymbolicExecutor
 
 
 Z3_TIMEOUT_MS = 5000
@@ -30,7 +31,11 @@ class TwoQueryObligations:
     validity_solver: z3.Solver
 
 
-def _claim_to_z3(expr, executor: TrustedSymbolicExecutor):
+def _claim_to_z3(
+    expr,
+    executor: Optional[TrustedSymbolicExecutor] = None,
+    state: Optional[SymState] = None,
+):
     """Convert an assert's boolean expression to a z3.BoolRef via the executor.
 
     Use a fresh SymState whose bindings are populated for ALL function parameters
@@ -38,14 +43,28 @@ def _claim_to_z3(expr, executor: TrustedSymbolicExecutor):
     """
     from .executor import SymState  # local import to avoid cycle
 
-    state = SymState()
-    # Pre-populate known params from the AST so expressions like `x == y`
-    # resolve to Int comparisons (Bool), not Int-Int mismatches.
-    for stmt in executor.tree.body:
-        if isinstance(stmt, __import__("ast").FunctionDef):
-            executor._declare_params(state, stmt)
-            break
-    val = executor._eval_expr(expr, state)
+    if state is None:
+        state = SymState()
+        if executor is not None:
+            # Pre-populate known params from the AST so expressions like
+            # `x == y` resolve to Int comparisons (Bool), not free names.
+            for stmt in executor.tree.body:
+                if isinstance(stmt, ast.FunctionDef):
+                    executor._declare_params(state, stmt)
+                    break
+        else:
+            # UNANCHORED predicates intentionally have no program state. Each
+            # name is an independent free integer in the predicate itself.
+            for node in ast.walk(expr):
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
+                    state.set(node.id, z3.Int(node.id))
+
+    evaluator = executor
+    if evaluator is None:
+        evaluator = TrustedSymbolicExecutor(
+            ast.Module(body=[], type_ignores=[]), {}
+        )
+    val = evaluator._eval_expr(expr, state)
     # If val is Int, wrap as `val != 0` to coerce to Bool
     if not z3.is_bool(val):
         val = val != 0
@@ -64,11 +83,29 @@ def build_obligations(
 
     valid_solv = z3.Solver()
     valid_solv.set("timeout", Z3_TIMEOUT_MS)
-    valid_solv.add(reachability.path_condition)
+    # Include the explicit state equations as well as the path condition.
+    # The claim is translated against reachability.state below, so Z3 checks
+    # the state at the target rather than a fresh unconstrained local.
+    valid_solv.add(reachability.relation)
     # Negate the claim to test whether the path can violate it
-    neg_claim = z3.Not(_claim_to_z3(claim.expr_node, executor))
+    neg_claim = z3.Not(
+        _claim_to_z3(claim.expr_node, executor, state=reachability.state)
+    )
     valid_solv.add(neg_claim)
 
+    return TwoQueryObligations(claim, reach_solv, valid_solv)
+
+
+def build_unanchored_obligations(claim: Claim) -> TwoQueryObligations:
+    """Build a validity query for a free predicate with no program context."""
+    reach_solv = z3.Solver()
+    reach_solv.set("timeout", Z3_TIMEOUT_MS)
+    reach_solv.add(z3.BoolVal(True))
+
+    valid_solv = z3.Solver()
+    valid_solv.set("timeout", Z3_TIMEOUT_MS)
+    predicate = _claim_to_z3(claim.expr_node)
+    valid_solv.add(z3.Not(predicate))
     return TwoQueryObligations(claim, reach_solv, valid_solv)
 
 
@@ -103,6 +140,7 @@ def run_validity(
 __all__ = [
     "TwoQueryObligations",
     "build_obligations",
+    "build_unanchored_obligations",
     "run_reachability",
     "run_validity",
     "Z3_TIMEOUT_MS",

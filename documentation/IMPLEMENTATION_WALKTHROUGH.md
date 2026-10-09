@@ -19,8 +19,22 @@ Framework đặt mục tiêu kiểm chứng chương trình Python theo hướng
   vacuous verification), rồi truy vấn validity, cuối cùng replay counterexample
    trên CPython thật để kiểm tra soundness.
 
-So với baseline `UNANCHORED` (bỏ anchor gate, gọi thẳng SMT), ta đo được 4
-metric: FDR, token consumption, Hallucination Rate, CRVR.
+So với baseline `UNANCHORED` (predicate tự do, không program state và không
+reachability), ta đo được 4 metric: FDR, token consumption, Hallucination
+Rate, CRVR.
+
+### Audit boundary
+
+`AST_ANCHORED` chỉ gọi một claim là anchored khi line khớp chính xác một
+statement, biểu thức parse được và mọi tên biến thuộc scope của function.
+Mỗi claim dùng các path bounded dẫn tới chính `NodeId` đó. `UNANCHORED`
+không tạo `NodeId`, transition, target state hay reachability query; các
+assert trong source chỉ được xem như claim input và location bị loại bỏ.
+
+Loop unrolling và control effects chưa đủ để chứng minh toàn bộ execution
+space. Vì vậy coverage không đầy đủ được trả về là `UNKNOWN_TIMEOUT`, và
+`VERIFIED` chỉ áp dụng cho tập path hoàn chỉnh trong bounded subset. Replay
+chỉ thành công khi runtime chạm target line và claim thực sự false tại đó.
 
 ---
 
@@ -54,7 +68,7 @@ prototype/
 │   ├── summary.md                      # báo cáo Markdown cuối
 │   ├── ground_truth.json               # ground-truth labels
 │   └── _run.log                        # log thực nghiệm
-├── tests/                              # (để trống — test chạy smoke inline)
+├── tests/                              # regression tests for audit fixes
 ├── README.md                           # hướng dẫn sử dụng
 └── .gitignore                          # loại bỏ cache, log nặng
 ```
@@ -82,10 +96,11 @@ Dataset/
 ### 3.1 `subset.py` — QF-LIA whitelist gate
 
 Ý tưởng: chỉ chấp nhận Python subset mà z3.QF-LIA có thể giải được.
-Whitelist gồm 6 loại operator:
+Whitelist gồm các operator số học tuyến tính:
 
 - Statement: FunctionDef, Assign, AugAssign, If, For, While, Return, Break, Continue, Assert, Pass
-- BinOp: +, −, *, /, %, //
+- BinOp: +, −, *, //, %; `*` phải có một hệ số hằng, còn `//` và `%`
+  phải có mẫu số hằng khác 0.
 - UnaryOp: −x, not x
 - Compare: ==, !=, ≤, ≥, <, >
 - BoolOp: and, or
@@ -134,10 +149,10 @@ statement được wrap thành `Transition(pre, post, guard, node)` và lưu và
 
 Hai helper chính:
 
-- `enumerate_paths()`: liệt kê path tuyên tính qua block (depth 4, max 4 path).
-If/While/For có 2 nhánh (then/body) → chia path.
-- `build_reachability(path)`: ghép các `Transition` thành một biểu thức z3
-$R_\pi(s_0, s)$ và `path_condition` (Boolean guard cho mỗi step).
+- `enumerate_target_paths(node)`: liệt kê các path bounded dẫn tới đúng
+  target claim và các branch guard tương ứng.
+- `build_reachability(path)`: tạo `R_\pi(s_0, s)` gồm path condition và
+  phương trình state output; đồng thời giữ `state` tại target để dịch claim.
 
 `if` được dịch bằng `z3.If(cond_expr, t_val, e_val)` để merge post-state —
 đây là điểm then chốt cho symbolic execution.
@@ -145,8 +160,10 @@ $R_\pi(s_0, s)$ và `path_condition` (Boolean guard cho mỗi step).
 ### 4.2 `binding.py`
 
 `extract_asserts(tree, ids)` quét mọi `ast.Assert` và gán
-`claim.anchor = lookup_containing(assert_node, ids)`. Nếu không tìm được
-anchor thì `claim.status = "UNSUPPORTED"` (gate α(c) fail).
+`claim.anchor = lookup_containing(assert_node, ids)`. Claim LLM chỉ được
+anchor nếu line khớp chính xác một statement; không có fallback tới node
+trước đó. Tên biến được kiểm tra với scope của function, nên claim có biến
+ngoài scope là `UNSUPPORTED`.
 
 ---
 
@@ -156,25 +173,25 @@ anchor thì `claim.status = "UNSUPPORTED"` (gate α(c) fail).
 
 `build_obligations(claim, reachability, executor)` tạo 2 `z3.Solver`:
 
-1. `reachability_solver`: chỉ chứa `reachability.relation`
-2. `validity_solver`: chứa `reachability.path_condition ∧ ¬claim`
+1. `reachability_solver`: chứa `reachability.relation`
+2. `validity_solver`: chứa state relation tại target `∧ ¬claim`
 
 `run_reachability()` và `run_validity()` trả về `('sat'|'unsat'|'unknown', elapsed, model)`.
 Timeout mặc định 5000ms mỗi solver.
 
-`_claim_to_z3(expr, executor)` là chỗ "rán" symbolic state vào claim: nó
-tạo `SymState` mới, **pre-populate tất cả function parameters** từ
-`executor._declare_params(...)` (đây là fix quan trọng — thiếu nó sẽ gây
-`Sort mismatch ... returns Int` ở z3 solver). Nếu kết quả không phải Bool thì
-wrap thành `val != 0`.
+`_claim_to_z3(expr, executor, state=target_state)` dịch claim trong chính
+state tại target. Tên local đã khởi tạo được thay bằng symbolic expression
+của nó; tên không có trong state không được tạo thành free integer.
 
 ### 5.2 `replay.py`
 
-`replay_counterexample(source, func_name, inputs, timeout=2.0)`:
+`replay_counterexample(source, func_name, inputs, timeout=2.0, *, target_line=None, claim_expression=None)`:
 
 1. Build Python script động (nhúng source + JSON inputs + exec + gọi fn).
 2. Chạy bằng `subprocess.run([sys.executable, tmp_path], capture_output=True, timeout=2.0)`.
-3. Parse `"REPRO_OK:"` prefix → trả `ReplayResult(success=True, output_repr=...)`.
+3. Trace target line và eval claim trong frame locals.
+4. Chỉ trả `success=True` khi target đã được chạm và claim false tại đó;
+   normal return không còn được tính là replay thành công.
 
 Thiết kế này đảm bảo không bao giờ trust output LLM — chỉ chạy CPython
 thật với inputs từ z3 model.
@@ -189,29 +206,20 @@ thật với inputs từ z3 model.
 
 ```
 1. Subset gate          → rejected_by_subset = True
-2. assign_ids(tree)     → mapping
-3. executor.build_all_transitions()
-4. claims = extract_asts(tree, ids)        # filter 'ANCHORED' nếu baseline == 'AST_ANCHORED'
-5. executor.enumerate_paths() → chọn 1 path canonical
-6. executor.build_reachability(canonical_path)
-7. for each claim:
-     obligation = build_obligations(claim, reach, exec)
-     if baseline == 'AST_ANCHORED':
-         r = run_reachability(obligation)
-         if r == 'unsat':  → UNREACHABLE
-         if r == 'unknown': → UNKNOWN_TIMEOUT
-     v = run_validity(obligation)
-     if v == 'unsat':  → VERIFIED
-     if v == 'unknown': → UNKNOWN_TIMEOUT
-     if v == 'sat':    → COUNTEREXAMPLE + replay
-8. roll-up counts vào ProgramResult
+2. AST_ANCHORED: assign_ids + trusted transitions + exact anchor gate.
+3. AST_ANCHORED: enumerate target-specific paths and build target state relation.
+4. For each anchored path: reachability, then validity, then target-aware replay.
+5. UNANCHORED: parse claim predicates as free integer formulas; skip node IDs,
+   executor, target state and reachability.
+6. Roll-up counts into `ProgramResult`.
 ```
 
 ### 6.2 `metrics.py`
 
 `aggregate(results, ground_truth=None)` tính:
 
-- `token_avg_in`, `token_avg_out` (đang = 0 vì không gọi LLM runtime)
+- `token_avg_in`, `token_avg_out` (0 for deterministic runs; populated when
+  `--use-llm` is requested)
 - `cost_avg_usd` = `(in × $0.005 + out × $0.015) / 1000`
 - `hr` = (UNSUPPORTED + TRANSLATION_ERROR) / total_claims
 - `crvr` = REPRODUCED / total_COUNTEREXAMPLE
@@ -221,7 +229,8 @@ thật với inputs từ z3 model.
 
 - Thu thập 73 file SV-COMP `.c` → dịch sang `.py` bằng `translate_svcomp.py`.
 - Lấy 21 sample CRUXEval QF-LIA (int/bool/None args only, không nested fn).
-- Với mỗi program × baseline → chạy `run_pipeline(...)`, dump JSON.
+- Với mỗi program × baseline → chạy `run_pipeline(...)`, dump JSON. Mặc định
+  claim source assertions được dùng deterministic; `--use-llm` enables Gemini.
 
 ### 6.4 `tools/compare_baselines.py`
 
@@ -381,16 +390,15 @@ expression".
 Sau fix này, 14 counterexample có model bindings (`{l: 1, n: 1, i: 0, j: 0}`
 cho sumt2, etc.), 2 trong số đó replay reproduce thành công.
 
-### 8.15 FDR n/a cho AST_ANCHORED
+### 8.15 FDR của lần chạy lịch sử
 
-72 program match với ground-truth nhưng tất cả AST_ANCHORED verdicts là
-COUNTEREXAMPLE/UNREACHABLE → 0 TP, 0 FP → FDR không xác định. UNANCHORED
-cho 2 TP (eq2, mono-crafted_9?) và 1 FP (FP do COUNTEREXAMPLE trên
-program mà ground-truth là VERIFIED) → FDR = 1/3 = 0.333.
+Đây là output của commit cũ, khi `UNANCHORED` vẫn dùng path và executor
+chung. Không dùng các con số này để mô tả baseline hiện tại; `compare_baselines`
+hiện tính claim-level matrix từ mọi `claim_result` và sinh diễn giải động.
 
 ---
 
-## 9. Kết quả cuối
+## 9. Kết quả persisted của lần chạy lịch sử
 
 ```
 Done in 3.2s (188 runs, 0 errors)
@@ -401,11 +409,11 @@ Toàn bộ 188 chương trình (94 mỗi baseline) chạy không lỗi:
 - 73 SV-COMP loop benchmarks (đã dịch từ `.c` → `.py`)
 - 21 CRUXEval samples (int/bool/None args only)
 
-**Subset pass rate**: 12/94 = 12.8% (cả hai baseline). Phần lớn SV-COMP
-file bị subset reject do translator xuất ra syntax lỗi (chấp nhận được —
-coi là `TRANSLATION_ERROR`).
+**Subset pass rate của persisted run**: 12/94 = 12.8% (cả hai baseline).
+Phần lớn SV-COMP file bị subset reject do translator xuất ra syntax lỗi.
+Đây là số liệu lịch sử; chạy lại `run_benchmark.py` sẽ tạo output mới.
 
-**Verdict matrix** (chỉ 72 programs có trong ground-truth):
+**Verdict matrix của persisted run** (chỉ 72 programs có trong ground-truth):
 
 
 | Baseline     | TP  | FP  | FN  | TN  | FDR   |
@@ -414,10 +422,11 @@ coi là `TRANSLATION_ERROR`).
 | UNANCHORED   | 2   | 1   | 57  | 12  | 0.333 |
 
 
-**Counterexample Replay (CRVR)**: 14 counterexamples, 2 reproduce thành
-công trên CPython subprocess → CRVR = 1 − 12/14 = 0.143.
+**Counterexample Replay (CRVR) của persisted run**: 14 counterexamples, 2
+reproduce thành công trên CPython subprocess → CRVR = 1 − 12/14 = 0.143.
 
-**Hallucination Rate**: 0.0 (anchor gate + subset gate hoạt động đúng).
+**Hallucination Rate của persisted run**: 0.0. Đây không phải bằng chứng rằng
+mọi claim historical đều grounded.
 
 ---
 
@@ -429,10 +438,10 @@ công trên CPython subprocess → CRVR = 1 − 12/14 = 0.143.
   counterexample với input âm (vd `n = -1`), nên phần lớn programs cho
    COUNTEREXAMPLE thay vì VERIFIED. Cần thêm invariant generation
    (vd predicate abstraction, ICE).
-3. **Pipeline không gọi LLM thật**: token = 0. Để tính token consumption,
-  cần tích hợp GPT-4/Claude API và đếm CoT tokens.
-4. **Test coverage**: chỉ smoke test inline. Cần pytest thực sự cho từng
-  module (subset, executor, obligations, replay).
+3. **LLM là opt-in**: benchmark mặc định deterministic từ source assertions;
+  dùng `--use-llm` để gọi Gemini và ghi token totals vào cả hai baseline.
+4. **Test coverage**: `tests/test_regressions.py` bao phủ các lỗi audit chính;
+  vẫn cần mở rộng nếu executor hỗ trợ thêm control-flow.
 
 ---
 
@@ -440,4 +449,3 @@ công trên CPython subprocess → CRVR = 1 − 12/14 = 0.143.
 
 - `prototype/results/summary.md` — báo cáo Markdown đối chứng
 - `prototype/results/_run.log` — log thực nghiệm
-

@@ -106,12 +106,14 @@ def _load_results(baseline_dir: Path) -> List[ProgramResult]:
 
 def _status_table(results: List[ProgramResult]) -> str:
     by_status = Counter()
-    by_status_accepted = Counter()  # among non-rejected
+    by_status_accepted = Counter()  # claim-level counts among non-rejected
     for r in results:
         if r.rejected_by_subset:
             by_status["REJECTED"] += 1
+        elif r.claim_results:
+            by_status_accepted.update(c.status for c in r.claim_results)
         else:
-            by_status_accepted[r.claim_results[0].status if r.claim_results else StatusEnum.UNSUPPORTED] += 1
+            by_status["NO_CLAIMS"] += 1
     by_status_combined = Counter(by_status_accepted)
     for k, v in by_status.items():
         by_status_combined[k] += v
@@ -132,7 +134,7 @@ def _status_table(results: List[ProgramResult]) -> str:
 
 
 def _verdict_matrix(results: List[ProgramResult], gt: Dict[str, str]) -> Tuple[int, int, int, int, int]:
-    """Return (TP, FP, FN, TN, total) for VERIFIED vs ground truth.
+    """Return claim-level (TP, FP, FN, TN, total) for known programs.
 
     Normalize program_id: `sv-benchmarks-loops-py__loop-simple__nested_1`
     becomes `loop-simple/nested_1`.
@@ -140,31 +142,30 @@ def _verdict_matrix(results: List[ProgramResult], gt: Dict[str, str]) -> Tuple[i
     tp = fp = fn = tn = 0
     matched = 0
     for r in results:
-        # Normalize the id
-        norm = r.program_id.replace("__", "/")
-        # The id is `path/to/folder/.../file`. Strip everything up to the
-        # last known GT folder name.
-        for prefix in ("sv-benchmarks-loops-py/", "cruxeval__"):
-            if norm.startswith(prefix):
-                norm = norm[len(prefix):]
-                break
-        # Coerce .py suffix removal (already done when stored)
+        norm = _normalize_program_id(r.program_id)
         if norm in gt:
-            matched += 1
-            if r.rejected_by_subset or not r.claim_results:
-                verdict = "UNSUPPORTED"
-            else:
-                verdict = r.claim_results[0].status.value
             expected = gt[norm]
-            if verdict == "VERIFIED" and expected == "VERIFIED":
-                tp += 1
-            elif verdict == "VERIFIED" and expected != "VERIFIED":
-                fp += 1
-            elif verdict != "VERIFIED" and expected == "VERIFIED":
-                fn += 1
-            else:
-                tn += 1
+            for claim in r.claim_results:
+                matched += 1
+                verdict = claim.status.value
+                if verdict == "VERIFIED" and expected == "VERIFIED":
+                    tp += 1
+                elif verdict == "VERIFIED" and expected != "VERIFIED":
+                    fp += 1
+                elif verdict != "VERIFIED" and expected == "VERIFIED":
+                    fn += 1
+                else:
+                    tn += 1
     return tp, fp, fn, tn, matched
+
+
+def _normalize_program_id(program_id: str) -> str:
+    """Map persisted benchmark IDs to the keys used by ground truth."""
+    norm = program_id.replace("__", "/")
+    prefix = "sv-benchmarks-loops-py/"
+    if norm.startswith(prefix):
+        norm = norm[len(prefix):]
+    return norm
 
 
 def _fdr(tp: int, fp: int) -> float | None:
@@ -199,10 +200,10 @@ def main() -> int:
     # --- Build Markdown ----------------------------------------------------
     md: List[str] = []
     md.append("# Báo cáo thực nghiệm: AST-Anchored CoT Verification\n")
-    md.append("Framework thực thi đầy đủ 4 phase (subset → nodes → executor+binding → Z3 two-query+replay) ")
-    md.append("trên **188 programs** (73 SV-COMP loop benchmarks + 21 CRUXEval QF-LIA samples) với **hai chế độ baseline**:\n")
-    md.append("- `AST_ANCHORED`: hai-truy vấn Z3 (reachability + validity) có ràng buộc AST.")
-    md.append("- `UNANCHORED`: ablation — bỏ binding/anchor-gate, dùng trực tiếp SMT.\n")
+    md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai chế độ baseline**.")
+    md.append("Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.\n")
+    md.append("- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.")
+    md.append("- `UNANCHORED`: free-predicate validity; không dùng NodeId, program state, executor hoặc reachability.\n")
 
     md.append("## 1. So sánh đối chứng — Bảng chính\n")
     md.append("| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |")
@@ -237,15 +238,15 @@ def main() -> int:
 
     md.append("")
     md.append("Trong đó:")
-    md.append("- $T_{in}, T_{out}$: tokens in/out. Tổng giả định = 0 vì framework không gọi LLM (xem dưới).")
+    md.append("- $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.")
     md.append("- $H$: claim bị reject vì UNSUPPORTED + TRANSLATION_ERROR.")
     md.append("- $S.V.$: Soundness Violation — counterexample từ Z3 không reproduce trên CPython.")
     md.append("")
 
     # --- Verdict matrix ---------------------------------------------------
     md.append("## 2. Verdict Matrix (against SV-COMP ground truth)\n")
-    md.append("Chỉ các programs trong ground-truth được tính. Tổng cộng: ")
-    md.append(f"`{a_total}` programs.\n")
+    md.append("Chỉ các claims thuộc programs trong ground-truth được tính. Tổng cộng:")
+    md.append(f"`{a_total}` claims.\n")
     md.append("| Baseline | TP | FP | FN | TN | FDR |")
     md.append("|----------|---:|---:|---:|---:|----:|")
     a_fdr_str = f"{a_fdr:.3f}" if a_fdr is not None else "n/a"
@@ -254,8 +255,8 @@ def main() -> int:
     md.append(f"| UNANCHORED   | {u_tp} | {u_fp} | {u_fn} | {u_tn} | {u_fdr_str} |")
     md.append("")
     md.append("**Diễn giải:**")
-    md.append("- AST_ANCHORED: 0 VERIFIED trên 72 → TP+FP=0 → FDR không xác định.")
-    md.append(f"- UNANCHORED: 2 VERIFIED (TP) + 1 COUNTEREXAMPLE bị label sai (FP) → FDR = 1/3 = 0.333.")
+    md.append(f"- AST_ANCHORED: {a_tp + a_fp} VERIFIED verdicts ({a_tp} TP, {a_fp} FP) → FDR = {a_fdr_str}.")
+    md.append(f"- UNANCHORED: {u_tp + u_fp} VERIFIED verdicts ({u_tp} TP, {u_fp} FP) → FDR = {u_fdr_str}.")
     md.append("")
 
     # --- Status breakdown -------------------------------------------------
@@ -313,15 +314,12 @@ def main() -> int:
 
     # --- Notes -----------------------------------------------------------
     md.append("## 7. Ghi chú thực nghiệm\n")
-    md.append("1. **Framework không gọi LLM runtime**: tokens = 0 vì chuỗi lý luận được tạo bởi deterministic translator từ AST. ")
-    md.append("Khi tích hợp LLM thực (GPT-4 / Claude) trong pipeline, metric sẽ tăng tỉ lệ thuận với CoT length.")
-    md.append("2. **FDR không xác định (n/a) cho AST_ANCHORED, = 0.333 cho UNANCHORED**: trên 72 SV-COMP programs trong ground-truth, AST_ANCHORED trả 0 VERIFIED nên TP+FP=0. UNANCHORED trả 2 VERIFIED (TP) và 1 COUNTEREXAMPLE sai (FP) khi ground-truth là VERIFIED → FDR = 1/(2+1) = 0.333. Lý do: symbolic executor với `z3.If(cond, body, pre)` cho phép Z3 tìm model vi phạm với input âm (vd `n=-1`) — đây là giới hạn của approach symbolic không có loop invariant generation, không phải bug.")
-    md.append("3. **AST_ANCHORED có 3 UNREACHABLE**: pipeline phát hiện path không thể tới (vd `while 0:`, `while 1: true ⇒ n+1 ≤ 0` không thỏa).")
-    md.append("4. **UNANCHORED có 3 VERIFIED**: khi validity query trả UNSAT cho symbolic state, framework báo kiểm chứng thành công dù vẫn có symbolic unrolling.")
-    md.append("5. **Hallucination Rate = 0.0**: anchor binding gate $\\alpha(c)$ reject mọi claim không gắn với NodeId; cộng thêm subset gate reject file không phải QF-LIA (cấu trúc C, pointer, struct) trước khi đến executor.")
-    md.append("6. **Counterexample Replay (CRVR)**: 14 counterexample từ AST_ANCHORED được replay trên CPython subprocess; 2 reproduce thành công → CRVR = 1 - 12/14 = 0.143.")
-    md.append("7. **Ground truth labels**: dựa trên tài liệu SV-COMP 2024 cho `loop-simple`, `loops-crafted-1`, `loop-invariants` (xem `ground_truth.json`).")
-    md.append("8. **Translator coverage**: 73/73 file SV-COMP `.c` được dịch sang Python QF-LIA; một số file dịch ra cú pháp không hợp lệ → subset reject với `TRANSLATION_ERROR` (xem `results/_run.log`).")
+    md.append("1. **LLM usage is explicit**: `run_benchmark.py` is deterministic by default; `--use-llm` is required for Gemini claim generation. Token totals are copied to both baseline records for the same LLM call.")
+    md.append("2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.")
+    md.append("3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.")
+    md.append("4. **Replay boundary**: a replay is reproduced only when CPython reaches the target line and evaluates the target claim as false. A normal return alone is not confirmation.")
+    md.append("5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.")
+    md.append("6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.")
     md.append("")
 
     # --- File map -------------------------------------------------------

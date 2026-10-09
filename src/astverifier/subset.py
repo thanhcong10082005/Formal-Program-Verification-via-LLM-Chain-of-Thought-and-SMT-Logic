@@ -33,6 +33,16 @@ ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.FloorDiv, ast.Mod)
 ALLOWED_UNARYOPS = (ast.USub, ast.Not)
 ALLOWED_COMPARATORS = (ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE)
 ALLOWED_BOOLOPS = (ast.And, ast.Or)
+ALLOWED_EXPR_TYPES = (
+    ast.Name,
+    ast.Constant,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.BoolOp,
+    ast.Compare,
+    ast.IfExp,
+    ast.Call,
+)
 
 ALLOWED_AUGOPS = (
     ast.Add,
@@ -98,6 +108,19 @@ class SubsetVisitor(ast.NodeVisitor):
     def _ok(self, node: ast.AST) -> None:
         self.generic_visit(node)
 
+    def visit(self, node: ast.AST):
+        if isinstance(node, ast.stmt) and not isinstance(node, ALLOWED_STMT_TYPES):
+            self._reject(
+                f"statement type {type(node).__name__} not in the supported subset",
+                node,
+            )
+        if isinstance(node, ast.expr) and not isinstance(node, ALLOWED_EXPR_TYPES):
+            self._reject(
+                f"expression type {type(node).__name__} not in the supported subset",
+                node,
+            )
+        return super().visit(node)
+
     def _arg_name(self, arg) -> str:
         return getattr(arg, "arg", None) or getattr(arg, "name", None)
 
@@ -157,6 +180,18 @@ class SubsetVisitor(ast.NodeVisitor):
             self._reject(
                 f"augmented operator {type(node.op).__name__} not allowed", node
             )
+        if isinstance(node.op, ast.Mult) and _constant_integer(node.value) is None:
+            self._reject(
+                "nonlinear augmented multiplication is not part of the QF-LIA subset",
+                node,
+            )
+        if isinstance(node.op, (ast.FloorDiv, ast.Mod)):
+            divisor = _constant_integer(node.value)
+            if divisor is None or divisor == 0:
+                self._reject(
+                    "augmented floor division and modulo require a nonzero constant divisor",
+                    node,
+                )
         self._ok(node)
 
     def visit_If(self, node: ast.If) -> None:
@@ -233,6 +268,19 @@ class SubsetVisitor(ast.NodeVisitor):
             self._reject(
                 f"binary operator {type(node.op).__name__} not allowed", node
             )
+        if isinstance(node.op, ast.Mult):
+            if not (_constant_integer(node.left) is not None or _constant_integer(node.right) is not None):
+                self._reject(
+                    "nonlinear multiplication is not part of the QF-LIA subset",
+                    node,
+                )
+        elif isinstance(node.op, (ast.FloorDiv, ast.Mod)):
+            divisor = _constant_integer(node.right)
+            if divisor is None or divisor == 0:
+                self._reject(
+                    "floor division and modulo require a nonzero constant divisor",
+                    node,
+                )
         self._ok(node)
 
     def visit_UnaryOp(self, node: ast.UnaryOp) -> None:
@@ -310,6 +358,31 @@ class _StopSubset(Exception):
         self.reason = reason
 
 
+def _constant_integer(node: ast.AST) -> int | None:
+    """Evaluate the small constant subset needed for linearity checks."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, int) and not isinstance(node.value, bool):
+        return node.value
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        value = _constant_integer(node.operand)
+        return -value if value is not None else None
+    if isinstance(node, ast.BinOp):
+        left = _constant_integer(node.left)
+        right = _constant_integer(node.right)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.FloorDiv) and right != 0:
+            return left // right
+        if isinstance(node.op, ast.Mod) and right != 0:
+            return left % right
+    return None
+
+
 # --- Public API ---------------------------------------------------------------
 
 
@@ -351,6 +424,16 @@ def check_and_normalize(source: str) -> SubsetResult:
     )
 
 
+def validate_expression(expr: ast.expr) -> Optional[str]:
+    """Validate a standalone claim expression against the same subset gate."""
+    visitor = SubsetVisitor()
+    try:
+        visitor.visit(expr)
+    except _StopSubset as stop:
+        return stop.reason
+    return None
+
+
 def is_qf_lia_value(value) -> bool:
     """True iff a Python value (input/output literal) is QF-LIA compatible."""
     return isinstance(value, ALLOWED_INPUT_VALUE_TYPES)
@@ -362,10 +445,12 @@ __all__ = [
     "ALLOWED_UNARYOPS",
     "ALLOWED_COMPARATORS",
     "ALLOWED_BOOLOPS",
+    "ALLOWED_EXPR_TYPES",
     "ALLOWED_BUILTINS",
     "ALLOWED_INPUT_VALUE_TYPES",
     "ClaimInfo",
     "SubsetResult",
     "check_and_normalize",
+    "validate_expression",
     "is_qf_lia_value",
 ]

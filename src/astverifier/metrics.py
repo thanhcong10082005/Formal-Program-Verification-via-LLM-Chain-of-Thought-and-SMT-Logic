@@ -69,7 +69,7 @@ def aggregate(
     if ground_truth:
         tp, fp = 0, 0
         for r in results:
-            gt_status = ground_truth.get(r.program_id)
+            gt_status = ground_truth.get(_normalize_program_id(r.program_id))
             if gt_status is None:
                 continue
             for cr in r.claim_results:
@@ -78,15 +78,11 @@ def aggregate(
                         tp += 1
                     else:
                         fp += 1
-                elif cr.status == StatusEnum.COUNTEREXAMPLE:
-                    if gt_status.upper() == "VERIFIED":
-                        # framework said counter-example but truth says verified -> FP
-                        fp += 1
-                    else:
-                        # COUNTEREXAMPLE matches truth: TP (found a bug as claimed)
-                        tp += 1
+                # FDR is defined over positive VERIFIED reports.  A
+                # COUNTEREXAMPLE on a verified program is a false negative,
+                # not a false discovery, so it is excluded from this ratio.
         denom = tp + fp
-        fdr = (fp / denom) if denom else 0.0
+        fdr = (fp / denom) if denom else None
 
     return Metrics(
         fdr=fdr,
@@ -98,6 +94,15 @@ def aggregate(
         n_programs=n_total,
         n_claims=n_claims_total,
     )
+
+
+def _normalize_program_id(program_id: str) -> str:
+    """Normalize persisted dataset IDs before ground-truth lookup."""
+    norm = program_id.replace("__", "/")
+    prefix = "sv-benchmarks-loops-py/"
+    if norm.startswith(prefix):
+        norm = norm[len(prefix):]
+    return norm
 
 
 def load_ground_truth(json_path: str | Path) -> Dict[str, str]:

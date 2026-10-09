@@ -4,7 +4,6 @@ run_complex_experiment.py - Run AST_ANCHORED vs UNANCHORED on complex programs:
 2. LLM Hallucination Stress-test (Anchor Gate defense)
 3. Complex Loops & Multi-branching (MBPP Advanced with Gemini 3.5 Flash)
 """
-import os
 import sys
 import json
 import time
@@ -14,9 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from astverifier.pipeline import run_pipeline
-from astverifier.binding import Claim, bind_llm_claims
 from astverifier.llm import generate_cot_and_claims, _get_api_key
-from astverifier.classify import StatusEnum
 
 GEMINI_KEY = _get_api_key()
 
@@ -92,7 +89,7 @@ TEST_SUITE = [
         "use_llm": False,
         "inject_claims": [
             # Line 0 or 42 beyond file boundaries
-            {"id": "halluc_line_0", "line": 0, "expression": "val >= low and val <= high"}
+            {"id": "halluc_line_42", "line": 42, "expression": "val >= low and val <= high"}
         ]
     },
     {
@@ -234,8 +231,22 @@ def run_benchmark():
 
         # Run AST_ANCHORED
         # For injected claims, we pass them as if extracted / generated
-        ast_result = run_pipeline_with_claims(code, raw_claims_data, baseline="AST_ANCHORED", cot_trace=cot_trace)
-        un_result = run_pipeline_with_claims(code, raw_claims_data, baseline="UNANCHORED", cot_trace=cot_trace)
+        ast_result = run_pipeline_with_claims(
+            code,
+            raw_claims_data,
+            baseline="AST_ANCHORED",
+            cot_trace=cot_trace,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+        )
+        un_result = run_pipeline_with_claims(
+            code,
+            raw_claims_data,
+            baseline="UNANCHORED",
+            cot_trace=cot_trace,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+        )
 
         res_entry = {
             "id": p_id,
@@ -263,80 +274,24 @@ def run_benchmark():
     print("\n[+] Done! All results saved to", OUT_DIR)
 
 
-def run_pipeline_with_claims(code: str, raw_claims: list, baseline: str, cot_trace: str = ""):
-    from astverifier.subset import check_and_normalize
-    from astverifier.nodes import assign_ids
-    from astverifier.executor import TrustedSymbolicExecutor
-    from astverifier.binding import extract_asserts, bind_llm_claims, Claim
-    from astverifier.classify import make_empty_program_result, StatusEnum, AnchorInfo, ClaimResult
-    from astverifier.pipeline import _select_reachability, _process_claim, _roll_up
-    import time
-
-    start = time.perf_counter()
-    sub = check_and_normalize(code)
-    if not sub.accepted:
-        res = make_empty_program_result(program_id="<test>", baseline=baseline, rejected=True, reason=sub.rejected_reason, source_text=code)
-        res.elapsed_seconds = time.perf_counter() - start
-        return res
-
-    ids = assign_ids(sub.tree)
-    executor = TrustedSymbolicExecutor(sub.tree, ids)
-    transitions = executor.build_all_transitions()
-    static_claims = extract_asserts(sub.tree, ids)
-    from astverifier.llm import SuggestedClaim
-    suggested_objs = []
-    for c in raw_claims:
-        if isinstance(c, SuggestedClaim):
-            suggested_objs.append(c)
-        elif isinstance(c, dict):
-            suggested_objs.append(SuggestedClaim(line=c.get("line", 0), expression=c.get("expression", "")))
-        else:
-            suggested_objs.append(c)
-
-    llm_claims = bind_llm_claims(sub.tree, ids, suggested_objs)
-
-    all_claims = static_claims + llm_claims
-    unsupported_claims = []
-
-    if baseline == "AST_ANCHORED":
-        claims = [c for c in all_claims if c.status == "ANCHORED"]
-        unsupported_claims = [c for c in all_claims if c.status in ("UNSUPPORTED", "TRANSLATION_ERROR")]
-    else:
-        # UNANCHORED skips anchor gate
-        claims = all_claims
-
-    reach_list = _select_reachability(executor, claims)
-    import z3
-    if not reach_list:
-        reachability = executor.build_reachability(None) if hasattr(executor, 'build_reachability') else None
-    else:
-        reachability = reach_list[0]
-
-    claim_results = []
-    for c in claims:
-        cr = _process_claim(c, executor, reachability, baseline=baseline, source=code, do_replay=True)
-        claim_results.append(cr)
-
-    for c in unsupported_claims:
-        st = StatusEnum.UNSUPPORTED if c.status == "UNSUPPORTED" else StatusEnum.TRANSLATION_ERROR
-        claim_results.append(
-            ClaimResult(
-                claim_id=c.claim_id,
-                claim_text=c.expr_source,
-                status=st,
-                anchor=AnchorInfo(node_ids=[], source_lines=[c.source_line], has_grounding=False),
-                reason=f"Claim rejected by Anchor Gate ({c.status})",
-            )
-        )
-
-    return _roll_up(
-        claims=claim_results,
+def run_pipeline_with_claims(
+    code: str,
+    raw_claims: list,
+    baseline: str,
+    cot_trace: str = "",
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+):
+    """Run an injected-claim experiment through the public pipeline."""
+    return run_pipeline(
+        code,
         program_id="<test>",
         source_path="<test>",
-        source=code,
         baseline=baseline,
-        elapsed=time.perf_counter() - start,
-        transitions=transitions,
+        do_replay=True,
+        suggested_claims=raw_claims,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
         cot_trace=cot_trace,
     )
 
