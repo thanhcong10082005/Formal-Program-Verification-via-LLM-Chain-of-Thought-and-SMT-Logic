@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_8",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_8.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_8.py",
+  "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 5000000\n    while x<y:\n        if (x>=5000000):\n            z--\n        x += 1\n    assert z==0\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001802000915631652,
+  "elapsed_seconds": 0.00018369999997958075,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: invalid syntax"

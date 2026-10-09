@@ -1,0 +1,1386 @@
+[
+  {
+    "task_id": 17,
+    "name": "square_perimeter",
+    "description": "Find perimeter of a square: 4 * a",
+    "code": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+    "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+    "tokens_in": 254,
+    "tokens_out": 103,
+    "anchored": {
+      "program_id": "mbpp_17_square_perimeter",
+      "source_path": "mbpp_17",
+      "source_text": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "perimeter == 4 * a",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "square_perimeter@Return:L3:C4#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "perimeter": 1,
+              "a": 0
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"square_perimeter() got an unexpected keyword argument 'perimeter'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 1.3429000000542146
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.05464460000075633,
+      "total_tokens_in": 254,
+      "total_tokens_out": 103,
+      "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_17_square_perimeter",
+      "source_path": "mbpp_17",
+      "source_text": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "perimeter == 4 * a",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "square_perimeter@Return:L3:C4#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "perimeter": 1,
+              "a": 0
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"square_perimeter() got an unexpected keyword argument 'perimeter'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 1.0592999997243169
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.0436783999994077,
+      "total_tokens_in": 254,
+      "total_tokens_out": 103,
+      "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 35,
+    "name": "find_rect_num",
+    "description": "Find n-th rectangular number: n * (n + 1)",
+    "code": "def find_rect_num(n):\n    return n * (n + 1)\n",
+    "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+    "tokens_in": 252,
+    "tokens_out": 311,
+    "anchored": {
+      "program_id": "mbpp_35_find_rect_num",
+      "source_path": "mbpp_35",
+      "source_text": "def find_rect_num(n):\n    return n * (n + 1)\n",
+      "n_claims": 2,
+      "n_verified": 2,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n * (n + 1) >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_rect_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "(n * (n + 1)) % 2 == 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_rect_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.008760300000176358,
+      "total_tokens_in": 252,
+      "total_tokens_out": 311,
+      "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_35_find_rect_num",
+      "source_path": "mbpp_35",
+      "source_text": "def find_rect_num(n):\n    return n * (n + 1)\n",
+      "n_claims": 2,
+      "n_verified": 2,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n * (n + 1) >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_rect_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "(n * (n + 1)) % 2 == 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_rect_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.007560600000033446,
+      "total_tokens_in": 252,
+      "total_tokens_out": 311,
+      "cot_trace": "The function `find_rect_num(n)` calculates the pronic (or rectangular) number `n * (n + 1)` for an integer `n`. Analyzing the arithmetic properties over all integers: 1) For any integer `n`, one of `n` or `n + 1` is even, so the product `n * (n + 1)` is always divisible by 2. Thus, `(n * (n + 1)) % 2 == 0` holds unconditionally. 2) If `n >= 0`, then both `n >= 0` and `n + 1 > 0`, so `n * (n + 1) >= 0`. If `n <= -1`, then both `n < 0` and `n + 1 <= 0`, so their product is also non-negative (`n * (n + 1) >= 0`). Therefore, `n * (n + 1) >= 0` holds for all integer inputs `n` at line 2.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 36,
+    "name": "find_Nth_Digit",
+    "description": "Long division while loop to find Nth digit of p/q",
+    "code": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+    "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+    "tokens_in": 302,
+    "tokens_out": 233,
+    "anchored": {
+      "program_id": "mbpp_36_find_Nth_Digit",
+      "source_path": "mbpp_36",
+      "source_text": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+      "n_claims": 3,
+      "n_verified": 2,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "N >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@While:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L4",
+          "claim_text": "N >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@Assign:L4:C8#0"
+            ],
+            "source_lines": [
+              4
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L7",
+          "claim_text": "N == 0",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@Return:L7:C4#0"
+            ],
+            "source_lines": [
+              7
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "N": 1
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"find_Nth_Digit() missing 2 required positional arguments: 'p' and 'q'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 1.5059999996083206
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.05639599999994971,
+      "total_tokens_in": 302,
+      "total_tokens_out": 233,
+      "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_36_find_Nth_Digit",
+      "source_path": "mbpp_36",
+      "source_text": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+      "n_claims": 3,
+      "n_verified": 2,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "N >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@While:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L4",
+          "claim_text": "N >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@Assign:L4:C8#0"
+            ],
+            "source_lines": [
+              4
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L7",
+          "claim_text": "N == 0",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "find_Nth_Digit@Return:L7:C4#0"
+            ],
+            "source_lines": [
+              7
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "N": 1
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"find_Nth_Digit() missing 2 required positional arguments: 'p' and 'q'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 1.3988999999128282
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.04855730000053882,
+      "total_tokens_in": 302,
+      "total_tokens_out": 233,
+      "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 51,
+    "name": "check_equilateral",
+    "description": "Check if triangle is equilateral (chained comparison)",
+    "code": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+    "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+    "tokens_in": 276,
+    "tokens_out": 221,
+    "anchored": {
+      "program_id": "mbpp_51_check_equilateral",
+      "source_path": "mbpp_51",
+      "source_text": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+      "n_claims": 3,
+      "n_verified": 3,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "x == y",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L3",
+          "claim_text": "y == z",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L3",
+          "claim_text": "x == z",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.007866200000535173,
+      "total_tokens_in": 276,
+      "total_tokens_out": 221,
+      "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_51_check_equilateral",
+      "source_path": "mbpp_51",
+      "source_text": "def check_equilateral(x, y, z):\n    if x == y and y == z:\n        return True\n    else:\n        return False\n",
+      "n_claims": 3,
+      "n_verified": 3,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "x == y",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L3",
+          "claim_text": "y == z",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L3",
+          "claim_text": "x == z",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "check_equilateral@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.003792999999859603,
+      "total_tokens_in": 276,
+      "total_tokens_out": 221,
+      "cot_trace": "The function check_equilateral(x, y, z) checks whether all three variables are equal. At line 2, it branches on the condition 'x == y and y == z'. If the condition evaluates to True, control reaches line 3. At line 3, we can formally assert that both 'x == y' and 'y == z' hold, and by transitivity of equality, 'x == z' also holds. If the condition evaluates to False, control flows to line 5, where at least one equality is violated, i.e., not (x == y and y == z).",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 52,
+    "name": "parallelogram_area",
+    "description": "Calculate area of a parallelogram: b * h",
+    "code": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+    "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+    "tokens_in": 255,
+    "tokens_out": 112,
+    "anchored": {
+      "program_id": "mbpp_52_parallelogram_area",
+      "source_path": "mbpp_52",
+      "source_text": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "area == b * h",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "parallelogram_area@Return:L3:C4#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "area": 1,
+              "b": 0,
+              "h": 1
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"parallelogram_area() got an unexpected keyword argument 'area'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 3.751399999600835
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.05707489999986137,
+      "total_tokens_in": 255,
+      "total_tokens_out": 112,
+      "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_52_parallelogram_area",
+      "source_path": "mbpp_52",
+      "source_text": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "area == b * h",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "parallelogram_area@Return:L3:C4#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "area": 1,
+              "b": 0,
+              "h": 1
+            },
+            "replay_verdict": false,
+            "replay_output": "",
+            "replay_diff": "REPRO_EXCEPTION: TypeError(\"parallelogram_area() got an unexpected keyword argument 'area'\")"
+          },
+          "z3_stats": {
+            "valid_ms": 2.7810999999928754
+          },
+          "reason": "Z3 found a violating model; replay_verdict=False"
+        }
+      ],
+      "elapsed_seconds": 0.04471910000029311,
+      "total_tokens_in": 255,
+      "total_tokens_out": 112,
+      "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 59,
+    "name": "is_octagonal",
+    "description": "Find the nth octagonal number: 3*n*n - 2*n",
+    "code": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+    "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+    "tokens_in": 254,
+    "tokens_out": 336,
+    "anchored": {
+      "program_id": "mbpp_59_is_octagonal",
+      "source_path": "mbpp_59",
+      "source_text": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+      "n_claims": 2,
+      "n_verified": 2,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "3 * n * n - 2 * n >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_octagonal@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "n < 0 or (3 * n * n - 2 * n >= n)",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_octagonal@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.017716199999995297,
+      "total_tokens_in": 254,
+      "total_tokens_out": 336,
+      "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_59_is_octagonal",
+      "source_path": "mbpp_59",
+      "source_text": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+      "n_claims": 2,
+      "n_verified": 2,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "3 * n * n - 2 * n >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_octagonal@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "n < 0 or (3 * n * n - 2 * n >= n)",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_octagonal@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.010255799999868032,
+      "total_tokens_in": 254,
+      "total_tokens_out": 336,
+      "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 72,
+    "name": "dif_Square",
+    "description": "Check if number can be difference of two squares (n % 4 != 2)",
+    "code": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+    "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+    "tokens_in": 264,
+    "tokens_out": 213,
+    "anchored": {
+      "program_id": "mbpp_72_dif_Square",
+      "source_path": "mbpp_72",
+      "source_text": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+      "n_claims": 2,
+      "n_verified": 1,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "n % 4 != 2",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "dif_Square@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L4",
+          "claim_text": "n % 4 == 2",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "dif_Square@Return:L4:C4#0"
+            ],
+            "source_lines": [
+              4
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "n": 0
+            },
+            "replay_verdict": true,
+            "replay_output": "True",
+            "replay_diff": null
+          },
+          "z3_stats": {
+            "valid_ms": 0.5468999997901847
+          },
+          "reason": "Z3 found a violating model; replay_verdict=True"
+        }
+      ],
+      "elapsed_seconds": 0.04982230000041454,
+      "total_tokens_in": 264,
+      "total_tokens_out": 213,
+      "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_72_dif_Square",
+      "source_path": "mbpp_72",
+      "source_text": "def dif_Square(n):\n    if n % 4 != 2:\n        return True\n    return False\n",
+      "n_claims": 2,
+      "n_verified": 1,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "n % 4 != 2",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "dif_Square@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L4",
+          "claim_text": "n % 4 == 2",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "dif_Square@Return:L4:C4#0"
+            ],
+            "source_lines": [
+              4
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "n": 0
+            },
+            "replay_verdict": true,
+            "replay_output": "True",
+            "replay_diff": null
+          },
+          "z3_stats": {
+            "valid_ms": 0.6397999995897408
+          },
+          "reason": "Z3 found a violating model; replay_verdict=True"
+        }
+      ],
+      "elapsed_seconds": 0.04520979999961128,
+      "total_tokens_in": 264,
+      "total_tokens_out": 213,
+      "cot_trace": "The function `dif_Square(n)` tests whether an integer `n` can be represented as the difference of two squares, which is mathematically possible if and only if `n` is not congruent to 2 modulo 4 (i.e. `n % 4 != 2`). At line 2, the conditional `if n % 4 != 2:` is evaluated. If the condition holds, control transfers to line 3, where `n % 4 != 2` is guaranteed to be True. If the condition fails, control falls through to line 4, where `n % 4 == 2` is guaranteed to be True.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 86,
+    "name": "centered_hexagonal_number",
+    "description": "Find nth centered hexagonal number: 3*n*(n-1) + 1",
+    "code": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+    "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+    "tokens_in": 259,
+    "tokens_out": 395,
+    "anchored": {
+      "program_id": "mbpp_86_centered_hexagonal_number",
+      "source_path": "mbpp_86",
+      "source_text": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+      "n_claims": 4,
+      "n_verified": 4,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n * (n - 1) >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "(n * (n - 1)) % 2 == 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L2",
+          "claim_text": "3 * n * (n - 1) + 1 >= 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_4_L2",
+          "claim_text": "(3 * n * (n - 1) + 1) % 2 == 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.011563099999875703,
+      "total_tokens_in": 259,
+      "total_tokens_out": 395,
+      "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_86_centered_hexagonal_number",
+      "source_path": "mbpp_86",
+      "source_text": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+      "n_claims": 4,
+      "n_verified": 4,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n * (n - 1) >= 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L2",
+          "claim_text": "(n * (n - 1)) % 2 == 0",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_3_L2",
+          "claim_text": "3 * n * (n - 1) + 1 >= 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_4_L2",
+          "claim_text": "(3 * n * (n - 1) + 1) % 2 == 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "centered_hexagonal_number@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.010211200000412646,
+      "total_tokens_in": 259,
+      "total_tokens_out": 395,
+      "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 89,
+    "name": "closest_num",
+    "description": "Find the closest smaller number than n: n - 1",
+    "code": "def closest_num(n):\n    return n - 1\n",
+    "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+    "tokens_in": 246,
+    "tokens_out": 106,
+    "anchored": {
+      "program_id": "mbpp_89_closest_num",
+      "source_path": "mbpp_89",
+      "source_text": "def closest_num(n):\n    return n - 1\n",
+      "n_claims": 1,
+      "n_verified": 1,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n - 1 < n",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "closest_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.0019038000000364264,
+      "total_tokens_in": 246,
+      "total_tokens_out": 106,
+      "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_89_closest_num",
+      "source_path": "mbpp_89",
+      "source_text": "def closest_num(n):\n    return n - 1\n",
+      "n_claims": 1,
+      "n_verified": 1,
+      "n_counterexample": 0,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L2",
+          "claim_text": "n - 1 < n",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "closest_num@Return:L2:C4#0"
+            ],
+            "source_lines": [
+              2
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        }
+      ],
+      "elapsed_seconds": 0.0007572000004074653,
+      "total_tokens_in": 246,
+      "total_tokens_out": 106,
+      "cot_trace": "The function closest_num(n) takes an integer n and returns n - 1. At line 2, we can assert that the returned value, represented by the expression n - 1, is always strictly less than n. This is a trivial but valid linear integer arithmetic claim.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  },
+  {
+    "task_id": 138,
+    "name": "is_Sum_Of_Powers_Of_Two",
+    "description": "Check parity condition with if-else",
+    "code": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+    "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+    "tokens_in": 279,
+    "tokens_out": 181,
+    "anchored": {
+      "program_id": "mbpp_138_is_Sum_Of_Powers_Of_Two",
+      "source_path": "mbpp_138",
+      "source_text": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+      "n_claims": 2,
+      "n_verified": 1,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "n % 2 == 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_Sum_Of_Powers_Of_Two@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L5",
+          "claim_text": "n % 2 == 0",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "is_Sum_Of_Powers_Of_Two@Return:L5:C8#0"
+            ],
+            "source_lines": [
+              5
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "n": 1
+            },
+            "replay_verdict": true,
+            "replay_output": "False",
+            "replay_diff": null
+          },
+          "z3_stats": {
+            "valid_ms": 0.21120000019436702
+          },
+          "reason": "Z3 found a violating model; replay_verdict=True"
+        }
+      ],
+      "elapsed_seconds": 0.05082399999992049,
+      "total_tokens_in": 279,
+      "total_tokens_out": 181,
+      "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+      "baseline": "AST_ANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    "unanchored": {
+      "program_id": "mbpp_138_is_Sum_Of_Powers_Of_Two",
+      "source_path": "mbpp_138",
+      "source_text": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+      "n_claims": 2,
+      "n_verified": 1,
+      "n_counterexample": 1,
+      "n_unreachable": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "claim_results": [
+        {
+          "claim_id": "llm_claim_1_L3",
+          "claim_text": "n % 2 == 1",
+          "status": "VERIFIED",
+          "anchor": {
+            "node_ids": [
+              "is_Sum_Of_Powers_Of_Two@Return:L3:C8#0"
+            ],
+            "source_lines": [
+              3
+            ],
+            "has_grounding": true
+          },
+          "counterexample": null,
+          "z3_stats": {
+            "valid_ms": 0.0
+          },
+          "reason": "claim holds on every reachable execution"
+        },
+        {
+          "claim_id": "llm_claim_2_L5",
+          "claim_text": "n % 2 == 0",
+          "status": "COUNTEREXAMPLE",
+          "anchor": {
+            "node_ids": [
+              "is_Sum_Of_Powers_Of_Two@Return:L5:C8#0"
+            ],
+            "source_lines": [
+              5
+            ],
+            "has_grounding": true
+          },
+          "counterexample": {
+            "z3_model": {
+              "n": 1
+            },
+            "replay_verdict": true,
+            "replay_output": "False",
+            "replay_diff": null
+          },
+          "z3_stats": {
+            "valid_ms": 0.42379999922559364
+          },
+          "reason": "Z3 found a violating model; replay_verdict=True"
+        }
+      ],
+      "elapsed_seconds": 0.0654846000006728,
+      "total_tokens_in": 279,
+      "total_tokens_out": 181,
+      "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+      "baseline": "UNANCHORED",
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    }
+  }
+]

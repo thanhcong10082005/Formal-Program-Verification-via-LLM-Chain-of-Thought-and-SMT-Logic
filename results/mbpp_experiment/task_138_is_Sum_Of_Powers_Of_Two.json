@@ -1,0 +1,141 @@
+{
+  "task_id": 138,
+  "name": "is_Sum_Of_Powers_Of_Two",
+  "description": "Check parity condition with if-else",
+  "code": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+  "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+  "tokens_in": 279,
+  "tokens_out": 181,
+  "anchored": {
+    "program_id": "mbpp_138_is_Sum_Of_Powers_Of_Two",
+    "source_path": "mbpp_138",
+    "source_text": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+    "n_claims": 2,
+    "n_verified": 1,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "n % 2 == 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_Sum_Of_Powers_Of_Two@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L5",
+        "claim_text": "n % 2 == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "is_Sum_Of_Powers_Of_Two@Return:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.21120000019436702
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      }
+    ],
+    "elapsed_seconds": 0.05082399999992049,
+    "total_tokens_in": 279,
+    "total_tokens_out": 181,
+    "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_138_is_Sum_Of_Powers_Of_Two",
+    "source_path": "mbpp_138",
+    "source_text": "def is_Sum_Of_Powers_Of_Two(n):\n    if n % 2 == 1:\n        return False\n    else:\n        return True\n",
+    "n_claims": 2,
+    "n_verified": 1,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "n % 2 == 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_Sum_Of_Powers_Of_Two@Return:L3:C8#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L5",
+        "claim_text": "n % 2 == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "is_Sum_Of_Powers_Of_Two@Return:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 0.42379999922559364
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      }
+    ],
+    "elapsed_seconds": 0.0654846000006728,
+    "total_tokens_in": 279,
+    "total_tokens_out": 181,
+    "cot_trace": "The function checks if an integer n has an odd parity or even parity by computing n % 2. At line 2, the condition n % 2 == 1 is evaluated. If true, control reaches line 3, where n % 2 == 1 is guaranteed to hold. If false, control reaches the else-branch at line 5, where n % 2 == 0 is guaranteed to hold because for any integer in Python, n % 2 is either 0 or 1.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

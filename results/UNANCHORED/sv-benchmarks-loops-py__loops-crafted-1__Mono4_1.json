@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono4_1",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono4_1.py",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono4_1.py",
   "source_text": "def f(x, y):\n    x = 0\n    y = 500000\n    while x < 1000000:\n        if (x < 500000):\n            x = x + 1\n        else:\n            x = x + 1\n            y = y + 1\n    assert y!=x\n    return\n",
   "n_claims": 1,
   "n_verified": 0,
@@ -33,14 +33,15 @@
         "replay_diff": "REPRO_EXCEPTION: AssertionError()"
       },
       "z3_stats": {
-        "valid_ms": 1.5993000706657767
+        "valid_ms": 0.9516000000076019
       },
       "reason": "Z3 found a violating model; replay_verdict=False"
     }
   ],
-  "elapsed_seconds": 0.15391909994650632,
+  "elapsed_seconds": 0.09550889999991341,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,
   "subset_rejection_reason": null

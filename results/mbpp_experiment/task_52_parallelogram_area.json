@@ -1,0 +1,107 @@
+{
+  "task_id": 52,
+  "name": "parallelogram_area",
+  "description": "Calculate area of a parallelogram: b * h",
+  "code": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+  "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+  "tokens_in": 255,
+  "tokens_out": 112,
+  "anchored": {
+    "program_id": "mbpp_52_parallelogram_area",
+    "source_path": "mbpp_52",
+    "source_text": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "area == b * h",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "parallelogram_area@Return:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "area": 1,
+            "b": 0,
+            "h": 1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"parallelogram_area() got an unexpected keyword argument 'area'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 3.751399999600835
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.05707489999986137,
+    "total_tokens_in": 255,
+    "total_tokens_out": 112,
+    "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_52_parallelogram_area",
+    "source_path": "mbpp_52",
+    "source_text": "def parallelogram_area(b, h):\n    area = b * h\n    return area\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "area == b * h",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "parallelogram_area@Return:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "area": 1,
+            "b": 0,
+            "h": 1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"parallelogram_area() got an unexpected keyword argument 'area'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 2.7810999999928754
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.04471910000029311,
+    "total_tokens_in": 255,
+    "total_tokens_out": 112,
+    "cot_trace": "The function `parallelogram_area` computes the area of a parallelogram given its base `b` and height `h`. The computation is `area = b * h`. At line 3, right before the return statement, we can assert that the value of `area` is indeed equal to `b * h`.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

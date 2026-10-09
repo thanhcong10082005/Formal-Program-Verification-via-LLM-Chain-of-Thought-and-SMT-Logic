@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt7",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt7.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt7.py",
+  "source_text": "def f(n, v1):\n    n = 0\n    i = 0\n    k = 0\n    j = 0\n    l = 0\n    v1 = 0\n    v2 = 0\n    v3 = 0\n    v4 = 0\n    while l < n:\n        if ( not (l%7)):\n            v1 = v1 + 1\n        else:\n            if( not (l%6))\n\t    v2 = v2 + 1\n        if ( not (l%5)):\n            v3 = v3 + 1\n        else:\n            if( not (l%4))\n\t    v4 = v4 + 1\n        if ( not (l%3)):\n            i = i + 1\n        else:\n            if( not (l%2)) \n\t\t  j = j+1\n        # skip: 'e'\n        # skip: 'l'\n        # skip: 's'\n        # skip: 'e'\n        k = k+1\n        l = l+1\n        assert (i+j+k+v1+v2+v3+v4) == l\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00019519997294992208,
+  "elapsed_seconds": 0.0001453999998375366,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: expected ':'"

@@ -1,0 +1,92 @@
+{
+  "id": "B1_hallucination_line_overflow",
+  "category": "LLM Hallucination",
+  "description": "LLM hallucinates line number 42 on a 6-line function",
+  "code": "def clamp(val, low, high):\n    if val < low:\n        return low\n    if val > high:\n        return high\n    return val\n",
+  "cot_trace": "",
+  "tokens_in": 0,
+  "tokens_out": 0,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def clamp(val, low, high):\n    if val < low:\n        return low\n    if val > high:\n        return high\n    return val\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 1,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L0",
+        "claim_text": "val >= low and val <= high",
+        "status": "UNSUPPORTED",
+        "anchor": {
+          "node_ids": [],
+          "source_lines": [
+            0
+          ],
+          "has_grounding": false
+        },
+        "counterexample": null,
+        "z3_stats": {},
+        "reason": "Claim rejected by Anchor Gate (UNSUPPORTED)"
+      }
+    ],
+    "elapsed_seconds": 0.0005959000000075321,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def clamp(val, low, high):\n    if val < low:\n        return low\n    if val > high:\n        return high\n    return val\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L0",
+        "claim_text": "val >= low and val <= high",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [],
+          "source_lines": [
+            0
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "val": -1,
+            "low": 0,
+            "high": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "0",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.5064999997775885
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      }
+    ],
+    "elapsed_seconds": 0.059078600000248116,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

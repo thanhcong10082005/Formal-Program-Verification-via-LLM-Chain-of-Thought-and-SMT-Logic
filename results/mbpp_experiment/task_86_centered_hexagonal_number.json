@@ -1,0 +1,203 @@
+{
+  "task_id": 86,
+  "name": "centered_hexagonal_number",
+  "description": "Find nth centered hexagonal number: 3*n*(n-1) + 1",
+  "code": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+  "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+  "tokens_in": 259,
+  "tokens_out": 395,
+  "anchored": {
+    "program_id": "mbpp_86_centered_hexagonal_number",
+    "source_path": "mbpp_86",
+    "source_text": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+    "n_claims": 4,
+    "n_verified": 4,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n * (n - 1) >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "(n * (n - 1)) % 2 == 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L2",
+        "claim_text": "3 * n * (n - 1) + 1 >= 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_4_L2",
+        "claim_text": "(3 * n * (n - 1) + 1) % 2 == 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.011563099999875703,
+    "total_tokens_in": 259,
+    "total_tokens_out": 395,
+    "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_86_centered_hexagonal_number",
+    "source_path": "mbpp_86",
+    "source_text": "def centered_hexagonal_number(n):\n    return 3 * n * (n - 1) + 1\n",
+    "n_claims": 4,
+    "n_verified": 4,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "n * (n - 1) >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "(n * (n - 1)) % 2 == 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L2",
+        "claim_text": "3 * n * (n - 1) + 1 >= 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_4_L2",
+        "claim_text": "(3 * n * (n - 1) + 1) % 2 == 1",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "centered_hexagonal_number@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.010211200000412646,
+    "total_tokens_in": 259,
+    "total_tokens_out": 395,
+    "cot_trace": "The function `centered_hexagonal_number(n)` computes `3 * n * (n - 1) + 1`. Analyzing this expression over integer arithmetic:\n1. For any integer `n`, the product `n * (n - 1)` involves two consecutive integers, one of which must be even. Thus, `(n * (n - 1)) % 2 == 0` unconditionally.\n2. Since the roots of `x * (x - 1) = 0` are 0 and 1, and there are no integers strictly between 0 and 1, `n * (n - 1) >= 0` holds for all integer values of `n`.\n3. Consequently, `3 * n * (n - 1) + 1 >= 1` holds universally for any integer `n`.\n4. Additionally, since `3 * n * (n - 1)` is always even, `(3 * n * (n - 1) + 1) % 2 == 1` holds universally.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

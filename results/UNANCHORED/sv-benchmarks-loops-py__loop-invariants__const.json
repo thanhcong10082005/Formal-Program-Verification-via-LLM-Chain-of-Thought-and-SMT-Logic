@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loop-invariants__const",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\const.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\const.py",
+  "source_text": "def f(s):\n    s = 0\n    while 0:\n        if (s != 0):\n            s += 1\n        if (s != 0) {\n      ++s\n    }\n    if (0):\n            assert s == 0\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00022529996931552887,
+  "elapsed_seconds": 0.00011790000007749768,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: invalid syntax"

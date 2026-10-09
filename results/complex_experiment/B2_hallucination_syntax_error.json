@@ -1,0 +1,83 @@
+{
+  "id": "B2_hallucination_syntax_error",
+  "category": "LLM Hallucination",
+  "description": "LLM outputs non-Python / invalid math syntax (e.g. 2x == y)",
+  "code": "def double_val(x):\n    y = 2 * x\n    return y\n",
+  "cot_trace": "",
+  "tokens_in": 0,
+  "tokens_out": 0,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def double_val(x):\n    y = 2 * x\n    return y\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 1,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "2x == y",
+        "status": "TRANSLATION_ERROR",
+        "anchor": {
+          "node_ids": [],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": false
+        },
+        "counterexample": null,
+        "z3_stats": {},
+        "reason": "Claim rejected by Anchor Gate (TRANSLATION_ERROR)"
+      }
+    ],
+    "elapsed_seconds": 0.000373300000319432,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def double_val(x):\n    y = 2 * x\n    return y\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 1,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "2x == y",
+        "status": "TRANSLATION_ERROR",
+        "anchor": {
+          "node_ids": [
+            "double_val@Return:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {},
+        "reason": "Expression could not be parsed to AST"
+      }
+    ],
+    "elapsed_seconds": 0.00048999999944499,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

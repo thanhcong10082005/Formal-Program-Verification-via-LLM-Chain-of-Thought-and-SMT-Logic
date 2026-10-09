@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__iftelse",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\iftelse.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\iftelse.py",
+  "source_text": "def f(i, j, k, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: k (kept as param)\n    # declared: j (kept as param)\n    while i < n:\n        if (i%2):\n            j = j+3\n        else:\n            k = k+3\n        if (n>0):\n            __VERIFIER_assert( (i/2<=j) )\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00025349995121359825,
+  "elapsed_seconds": 0.0001747000001159904,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "standalone expressions not allowed"

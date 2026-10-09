@@ -1,7 +1,7 @@
 {
   "program_id": "cruxeval__sample_297",
-  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_297.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic\\results\\_cruxeval_py\\sample_297.py",
+  "source_text": "def f(num):\n    if 0 < num < 1000 and num != 6174:\n        return 'Half Life'\n    return 'Not found'\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00015320000238716602,
+  "elapsed_seconds": 0.00007999999979801942,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"

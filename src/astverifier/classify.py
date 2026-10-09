@@ -64,6 +64,7 @@ class ProgramResult(BaseModel):
     elapsed_seconds: float = 0.0
     total_tokens_in: int = 0
     total_tokens_out: int = 0
+    cot_trace: str = ""
     baseline: str = ""
     rejected_by_subset: bool = False
     subset_rejection_reason: Optional[str] = None
@@ -76,10 +77,12 @@ def make_empty_program_result(
     *,
     rejected: bool = False,
     reason: Optional[str] = None,
+    source_text: str = "",
 ) -> ProgramResult:
     return ProgramResult(
         program_id=program_id,
         source_path=source_path,
+        source_text=source_text,
         baseline=baseline,
         rejected_by_subset=rejected,
         subset_rejection_reason=reason,

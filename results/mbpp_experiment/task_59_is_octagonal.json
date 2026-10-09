@@ -1,0 +1,127 @@
+{
+  "task_id": 59,
+  "name": "is_octagonal",
+  "description": "Find the nth octagonal number: 3*n*n - 2*n",
+  "code": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+  "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+  "tokens_in": 254,
+  "tokens_out": 336,
+  "anchored": {
+    "program_id": "mbpp_59_is_octagonal",
+    "source_path": "mbpp_59",
+    "source_text": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+    "n_claims": 2,
+    "n_verified": 2,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "3 * n * n - 2 * n >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_octagonal@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "n < 0 or (3 * n * n - 2 * n >= n)",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_octagonal@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.017716199999995297,
+    "total_tokens_in": 254,
+    "total_tokens_out": 336,
+    "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_59_is_octagonal",
+    "source_path": "mbpp_59",
+    "source_text": "def is_octagonal(n):\n    return 3 * n * n - 2 * n\n",
+    "n_claims": 2,
+    "n_verified": 2,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "3 * n * n - 2 * n >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_octagonal@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L2",
+        "claim_text": "n < 0 or (3 * n * n - 2 * n >= n)",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "is_octagonal@Return:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.010255799999868032,
+    "total_tokens_in": 254,
+    "total_tokens_out": 336,
+    "cot_trace": "The function `is_octagonal(n)` computes the n-th octagonal number using the formula $3n^2 - 2n$. We can analyze the mathematical properties of this expression over the domain of integers. First, for any integer $n$, the expression $3n^2 - 2n$ is always non-negative. To see this: if $n \\le 0$, then $3n^2 \\ge 0$ and $-2n \\ge 0$, so their sum is non-negative. If $n \\ge 1$, then $3n - 2 \\ge 1$, so $n(3n-2) \\ge 1$. Thus, $3n^2 - 2n \\ge 0$ holds universally. Second, for any non-negative integer $n \\ge 0$, the value $3n^2 - 2n$ is at least $n$, because $3n^2 - 3n = 3n(n-1) \\ge 0$ for all $n \\ge 0$. We can formulate these as verification claims at line 2.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

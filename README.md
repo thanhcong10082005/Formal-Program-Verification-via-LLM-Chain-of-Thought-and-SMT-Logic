@@ -29,14 +29,26 @@ baseline (`AST_ANCHORED` vs `UNANCHORED`).
 
 ```powershell
 # Yêu cầu Python 3.14+ (do dùng ast.arg.arg)
-pip install z3-solver pydantic
+pip install z3-solver pydantic google-genai
 ```
 
-## Chạy nhanh
+## Chạy kiểm chứng với Gemini LLM
+
+```powershell
+# Thiết lập API Key (hoặc nhập trực tiếp khi script hỏi)
+$env:GEMINI_API_KEY = "AIzaSy..."
+
+# Chạy kiểm chứng code Python thông qua Chain-of-Thought của Gemini + Z3 SMT
+python tools/demo_gemini_verify.py
+
+# Hoặc truyền file bất kỳ
+python tools/demo_gemini_verify.py --file path/to/code.py
+```
+
+## Chạy nhanh Benchmark có sẵn
 
 ```powershell
 # 1. (Tuỳ chọn) dịch SV-COMP .c sang Python QF-LIA nếu chưa có
-cd prototype
 python tools/run_svcomp_translate.py
 
 # 2. Chạy benchmark end-to-end

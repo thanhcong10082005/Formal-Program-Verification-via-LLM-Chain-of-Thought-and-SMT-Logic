@@ -1,7 +1,7 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sum_natnum",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sum_natnum.py",
-  "source_text": "",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sum_natnum.py",
+  "source_text": "def f(i, long sum):\n    # declared: i (kept as param)\n    while i< SIZE:\n        i = i + 1\n        # skip: 's'\n        # skip: 'u'\n        # skip: 'm'\n        # skip: '+'\n        # skip: '='\n        # skip: 'i'\n        # skip: ';'\n    assert sum == ((SIZE *(SIZE+1))/2)\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
   "n_counterexample": 0,
@@ -10,9 +10,10 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0003575000446289778,
+  "elapsed_seconds": 0.00009490000002188026,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: invalid syntax"

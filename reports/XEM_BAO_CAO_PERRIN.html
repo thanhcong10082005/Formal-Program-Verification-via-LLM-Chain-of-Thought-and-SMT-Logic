@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo cáo Khoa học: Case Study Perrin - LLM CoT & AST Verification</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #24292e;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: #f6f8fa;
+        }
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+        }
+        .toolbar {
+            position: sticky;
+            top: 10px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+        button {
+            background-color: #2ea44f;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 1px 0 rgba(27,31,35,0.1);
+        }
+        button:hover { background-color: #2c974b; }
+        .btn-copy { background-color: #0366d6; }
+        .btn-copy:hover { background-color: #0256b9; }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            border: 1px solid #e1e4e8;
+        }
+        code {
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            background-color: rgba(27,31,35,0.05);
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 85%;
+        }
+        pre code { background-color: transparent; padding: 0; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+            display: block;
+            overflow-x: auto;
+        }
+        th, td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 13px;
+            text-align: left;
+        }
+        th { background-color: #f6f8fa; font-weight: 600; }
+        tr:nth-child(2n) { background-color: #fcfcfc; }
+        blockquote {
+            border-left: 4px solid #dfe2e5;
+            color: #6a737d;
+            padding: 0 1em;
+            margin: 0;
+        }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .container { box-shadow: none; padding: 0; }
+            .toolbar { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button class="btn-copy" onclick="copyContent()">Sao chép văn bản</button>
+        <button onclick="window.print()">In hoặc Lưu PDF (Ctrl+P)</button>
+    </div>
+    <div class="container" id="content">Đang tải báo cáo...</div>
+
+    <script id="markdown-raw" type="text/plain"></script>
+    <script>
+        fetch('BAO_CAO_CASE_STUDY_PERRIN.md')
+            .then(response => response.text())
+            .then(text => {
+                document.getElementById('markdown-raw').textContent = text;
+                document.getElementById('content').innerHTML = marked.parse(text);
+            })
+            .catch(err => {
+                document.getElementById('content').innerHTML = '<p>Không thể tải tự động. Vui lòng mở trực tiếp file <code>BAO_CAO_CASE_STUDY_PERRIN.md</code>.</p>';
+            });
+
+        function copyContent() {
+            const raw = document.getElementById('markdown-raw').textContent;
+            navigator.clipboard.writeText(raw).then(() => {
+                alert('Đã sao chép toàn bộ nội dung Markdown vào bộ nhớ tạm (Clipboard)!');
+            });
+        }
+    </script>
+</body>
+</html>
+

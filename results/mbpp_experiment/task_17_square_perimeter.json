@@ -1,0 +1,105 @@
+{
+  "task_id": 17,
+  "name": "square_perimeter",
+  "description": "Find perimeter of a square: 4 * a",
+  "code": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+  "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+  "tokens_in": 254,
+  "tokens_out": 103,
+  "anchored": {
+    "program_id": "mbpp_17_square_perimeter",
+    "source_path": "mbpp_17",
+    "source_text": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "perimeter == 4 * a",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "square_perimeter@Return:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "perimeter": 1,
+            "a": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"square_perimeter() got an unexpected keyword argument 'perimeter'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.3429000000542146
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.05464460000075633,
+    "total_tokens_in": 254,
+    "total_tokens_out": 103,
+    "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_17_square_perimeter",
+    "source_path": "mbpp_17",
+    "source_text": "def square_perimeter(a):\n    perimeter = 4 * a\n    return perimeter\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L3",
+        "claim_text": "perimeter == 4 * a",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "square_perimeter@Return:L3:C4#0"
+          ],
+          "source_lines": [
+            3
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "perimeter": 1,
+            "a": 0
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"square_perimeter() got an unexpected keyword argument 'perimeter'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.0592999997243169
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.0436783999994077,
+    "total_tokens_in": 254,
+    "total_tokens_out": 103,
+    "cot_trace": "The function square_perimeter computes the perimeter of a square given its side length a. At line 2, perimeter is assigned the value 4 * a. At line 3, before returning, the relation perimeter == 4 * a holds unconditionally for all integer inputs a.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

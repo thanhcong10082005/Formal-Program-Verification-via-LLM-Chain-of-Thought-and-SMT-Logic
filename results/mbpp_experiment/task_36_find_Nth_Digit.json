@@ -1,0 +1,179 @@
+{
+  "task_id": 36,
+  "name": "find_Nth_Digit",
+  "description": "Long division while loop to find Nth digit of p/q",
+  "code": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+  "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+  "tokens_in": 302,
+  "tokens_out": 233,
+  "anchored": {
+    "program_id": "mbpp_36_find_Nth_Digit",
+    "source_path": "mbpp_36",
+    "source_text": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+    "n_claims": 3,
+    "n_verified": 2,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "N >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@While:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L4",
+        "claim_text": "N >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@Assign:L4:C8#0"
+          ],
+          "source_lines": [
+            4
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L7",
+        "claim_text": "N == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@Return:L7:C4#0"
+          ],
+          "source_lines": [
+            7
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "N": 1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"find_Nth_Digit() missing 2 required positional arguments: 'p' and 'q'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.5059999996083206
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.05639599999994971,
+    "total_tokens_in": 302,
+    "total_tokens_out": 233,
+    "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "mbpp_36_find_Nth_Digit",
+    "source_path": "mbpp_36",
+    "source_text": "def find_Nth_Digit(p, q, N):\n    while N > 0:\n        N -= 1\n        p = p * 10\n        res = p // q\n        p = p % q\n    return res\n",
+    "n_claims": 3,
+    "n_verified": 2,
+    "n_counterexample": 1,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L2",
+        "claim_text": "N >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@While:L2:C4#0"
+          ],
+          "source_lines": [
+            2
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_2_L4",
+        "claim_text": "N >= 0",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@Assign:L4:C8#0"
+          ],
+          "source_lines": [
+            4
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      },
+      {
+        "claim_id": "llm_claim_3_L7",
+        "claim_text": "N == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "find_Nth_Digit@Return:L7:C4#0"
+          ],
+          "source_lines": [
+            7
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "N": 1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"find_Nth_Digit() missing 2 required positional arguments: 'p' and 'q'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.3988999999128282
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.04855730000053882,
+    "total_tokens_in": 302,
+    "total_tokens_out": 233,
+    "cot_trace": "The function find_Nth_Digit performs long division to compute the N-th fractional digit of p/q. In each iteration, N is decremented by 1, p is multiplied by 10, the digit res is computed via integer division p // q, and p is updated to the remainder p % q. Assuming an initial precondition of N >= 0, N strictly decreases towards 0, ensuring termination. At the loop header (line 2), N >= 0 holds as a loop invariant. Inside the loop after decrementing (line 4), N >= 0 continues to hold. Upon loop termination (line 7), N == 0.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

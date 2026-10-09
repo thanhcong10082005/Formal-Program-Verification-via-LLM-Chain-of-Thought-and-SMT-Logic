@@ -1,0 +1,477 @@
+{
+  "id": "C2_mbpp_711_product_equal",
+  "category": "Complex Arithmetic & Loops",
+  "description": "Product equal at even/odd digits (16 lines, while loop with inner break, floor div & mod)",
+  "code": "def product_Equal(n):\n    if n < 10:\n        return False\n    prodOdd = 1\n    prodEven = 1\n    while n > 0:\n        digit = n % 10\n        prodOdd = prodOdd * digit\n        n = n // 10\n        if n == 0:\n            break\n        digit = n % 10\n        prodEven = prodEven * digit\n        n = n // 10\n    if prodOdd == prodEven:\n        return True\n    return False\n",
+  "cot_trace": "The program calculates the product of odd-positioned and even-positioned digits of a number `n` (where `n >= 10`). We can establish several invariants regarding the non-negativity of the variables. Since `n` starts as a positive integer and is only divided by 10, `n` remains non-negative throughout the loop. The digits extracted via `n % 10` are always non-negative (between 0 and 9), meaning `prodOdd` and `prodEven` (which start at 1) will always remain non-negative. Upon loop termination, `n` must be equal to 0.",
+  "tokens_in": 409,
+  "tokens_out": 365,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def product_Equal(n):\n    if n < 10:\n        return False\n    prodOdd = 1\n    prodEven = 1\n    while n > 0:\n        digit = n % 10\n        prodOdd = prodOdd * digit\n        n = n // 10\n        if n == 0:\n            break\n        digit = n % 10\n        prodEven = prodEven * digit\n        n = n // 10\n    if prodOdd == prodEven:\n        return True\n    return False\n",
+    "n_claims": 8,
+    "n_verified": 0,
+    "n_counterexample": 8,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L6",
+        "claim_text": "n >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 2.7958000000580796
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_2_L6",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "prodOdd": -1,
+            "n": 9
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.1266999999861582
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L6",
+        "claim_text": "prodEven >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodEven": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodEven'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 3.8352000001395936
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L10",
+        "claim_text": "n >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L10:C8#0"
+          ],
+          "source_lines": [
+            10
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 2.257199999803561
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_5_L10",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L10:C8#0"
+          ],
+          "source_lines": [
+            10
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodOdd": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.3626999998450628
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_6_L15",
+        "claim_text": "n == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 2.0143000001553446
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_7_L15",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodOdd": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.1199000000488013
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_8_L15",
+        "claim_text": "prodEven >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "prodEven": -1,
+            "n": 9
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodEven'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 4.6687999993082485
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.4221840999998676,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "The program calculates the product of odd-positioned and even-positioned digits of a number `n` (where `n >= 10`). We can establish several invariants regarding the non-negativity of the variables. Since `n` starts as a positive integer and is only divided by 10, `n` remains non-negative throughout the loop. The digits extracted via `n % 10` are always non-negative (between 0 and 9), meaning `prodOdd` and `prodEven` (which start at 1) will always remain non-negative. Upon loop termination, `n` must be equal to 0.",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def product_Equal(n):\n    if n < 10:\n        return False\n    prodOdd = 1\n    prodEven = 1\n    while n > 0:\n        digit = n % 10\n        prodOdd = prodOdd * digit\n        n = n // 10\n        if n == 0:\n            break\n        digit = n % 10\n        prodEven = prodEven * digit\n        n = n // 10\n    if prodOdd == prodEven:\n        return True\n    return False\n",
+    "n_claims": 8,
+    "n_verified": 0,
+    "n_counterexample": 8,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "llm_claim_1_L6",
+        "claim_text": "n >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 2.3037000000840635
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_2_L6",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodOdd": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 2.107100000102946
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_3_L6",
+        "claim_text": "prodEven >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@While:L6:C4#0"
+          ],
+          "source_lines": [
+            6
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodEven": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodEven'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 18.801799999891955
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_4_L10",
+        "claim_text": "n >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L10:C8#0"
+          ],
+          "source_lines": [
+            10
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.6893000001800829
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_5_L10",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L10:C8#0"
+          ],
+          "source_lines": [
+            10
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "prodOdd": -1,
+            "n": 9
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 2.602399999886984
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_6_L15",
+        "claim_text": "n == 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": -1
+          },
+          "replay_verdict": true,
+          "replay_output": "False",
+          "replay_diff": null
+        },
+        "z3_stats": {
+          "valid_ms": 1.6993999997794162
+        },
+        "reason": "Z3 found a violating model; replay_verdict=True"
+      },
+      {
+        "claim_id": "llm_claim_7_L15",
+        "claim_text": "prodOdd >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "prodOdd": -1,
+            "n": 9
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodOdd'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 3.456700000242563
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      },
+      {
+        "claim_id": "llm_claim_8_L15",
+        "claim_text": "prodEven >= 0",
+        "status": "COUNTEREXAMPLE",
+        "anchor": {
+          "node_ids": [
+            "product_Equal@If:L15:C4#0"
+          ],
+          "source_lines": [
+            15
+          ],
+          "has_grounding": true
+        },
+        "counterexample": {
+          "z3_model": {
+            "n": 9,
+            "prodEven": -1
+          },
+          "replay_verdict": false,
+          "replay_output": "",
+          "replay_diff": "REPRO_EXCEPTION: TypeError(\"product_Equal() got an unexpected keyword argument 'prodEven'\")"
+        },
+        "z3_stats": {
+          "valid_ms": 1.2667999999393942
+        },
+        "reason": "Z3 found a violating model; replay_verdict=False"
+      }
+    ],
+    "elapsed_seconds": 0.3807007999994312,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "The program calculates the product of odd-positioned and even-positioned digits of a number `n` (where `n >= 10`). We can establish several invariants regarding the non-negativity of the variables. Since `n` starts as a positive integer and is only divided by 10, `n` remains non-negative throughout the loop. The digits extracted via `n % 10` are always non-negative (between 0 and 9), meaning `prodOdd` and `prodEven` (which start at 1) will always remain non-negative. Upon loop termination, `n` must be equal to 0.",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}

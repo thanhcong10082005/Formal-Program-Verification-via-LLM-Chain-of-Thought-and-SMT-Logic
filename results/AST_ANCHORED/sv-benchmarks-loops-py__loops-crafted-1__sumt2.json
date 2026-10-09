@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt2",
-  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt2.py",
+  "source_path": "E:\\BTL\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt2.py",
   "source_text": "def f(i, j, l, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    l = 0\n    while l < n:\n        if ( not (l%2)):\n            i = i + 1\n        else:\n            j = j+1\n        l = l+1\n    assert (i+j) == l\n    return\n",
   "n_claims": 1,
   "n_verified": 0,
@@ -35,14 +35,15 @@
         "replay_diff": null
       },
       "z3_stats": {
-        "valid_ms": 1.7813999438658357
+        "valid_ms": 1.1220999999750347
       },
       "reason": "Z3 found a violating model; replay_verdict=True"
     }
   ],
-  "elapsed_seconds": 0.0909389000153169,
+  "elapsed_seconds": 0.05772250000018175,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
+  "cot_trace": "",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": false,
   "subset_rejection_reason": null

@@ -1,0 +1,89 @@
+{
+  "id": "A3_unreachable_contradiction",
+  "category": "Dead Code / Vacuous Truth",
+  "description": "Unreachable guard (x > 10 and x < 5) enclosing an assertion",
+  "code": "def check_guard(x):\n    res = 0\n    if x > 10 and x < 5:\n        res = 999\n        assert res == 999\n    return res\n",
+  "cot_trace": "",
+  "tokens_in": 0,
+  "tokens_out": 0,
+  "ast_anchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def check_guard(x):\n    res = 0\n    if x > 10 and x < 5:\n        res = 999\n        assert res == 999\n    return res\n",
+    "n_claims": 1,
+    "n_verified": 0,
+    "n_counterexample": 0,
+    "n_unreachable": 1,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "assert_L5",
+        "claim_text": "res == 999",
+        "status": "UNREACHABLE",
+        "anchor": {
+          "node_ids": [
+            "check_guard@Assert:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "reach_ms": 0.0
+        },
+        "reason": "path is unreachable (reachability UNSAT)"
+      }
+    ],
+    "elapsed_seconds": 0.003818400000454858,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "AST_ANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  },
+  "unanchored": {
+    "program_id": "<test>",
+    "source_path": "<test>",
+    "source_text": "def check_guard(x):\n    res = 0\n    if x > 10 and x < 5:\n        res = 999\n        assert res == 999\n    return res\n",
+    "n_claims": 1,
+    "n_verified": 1,
+    "n_counterexample": 0,
+    "n_unreachable": 0,
+    "n_unsupported": 0,
+    "n_translation_error": 0,
+    "n_unknown_timeout": 0,
+    "claim_results": [
+      {
+        "claim_id": "assert_L5",
+        "claim_text": "res == 999",
+        "status": "VERIFIED",
+        "anchor": {
+          "node_ids": [
+            "check_guard@Assert:L5:C8#0"
+          ],
+          "source_lines": [
+            5
+          ],
+          "has_grounding": true
+        },
+        "counterexample": null,
+        "z3_stats": {
+          "valid_ms": 0.0
+        },
+        "reason": "claim holds on every reachable execution"
+      }
+    ],
+    "elapsed_seconds": 0.003115599999546248,
+    "total_tokens_in": 0,
+    "total_tokens_out": 0,
+    "cot_trace": "",
+    "baseline": "UNANCHORED",
+    "rejected_by_subset": false,
+    "subset_rejection_reason": null
+  }
+}
