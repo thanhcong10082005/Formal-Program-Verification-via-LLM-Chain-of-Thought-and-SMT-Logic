@@ -199,11 +199,11 @@ def main() -> int:
 
     # --- Build Markdown ----------------------------------------------------
     md: List[str] = []
-    md.append("# Báo cáo thực nghiệm: AST-Anchored vs Direct Formalization\n")
+    md.append("# Báo cáo thực nghiệm: AST-Anchored vs SatLM-style Direct Formalization\n")
     md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.")
     md.append("Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.\n")
     md.append("- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.")
-    md.append("- `UNANCHORED`: Baseline A, Direct Formalization bằng SMT-LIB2; không dùng NodeId, program state, executor hoặc reachability.\n")
+    md.append("- `UNANCHORED`: Baseline A, SatLM-style Direct Formalization bằng SMT-LIB2; LLM sinh joint constraints và target specifications, không dùng NodeId, program state, executor hoặc reachability. Mỗi target được kiểm tra bằng `constraints AND NOT(target)`.\n")
 
     md.append("## 1. So sánh đối chứng — Bảng chính\n")
     md.append("| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |")
@@ -330,7 +330,7 @@ def main() -> int:
 
     # --- Notes -----------------------------------------------------------
     md.append("## 7. Ghi chú thực nghiệm\n")
-    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.")
+    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one SatLM-style direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.")
     md.append("2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.")
     md.append("3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.")
     md.append("4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.")

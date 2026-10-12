@@ -291,6 +291,9 @@ def _run_one(
             source_path=str(source_path),
             baseline=baseline,
             do_replay=True,
+            direct_constraints=(
+                direct_llm_result.constraints if direct_llm_result is not None else []
+            ),
             direct_specifications=(
                 direct_llm_result.specifications if direct_llm_result is not None else []
             ),

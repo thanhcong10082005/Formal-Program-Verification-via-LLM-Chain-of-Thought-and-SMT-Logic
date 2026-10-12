@@ -67,6 +67,9 @@ class ProgramResult(BaseModel):
     total_tokens_out: int = 0
     cot_trace: str = ""
     baseline: str = ""
+    # SatLM-style UNANCHORED context formulas used jointly with each target.
+    # AST_ANCHORED results leave this empty.
+    direct_constraints: List[str] = []
     rejected_by_subset: bool = False
     subset_rejection_reason: Optional[str] = None
 

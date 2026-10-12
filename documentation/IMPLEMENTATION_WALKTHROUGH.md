@@ -19,11 +19,12 @@ Framework đặt mục tiêu kiểm chứng chương trình Python theo hướng
   vacuous verification), rồi truy vấn validity, cuối cùng replay counterexample
    trên CPython thật để kiểm tra soundness.
 
-`UNANCHORED` giữ tên tương thích nhưng hiện là **Baseline A — Direct
-Formalization**: LLM trả về các Boolean term SMT-LIB2 và khai báo biến Int.
-Baseline này không có AST anchoring, program state hay reachability; mỗi claim
-được kiểm tra bằng đúng một truy vấn $\neg C$. Ta đo được 4 metric: FDR, token
-consumption, Hallucination Rate, CRVR.
+`UNANCHORED` giữ tên tương thích nhưng hiện là **Baseline A — SatLM-style
+Direct Formalization**: LLM trả về một context gồm các constraint SMT-LIB2
+được giả định chung và các target specification, cùng khai báo biến Int.
+Baseline này không có AST anchoring, program state hay reachability; mỗi target
+được kiểm tra bằng truy vấn $constraints \land \neg target$. Ta đo được 4
+metric: FDR, token consumption, Hallucination Rate, CRVR.
 
 ### Audit boundary
 
@@ -31,8 +32,9 @@ consumption, Hallucination Rate, CRVR.
 statement, biểu thức parse được và mọi tên biến thuộc scope của function.
 Mỗi claim dùng các path bounded dẫn tới chính `NodeId` đó. `UNANCHORED`
 không tạo `NodeId`, transition, target state hay reachability query. Mỗi
-`assert` trong source được chuyển đúng một lần thành SMT-LIB2 formula; các
-specification LLM được append như một claim pool riêng và location bị loại bỏ.
+`assert` trong source được chuyển đúng một lần thành SMT-LIB2 target; LLM sinh
+context constraints và target specifications độc lập với claim pool AST, còn
+location bị loại bỏ.
 
 Loop unrolling và control effects chưa đủ để chứng minh toàn bộ execution
 space. Vì vậy coverage không đầy đủ được trả về là `UNKNOWN_TIMEOUT`, và
@@ -232,7 +234,8 @@ thật với inputs từ z3 model.
 ### 6.3 Direct Formalization contract
 
 `llm.py` keeps the original anchored response schema and prompt unchanged. A
-separate `DirectSpecification` schema contains:
+separate SatLM-style response contains `constraints` and `specifications`; each
+entry contains:
 
 - `formula`: one SMT-LIB2 Boolean term;
 - `variables`: declared Int symbols;
@@ -240,9 +243,11 @@ separate `DirectSpecification` schema contains:
 
 `direct.py` parses the formula with Z3 and rejects malformed terms,
 quantifiers, nonlinear multiplication, variable divisors, non-Int symbols, and
-operators outside the QF-LIA whitelist. `build_direct_obligation` adds only
-`not(C)`. Direct counterexamples retain the Z3 integer model, empty anchor
-fields, and `replay_verdict = None`.
+operators outside the QF-LIA whitelist. The pipeline conjoins all valid
+constraints, checks that the context is consistent, and then
+`build_direct_obligation` adds `constraints AND not(target)`. Direct
+counterexamples retain the Z3 integer model, empty anchor fields, and
+`replay_verdict = None`.
 
 ### 6.4 `tools/run_benchmark.py`
 
@@ -250,7 +255,8 @@ fields, and `replay_verdict = None`.
 - Lấy 21 sample CRUXEval QF-LIA (int/bool/None args only, không nested fn).
 - Với mỗi program, `AST_ANCHORED` và `UNANCHORED` nhận hai lời gọi Gemini
   độc lập khi `--use-llm` bật; token usage được ghi riêng. Mặc định source
-  assertions được chuyển deterministic thành direct SMT-LIB2 claims.
+  assertions được chuyển deterministic thành direct SMT-LIB2 targets; với LLM,
+  context constraints và target specifications được lưu riêng.
 
 ### 6.4 `tools/compare_baselines.py`
 

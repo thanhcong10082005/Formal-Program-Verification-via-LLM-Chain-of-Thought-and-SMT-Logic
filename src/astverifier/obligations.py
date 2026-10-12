@@ -1,10 +1,12 @@
 """
-obligations.py - Two-Query Z3 Protocol (Phase 3).
+obligations.py - Z3 obligations for anchored and direct baselines.
 
 For each anchored claim c, generate two Z3 solvers:
   (1) Reachability : is the path reachable under ANY pre-conditions?
   (2) Validity     : under the path constraint, is the claim ALWAYS true?
-The Validity solver is only run if Reachability is SAT.
+The Validity solver is only run if Reachability is SAT.  The direct baseline
+uses a separate declarative entailment obligation: jointly assumed constraints
+are conjoined with the negation of one target specification.
 """
 from __future__ import annotations
 
@@ -33,10 +35,20 @@ class TwoQueryObligations:
 
 @dataclass
 class DirectObligation:
-    """The single direct-formalization obligation ``not C``."""
+    """A SatLM-style entailment obligation ``constraints AND not target``."""
 
+    constraints: z3.BoolRef
     formula: z3.BoolRef
+    context_solver: z3.Solver
     validity_solver: z3.Solver
+
+
+@dataclass
+class DirectContext:
+    """The consistency query for a joint direct-formalization context."""
+
+    constraints: z3.BoolRef
+    solver: z3.Solver
 
 
 def _claim_to_z3(
@@ -121,18 +133,47 @@ def build_unanchored_obligations(claim: Claim) -> TwoQueryObligations:
     return TwoQueryObligations(claim, reach_solv, valid_solv)
 
 
-def build_direct_obligation(formula: z3.BoolRef) -> DirectObligation:
-    """Build the direct baseline's only query: ``not C``.
+def build_direct_context(constraints: z3.BoolRef) -> DirectContext:
+    """Build the consistency query for the joint direct context.
 
-    There is intentionally no reachability solver, program state, target
-    location, or path relation in this protocol.
+    A separate consistency check prevents contradictory generated constraints
+    from making every target look verified vacuously.
     """
-    if not z3.is_bool(formula):
-        raise TypeError("direct obligation requires a Boolean formula")
+    if not z3.is_bool(constraints):
+        raise TypeError("direct context requires a Boolean formula")
     solver = z3.Solver()
     solver.set("timeout", Z3_TIMEOUT_MS)
-    solver.add(z3.Not(formula))
-    return DirectObligation(formula=formula, validity_solver=solver)
+    solver.add(constraints)
+    return DirectContext(constraints=constraints, solver=solver)
+
+
+def build_direct_obligation(
+    constraints: z3.BoolRef,
+    formula: z3.BoolRef,
+) -> DirectObligation:
+    """Build the direct baseline query ``constraints AND not target``.
+
+    There is intentionally no reachability solver, program state, target
+    location, or path relation in this protocol.  The constraint context and
+    target are generated as declarative SMT-LIB2 formulas.
+    """
+    if not z3.is_bool(constraints):
+        raise TypeError("direct obligation requires Boolean constraints")
+    if not z3.is_bool(formula):
+        raise TypeError("direct obligation requires a Boolean formula")
+    context_solver = z3.Solver()
+    context_solver.set("timeout", Z3_TIMEOUT_MS)
+    context_solver.add(constraints)
+
+    validity_solver = z3.Solver()
+    validity_solver.set("timeout", Z3_TIMEOUT_MS)
+    validity_solver.add(constraints, z3.Not(formula))
+    return DirectObligation(
+        constraints=constraints,
+        formula=formula,
+        context_solver=context_solver,
+        validity_solver=validity_solver,
+    )
 
 
 def run_reachability(
@@ -150,7 +191,7 @@ def run_reachability(
 
 
 def run_validity(
-    obligation: TwoQueryObligations,
+    obligation,
 ) -> Tuple[str, Optional[float], Optional[z3.ModelRef]]:
     """Run validity solver. Returns ('sat'|'unsat'|'unknown', elapsed, model)."""
     t0 = time.perf_counter()
@@ -163,13 +204,30 @@ def run_validity(
     return ("unknown", None, None)
 
 
+def run_context(
+    context,
+) -> Tuple[str, Optional[float], Optional[z3.ModelRef]]:
+    """Run a direct context-consistency solver."""
+    t0 = time.perf_counter()
+    res = context.solver.check()
+    elapsed = time.perf_counter() - t0
+    if res == z3.sat:
+        return ("sat", elapsed, context.solver.model())
+    if res == z3.unsat:
+        return ("unsat", None, None)
+    return ("unknown", None, None)
+
+
 __all__ = [
     "TwoQueryObligations",
     "build_obligations",
     "build_unanchored_obligations",
     "DirectObligation",
+    "DirectContext",
+    "build_direct_context",
     "build_direct_obligation",
     "run_reachability",
     "run_validity",
+    "run_context",
     "Z3_TIMEOUT_MS",
 ]

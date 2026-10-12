@@ -2,9 +2,9 @@
 llm.py - Gemini adapters for the two independently generated baselines.
 
 The AST baseline keeps the original Python-expression/line-number contract.
-The compatibility name ``UNANCHORED`` uses a separate Direct Formalization
-contract: Gemini returns SMT-LIB2 Boolean terms and integer declarations, with
-short rationales instead of a Chain-of-Thought trace.
+The compatibility name ``UNANCHORED`` uses a separate SatLM-style declarative
+contract: Gemini returns jointly assumed SMT-LIB2 constraints and target
+specifications, with short rationales instead of a Chain-of-Thought trace.
 """
 from __future__ import annotations
 
@@ -30,8 +30,8 @@ class LLMVerificationPlan(BaseModel):
     claims: List[SuggestedClaim] = Field(description="List of verification claims / assertions.")
 
 
-class DirectSpecification(BaseModel):
-    """One direct LLM-to-SMT specification."""
+class DirectFormula(BaseModel):
+    """One direct LLM-to-SMT QF-LIA formula."""
 
     formula: str = Field(description="Exactly one SMT-LIB2 Boolean term.")
     variables: List[str] = Field(
@@ -40,16 +40,35 @@ class DirectSpecification(BaseModel):
     )
     rationale: str = Field(
         default="",
-        description="A brief explanation of the formalized property.",
+        description="A brief explanation, not a Chain-of-Thought trace.",
     )
 
 
+class DirectConstraint(DirectFormula):
+    """A formula jointly assumed as part of the declarative context."""
+
+
+class DirectSpecification(DirectFormula):
+    """A target property checked as a consequence of the constraints."""
+
+
 class DirectFormalizationPlan(BaseModel):
-    """Gemini response envelope for the Direct Formalization baseline."""
+    """Gemini response envelope for the SatLM-style direct baseline."""
+
+    constraints: List[DirectConstraint] = Field(
+        default_factory=list,
+        description=(
+            "SMT-LIB2 facts and relations jointly assumed for the whole "
+            "declarative specification."
+        ),
+    )
 
     specifications: List[DirectSpecification] = Field(
         default_factory=list,
-        description="Independent SMT-LIB2 specifications inferred from the source.",
+        description=(
+            "SMT-LIB2 target properties that should follow from the joint "
+            "constraints."
+        ),
     )
 
 
@@ -65,6 +84,7 @@ class LLMResult:
 
 @dataclass
 class DirectLLMResult:
+    constraints: List[DirectConstraint]
     specifications: List[DirectSpecification]
     tokens_in: int = 0
     tokens_out: int = 0
@@ -84,24 +104,32 @@ Rules:
 
 
 DIRECT_SYSTEM_PROMPT = """You are an expert formal methods assistant.
-Your task is to formalize properties of the supplied Python program directly
-as quantifier-free linear integer arithmetic (QF-LIA) in SMT-LIB2.
+Your task is to formalize the supplied Python program directly, using a
+SatLM-style declarative specification in quantifier-free linear integer
+arithmetic (QF-LIA) SMT-LIB2.  A specification has two parts: constraints are
+jointly assumed facts/relations, and specifications are target properties to
+check as consequences of those constraints.
 
 Rules:
-1. Return one or more specifications. Each `formula` must be exactly one
-   SMT-LIB2 Boolean term, not a command, declaration, Python expression, or
-   Markdown code block.
-2. Use only integer variables listed in that specification's `variables`
-   array. Every listed variable is an SMT-LIB2 Int symbol.
-3. Use QF-LIA operators only: Boolean connectives, integer comparisons,
+1. Return a JSON object with `constraints` and `specifications` arrays.
+2. Each array entry's `formula` must be exactly one SMT-LIB2 Boolean term, not
+   a command, declaration, Python expression, or Markdown code block.
+3. Use only integer variables listed in that entry's `variables` array. Every
+   listed variable is an SMT-LIB2 Int symbol.
+4. Use QF-LIA operators only: Boolean connectives, integer comparisons,
    addition, subtraction, unary negation, multiplication by an integer
    constant, and division/modulo by a nonzero integer constant.
-4. Include source assertions and useful properties inferred from the source,
-   but do not mention or invent line numbers, anchors, NodeIds, AST nodes,
-   program locations, reachability, path conditions, or replay.
-5. Give a brief rationale for each formula. Do not provide a private or
+5. Encode whole-program arithmetic facts in `constraints`. For assignments,
+   use ordinary or SSA-style integer symbols and equations such as
+   `(= y (+ x 1))`; do not use source line numbers or AST identifiers.
+6. Put every source `assert` property, plus useful inferred properties, in
+   `specifications` at least once. A target is checked against the joint
+   constraints; it is not a free-standing predicate.
+7. Do not mention or invent line numbers, anchors, NodeIds, AST nodes,
+   program locations, reachability queries, path conditions, or replay.
+8. Give a brief rationale for each formula. Do not provide a private or
    step-by-step Chain-of-Thought trace.
-6. Return valid JSON matching the requested schema.
+9. Return valid JSON matching the requested schema.
 """
 
 
@@ -245,11 +273,12 @@ def generate_direct_formalization(
     api_key: Optional[str] = None,
     model: str = "gemini-3.5-flash",
 ) -> DirectLLMResult:
-    """Invoke Gemini for the Direct Formalization baseline.
+    """Invoke Gemini for the SatLM-style Direct Formalization baseline.
 
     This response is independent from :func:`generate_cot_and_claims`: it has
     no line-number field and cannot be passed through the legacy Python claim
-    binder.
+    binder.  Constraints and target specifications are generated together so
+    the solver can check entailment rather than validity of a free predicate.
     """
     key = _get_api_key(api_key)
     if not key:
@@ -258,15 +287,28 @@ def generate_direct_formalization(
             "or create a .env file with GEMINI_API_KEY=your_key."
         )
 
-    prompt = f"""Formalize the following Python program directly as QF-LIA SMT-LIB2 specifications.
+    prompt = f"""Formalize the following Python program as a joint SatLM-style
+declarative specification in QF-LIA SMT-LIB2.
+
+`constraints` are facts and arithmetic relations jointly assumed for the
+program. `specifications` are target properties that should follow from those
+constraints. The solver will check each target with:
+
+    constraints AND NOT(target)
+
+Use one formula per array entry and declare every Int symbol used by that
+entry in its `variables` array. Include each source `assert` as a target
+specification exactly once, along with useful inferred properties. For
+example, for `y = x + 1; assert y >= x`, a suitable pair is the constraint
+`(= y (+ x 1))` and the target `(>= y x)`. Do not use line numbers, AST
+identifiers, reachability claims, or Python predicates.
 
 ```python
 {source_code}
 ```
 
-Return independent source assertions and useful inferred properties. The
-formula text must be SMT-LIB2, and each specification must declare the Int
-symbols it uses in `variables`."""
+Return valid JSON matching the requested schema. Give only brief rationales,
+not a private Chain-of-Thought trace."""
 
     client = _make_client(key)
 
@@ -305,6 +347,7 @@ symbols it uses in `variables`."""
     try:
         data = json.loads(raw_text)
         plan = DirectFormalizationPlan.model_validate(data)
+        constraints = plan.constraints
         specifications = plan.specifications
     except Exception as exc:
         # Surface malformed JSON to the pipeline as a translation failure.
@@ -314,6 +357,7 @@ symbols it uses in `variables`."""
         ) from exc
 
     return DirectLLMResult(
+        constraints=constraints,
         specifications=specifications,
         tokens_in=tokens_in,
         tokens_out=tokens_out,
@@ -326,6 +370,8 @@ __all__ = [
     "SuggestedClaim",
     "LLMVerificationPlan",
     "LLMResult",
+    "DirectFormula",
+    "DirectConstraint",
     "DirectSpecification",
     "DirectFormalizationPlan",
     "DirectLLMResult",

@@ -8,10 +8,11 @@ là trusted backbone của chế độ `AST_ANCHORED`**, không quyết định 
 LLM. Mọi claim được kiểm tra với `NodeId` trong chế độ này, và hai-truy vấn
 Z3 (reachability + validity) được dùng cho từng claim target.
 
-`UNANCHORED`: Baseline A, direct LLM-to-SMT formalization without AST
-anchoring or reachability. Tên baseline và thư mục kết quả được giữ lại để
-tương thích; claim của baseline này là các Boolean term SMT-LIB2 được kiểm tra
-chỉ bằng truy vấn `not C`.
+`UNANCHORED`: Baseline A, SatLM-style direct formalization without AST
+anchoring or reachability. Gemini returns a joint declarative context of
+SMT-LIB2 `constraints` and target `specifications`; Z3 checks each target with
+`constraints AND NOT(target)`. Tên baseline và thư mục kết quả được giữ lại
+để tương thích.
 
 ## Cấu trúc
 
@@ -75,8 +76,9 @@ python tools/compare_baselines.py
 
 `--use-llm` tạo hai claim pool độc lập cho mỗi source: một lời gọi cho
 `AST_ANCHORED` (Python claims có line anchor) và một lời gọi cho
-`UNANCHORED` (Baseline A, SMT-LIB2 Direct Formalization). Với corpus mặc định
-94 source, đây là khoảng 188 request Gemini; cần model và quota hoạt động.
+`UNANCHORED` (Baseline A, SatLM-style SMT-LIB2 constraints plus target
+specifications). Với corpus mặc định 94 source, đây là khoảng 188 request
+Gemini; cần model và quota hoạt động.
 
 Không commit file key. Có thể nạp key cục bộ từ `geminiapi.txt` như sau:
 
@@ -142,19 +144,23 @@ print(r.n_claims, r.claim_results[0].status.value, r.claim_results[0].reason)
 - **Output** (`ProgramResult`):
   - `n_verified`, `n_counterexample`, `n_unreachable`, `n_unsupported`,
   `n_translation_error`, `n_unknown_timeout`
+- `direct_constraints`: context SMT-LIB2 chung của `UNANCHORED`; rỗng với
+  `AST_ANCHORED`.
 - `claim_results`: list `ClaimResult` với anchor NodeId, Z3 model, replay verdict
-  (AST_ANCHORED), hoặc SMT-LIB2 rationale và không replay (UNANCHORED).
+  (AST_ANCHORED), hoặc SMT-LIB2 target/rationale và không replay
+  (UNANCHORED).
   - `rejected_by_subset`: True nếu source không phải QF-LIA subset.
 
 ## Diễn giải kết quả
 
 - `AST_ANCHORED` yêu cầu dòng chính xác, scope biến hợp lệ và kiểm tra các
   path bounded dẫn tới đúng `NodeId`.
-- `UNANCHORED` là Baseline A Direct Formalization: không xây dựng `NodeId`,
-  symbolic executor, state relation hay reachability query. Source `assert`
-  được chuyển một lần thành SMT-LIB2; các specification do LLM sinh được
-  kiểm tra độc lập như Boolean term QF-LIA. Anchor/location fields luôn rỗng,
-  và counterexample không có replay verdict.
+- `UNANCHORED` là Baseline A SatLM-style Direct Formalization: không xây dựng
+  `NodeId`, symbolic executor, state relation hay reachability query. LLM sinh
+  một context gồm các constraint QF-LIA và các target SMT-LIB2; source `assert`
+  được thêm đúng một lần như target deterministic. Mỗi target được kiểm tra
+  bằng `constraints AND NOT(target)`. Anchor/location fields luôn rỗng, và
+  counterexample không có replay verdict.
 - Loop unrolling và `break`/`continue` chưa tạo thành chứng minh toàn bộ
   execution space. Khi coverage không đầy đủ, kết quả là `UNKNOWN_TIMEOUT`
   thay vì `VERIFIED`.

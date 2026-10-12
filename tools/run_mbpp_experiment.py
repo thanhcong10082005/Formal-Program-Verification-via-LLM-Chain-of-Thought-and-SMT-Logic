@@ -89,7 +89,7 @@ MBPP_TASKS = [
     },
 ]
 
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 
 
 def run_experiment_on_program(
@@ -121,7 +121,7 @@ def run_experiment_on_program(
         except Exception:
             pass
 
-    # AST_ANCHORED and Direct Formalization are separate Gemini requests.
+    # AST_ANCHORED and SatLM-style Direct Formalization are separate Gemini requests.
     t0 = time.perf_counter()
     anchored_llm = generate_cot_and_claims(
         code,
@@ -148,6 +148,7 @@ def run_experiment_on_program(
     print(
         f"    UNANCHORED Direct Formalization completed in {direct_elapsed:.2f}s "
         f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out} tokens; "
+        f"{len(direct_llm.constraints)} constraints, "
         f"{len(direct_llm.specifications)} specifications)"
     )
 
@@ -168,6 +169,7 @@ def run_experiment_on_program(
         source_path=f"mbpp_{task_id}",
         baseline="UNANCHORED",
         do_replay=True,
+        direct_constraints=direct_llm.constraints,
         direct_specifications=direct_llm.specifications,
         tokens_in=direct_llm.tokens_in,
         tokens_out=direct_llm.tokens_out,
@@ -193,6 +195,7 @@ def run_experiment_on_program(
             "model": direct_llm.model_name,
             "tokens_in": direct_llm.tokens_in,
             "tokens_out": direct_llm.tokens_out,
+            "constraint_count": len(direct_llm.constraints),
             "specification_count": len(direct_llm.specifications),
         },
         "anchored": anchored_prog.model_dump(),

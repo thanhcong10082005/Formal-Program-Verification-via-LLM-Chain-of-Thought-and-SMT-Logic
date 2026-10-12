@@ -2,8 +2,9 @@
 
 This module is deliberately independent from the trusted symbolic executor.
 It parses one SMT-LIB2 Boolean term, checks a small QF-LIA whitelist, and
-returns the formula that can be checked with the single obligation ``not C``.
-It also contains the deterministic conversion used for source ``assert``
+returns formulas that the SatLM-style pipeline combines into a declarative
+context and target entailment obligation ``constraints AND not(target)``.  It
+also contains the deterministic conversion used for source ``assert``
 statements in the compatibility ``UNANCHORED`` result directory.
 """
 from __future__ import annotations
@@ -61,7 +62,8 @@ def validate_direct_formula(
 
     The formula is wrapped in one ``assert`` command solely for parsing.  The
     returned expression is the asserted Boolean term; no source state,
-    location, or reachability relation is introduced.
+    location, or reachability relation is introduced.  The caller decides
+    whether it is a joint context constraint or a target specification.
     """
     if not isinstance(formula, str) or not formula.strip():
         raise DirectTranslationError("direct formula is empty")
@@ -102,10 +104,11 @@ def source_assert_to_direct(
     *,
     rationale: str = "",
 ) -> ValidatedDirectFormula:
-    """Convert a Python assert expression to one deterministic SMT-LIB2 term.
+    """Convert a Python assert expression to one deterministic target term.
 
-    Names are fresh unconstrained integer symbols.  In particular, assignments
-    in the source are not replayed or substituted into this formula.
+    Names remain ordinary integer symbols.  In particular, assignments in the
+    source are not replayed or substituted here; the separate LLM-generated
+    SatLM context is responsible for supplying whole-program equations.
     """
     names = sorted(
         {

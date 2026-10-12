@@ -46,32 +46,37 @@ def test_unanchored_is_direct_formalization_without_program_state():
     assert unanchored.claim_results[0].anchor.source_lines == []
 
 
-def test_direct_formalization_uses_smtlib_and_only_not_c():
+def test_direct_formalization_checks_joint_context_and_target():
     source = "def f(n):\n    x = n + 1\n    assert x >= n\n"
     result = run_pipeline(
         source,
         baseline="UNANCHORED",
+        direct_constraints=[
+            {
+                "formula": "(= x (+ n 1))",
+                "variables": ["x", "n"],
+                "rationale": "The assignment relates the output state to the input.",
+            }
+        ],
         direct_specifications=[
             {
-                "formula": "(or (>= x 0) (< x 0))",
-                "variables": ["x"],
-                "rationale": "Every integer is nonnegative or negative.",
+                "formula": "(>= x n)",
+                "variables": ["x", "n"],
+                "rationale": "The source assertion follows from the assignment relation.",
             }
         ],
         do_replay=True,
     )
 
-    assert result.n_claims == 2
-    assert result.claim_results[0].claim_id == "assert_L3_#1"
+    assert result.n_claims == 1
+    assert result.claim_results[0].claim_id == "source_assert_1"
     assert result.claim_results[0].claim_text == "(>= x n)"
-    assert result.claim_results[0].status.value == "COUNTEREXAMPLE"
-    assert result.claim_results[1].status.value == "VERIFIED"
-    assert result.claim_results[1].explanation.startswith("Every integer")
-    for claim in result.claim_results:
-        assert claim.anchor.node_ids == []
-        assert claim.anchor.source_lines == []
-        if claim.counterexample:
-            assert claim.counterexample.replay_verdict is None
+    assert result.claim_results[0].status.value == "VERIFIED"
+    assert result.claim_results[0].explanation.startswith("The source assertion")
+    assert result.direct_constraints == ["(= x (+ n 1))"]
+    assert result.claim_results[0].anchor.node_ids == []
+    assert result.claim_results[0].anchor.source_lines == []
+    assert result.claim_results[0].counterexample is None
 
 
 def test_source_assertions_are_not_duplicated_by_matching_direct_specs():
@@ -89,14 +94,17 @@ def test_source_assertions_are_not_duplicated_by_matching_direct_specs():
     )
 
     assert result.n_claims == 1
-    assert result.claim_results[0].claim_id == "assert_L2_#1"
+    assert result.claim_results[0].claim_id == "source_assert_1"
     assert result.claim_results[0].explanation.startswith("The independently generated")
 
 
-def test_direct_counterexample_has_unconstrained_integer_model():
+def test_direct_counterexample_model_satisfies_joint_context():
     result = run_pipeline(
         "def f(n):\n    pass\n",
         baseline="UNANCHORED",
+        direct_constraints=[
+            {"formula": "(= x (- 1))", "variables": ["x"]}
+        ],
         direct_specifications=[
             {"formula": "(>= x 0)", "variables": ["x"]}
         ],
@@ -105,8 +113,27 @@ def test_direct_counterexample_has_unconstrained_integer_model():
 
     claim = result.claim_results[0]
     assert claim.status.value == "COUNTEREXAMPLE"
-    assert isinstance(claim.counterexample.z3_model["x"], int)
+    assert claim.counterexample.z3_model["x"] == -1
     assert claim.counterexample.replay_verdict is None
+
+
+def test_inconsistent_direct_context_is_not_vacuously_verified():
+    result = run_pipeline(
+        "def f(n):\n    pass\n",
+        baseline="UNANCHORED",
+        direct_constraints=[
+            {"formula": "(>= x 0)", "variables": ["x"]},
+            {"formula": "(< x 0)", "variables": ["x"]},
+        ],
+        direct_specifications=[
+            {"formula": "(= x x)", "variables": ["x"]}
+        ],
+        do_replay=False,
+    )
+
+    assert result.n_translation_error == 1
+    assert result.claim_results[0].status.value == "TRANSLATION_ERROR"
+    assert "inconsistent" in result.claim_results[0].reason
 
 
 def test_direct_formula_validation_rejects_nonlinear_and_malformed_specs():

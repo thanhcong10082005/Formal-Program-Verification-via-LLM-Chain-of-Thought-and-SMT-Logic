@@ -5,7 +5,8 @@ Workflow:
 1. Takes Python source code.
 2. Sends to Google Gemini API using the selected baseline's own prompt.
    - AST_ANCHORED returns a CoT trace and line-anchored Python claims.
-   - UNANCHORED returns direct SMT-LIB2 specifications and brief rationales.
+   - UNANCHORED returns joint SMT-LIB2 constraints, target specifications,
+     and brief rationales.
 3. AST_ANCHORED binds claims to syntax NodeIds (rejecting hallucinations).
 4. Z3 checks the selected baseline's formal obligation.
 5. AST_ANCHORED may replay counterexamples on CPython; direct results do not.
@@ -78,7 +79,7 @@ def main() -> int:
     if args.baseline == "AST_ANCHORED":
         call_label = "Chain-of-Thought & anchored claims"
     else:
-        call_label = "Direct Formalization SMT-LIB2 specifications"
+        call_label = "SatLM-style Direct Formalization constraints + specifications"
     print(f"[*] Calling Gemini ({args.model}) for {call_label}...")
 
     try:
@@ -101,12 +102,15 @@ def main() -> int:
         print("=" * 70)
         print(res.cot_trace or "(No CoT trace returned)")
     else:
-        print(" [Direct Formalization] SMT-LIB2 specifications")
+        print(" [SatLM-style Direct Formalization] SMT-LIB2 context + targets")
         print("=" * 70)
-        print("The direct baseline uses brief per-specification rationales; no CoT is requested.")
+        print("Joint context constraints:")
+        for formula in res.direct_constraints:
+            print(f"  - {formula}")
+        print("The direct baseline uses brief per-formula rationales; no CoT is requested.")
 
     print("\n" + "=" * 70)
-    label = "AST-Anchored + Z3" if args.baseline == "AST_ANCHORED" else "Direct Formalization + Z3"
+    label = "AST-Anchored + Z3" if args.baseline == "AST_ANCHORED" else "SatLM-style Direct Formalization + Z3"
     print(f" [SMT] FORMAL VERIFICATION RESULTS ({label}):")
     print("=" * 70)
     print(f"Total claims evaluated: {res.n_claims}")

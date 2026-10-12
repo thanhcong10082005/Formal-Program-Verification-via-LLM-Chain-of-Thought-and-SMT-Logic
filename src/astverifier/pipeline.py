@@ -5,8 +5,9 @@ Connects subset -> nodes -> executor -> binding -> obligations -> replay
 into a single function `run_pipeline(source, baseline)`.
 
 Baseline == "AST_ANCHORED"  : exact anchor binding + target reachability/state.
-Baseline == "UNANCHORED"    : Baseline A Direct Formalization (SMT-LIB2
-                               validity with no AST anchoring or reachability).
+Baseline == "UNANCHORED"    : Baseline A SatLM-style Direct Formalization
+                               (joint SMT-LIB2 constraints and targets, with
+                               no AST anchoring or reachability).
 """
 from __future__ import annotations
 
@@ -43,8 +44,10 @@ from .executor import Reachability, TrustedSymbolicExecutor
 from .nodes import assign_ids
 from .obligations import (
     build_obligations,
+    build_direct_context,
     build_direct_obligation,
     run_reachability,
+    run_context,
     run_validity,
 )
 from .replay import replay_counterexample
@@ -84,6 +87,7 @@ def run_pipeline(
     gemini_api_key: Optional[str] = None,
     gemini_model: str = "gemini-3.5-flash",
     suggested_claims: Optional[Sequence] = None,
+    direct_constraints: Optional[Sequence] = None,
     direct_specifications: Optional[Sequence] = None,
     direct_specs: Optional[Sequence] = None,
     tokens_in: int = 0,
@@ -94,14 +98,15 @@ def run_pipeline(
     """Execute one baseline on a single source.
 
     ``UNANCHORED`` is retained as the external compatibility name for
-    Baseline A, Direct Formalization. It does not construct program node IDs,
-    a symbolic executor, a target state, or reachability queries. Source
-    assertions become deterministic SMT-LIB2 terms and independently supplied
-    direct specifications are checked with the single query ``not C``.
+    Baseline A, SatLM-style Direct Formalization. It does not construct
+    program node IDs, a symbolic executor, a target state, or reachability
+    queries. Gemini supplies jointly assumed SMT-LIB2 constraints and target
+    specifications; source assertions become deterministic target formulas.
+    Each target is checked with ``constraints AND not(target)``.
 
     ``suggested_claims`` is the legacy Python/line-number input and is valid
-    only for ``AST_ANCHORED``. Use ``direct_specifications`` for the direct
-    baseline.
+    only for ``AST_ANCHORED``. Use ``direct_constraints`` and
+    ``direct_specifications`` for the direct baseline.
     """
     start = time.perf_counter()
 
@@ -113,13 +118,15 @@ def run_pipeline(
             raise ValueError("pass only one of direct_specifications or direct_specs")
         direct_specifications = direct_specs
 
-    if baseline == "AST_ANCHORED" and direct_specifications is not None:
+    if baseline == "AST_ANCHORED" and (
+        direct_constraints is not None or direct_specifications is not None
+    ):
         raise ValueError(
-            "direct_specifications are only valid for the UNANCHORED direct-formalization baseline"
+            "direct constraints/specifications are only valid for the UNANCHORED direct-formalization baseline"
         )
     if baseline == "UNANCHORED" and suggested_claims is not None:
         raise ValueError(
-            "suggested_claims are legacy Python claims; pass direct_specifications for UNANCHORED"
+            "suggested_claims are legacy Python claims; pass direct_constraints/direct_specifications for UNANCHORED"
         )
 
     # --- 1. Subset gate ---
@@ -142,6 +149,7 @@ def run_pipeline(
 
     # --- 2. Claim extraction & LLM Chain-of-Thought -------------------------
     llm_suggestions: list = []
+    direct_constraint_suggestions: list = []
     direct_suggestions: list = []
     llm_error: Optional[Claim] = None
     direct_llm_error: Optional[Claim] = None
@@ -152,10 +160,12 @@ def run_pipeline(
             "pass either use_llm=True or injected LLM data, not both"
         )
     if use_llm and baseline == "UNANCHORED" and (
-        direct_specifications is not None or llm_error_message is not None
+        direct_constraints is not None
+        or direct_specifications is not None
+        or llm_error_message is not None
     ):
         raise ValueError(
-            "pass either use_llm=True or injected direct specifications, not both"
+            "pass either use_llm=True or injected direct constraints/specifications, not both"
         )
 
     if use_llm:
@@ -181,13 +191,17 @@ def run_pipeline(
                 )
                 tokens_in = direct_res.tokens_in
                 tokens_out = direct_res.tokens_out
+                direct_constraint_suggestions = list(direct_res.constraints)
                 direct_suggestions = list(direct_res.specifications)
             except Exception as e:
                 direct_llm_error = _llm_error_claim(e)
     elif baseline == "AST_ANCHORED" and suggested_claims is not None:
         llm_suggestions = _coerce_claim_inputs(suggested_claims)
-    elif baseline == "UNANCHORED" and direct_specifications is not None:
-        direct_suggestions = _coerce_direct_inputs(direct_specifications)
+    elif baseline == "UNANCHORED":
+        if direct_constraints is not None:
+            direct_constraint_suggestions = _coerce_direct_inputs(direct_constraints)
+        if direct_specifications is not None:
+            direct_suggestions = _coerce_direct_inputs(direct_specifications)
 
     if llm_error_message is not None:
         if baseline == "AST_ANCHORED":
@@ -196,19 +210,51 @@ def run_pipeline(
             direct_llm_error = _llm_error_claim(llm_error_message)
 
     if baseline == "UNANCHORED":
-        # No NodeIds, executor, state relation, target path, or replay is
-        # constructed in this branch.
+        # No NodeIds, executor, target state, target path, or replay is
+        # constructed in this branch.  The direct context is a declarative
+        # conjunction generated independently from the anchored claim pool.
         static_claims = _source_direct_claims(sub.extracted_claims)
+        validated_constraints, constraint_errors = _parse_direct_constraints(
+            direct_constraint_suggestions
+        )
         direct_claims = _parse_direct_claims(direct_suggestions)
         claims = _merge_direct_claims(static_claims, direct_claims)
+
+        direct_context = _combine_direct_constraints(validated_constraints)
+        context_kind = "error" if constraint_errors else "sat"
+        context_elapsed: Optional[float] = None
+        context_error = ""
+        if constraint_errors:
+            context_error = "; ".join(
+                f"{claim.claim_id}: {claim.explanation or claim.expr_source}"
+                for claim in constraint_errors
+            )
+            claims = constraint_errors + claims
+        else:
+            try:
+                context_obligation = build_direct_context(direct_context)
+                context_kind, context_elapsed, _ = run_context(context_obligation)
+            except Exception as exc:
+                context_kind = "error"
+                context_error = f"direct context could not be built: {exc}"
+
         if direct_llm_error is not None:
             claims.append(direct_llm_error)
         elif use_llm and not direct_suggestions:
             claims.append(_llm_error_claim("LLM returned no direct specifications"))
         elif direct_specifications is not None and not direct_suggestions:
             claims.append(_llm_error_claim("direct specification list is empty"))
-        claim_results = [_process_direct_claim(c) for c in claims]
-        return _roll_up(
+        claim_results = [
+            _process_direct_claim(
+                c,
+                constraints=direct_context,
+                context_kind=context_kind,
+                context_elapsed=context_elapsed,
+                context_error=context_error,
+            )
+            for c in claims
+        ]
+        result = _roll_up(
             claims=claim_results,
             program_id=program_id,
             source_path=source_path,
@@ -219,7 +265,11 @@ def run_pipeline(
             tokens_in=tokens_in,
             tokens_out=tokens_out,
             cot_trace=cot_trace,
+            direct_constraints=[
+                validated.formula for validated in validated_constraints
+            ],
         )
+        return result
 
     # --- 3. Node IDs and trusted symbolic executor -------------------------
     ids = assign_ids(sub.tree)
@@ -350,7 +400,11 @@ def _llm_error_claim(error: object) -> Claim:
 def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
     """Convert each source assert to exactly one deterministic direct claim."""
     out: List[Claim] = []
-    for info in claim_infos:
+    for index, info in enumerate(claim_infos, start=1):
+        # The direct baseline intentionally does not expose source locations as
+        # claim anchors.  Keep the source line only in this private conversion
+        # object for compatibility with the shared Claim dataclass.
+        claim_id = f"source_assert_{index}"
         try:
             validated = source_assert_to_direct(
                 info.expr_node,
@@ -358,7 +412,7 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
             )
             out.append(
                 Claim(
-                    claim_id=info.claim_id,
+                    claim_id=claim_id,
                     source_line=info.source_line,
                     expr_source=validated.formula,
                     expr_node=None,
@@ -372,7 +426,7 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
         except DirectUnsupportedError:
             out.append(
                 Claim(
-                    claim_id=info.claim_id,
+                    claim_id=claim_id,
                     source_line=info.source_line,
                     expr_source=info.expr_source,
                     expr_node=None,
@@ -384,7 +438,7 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
         except DirectFormulaError:
             out.append(
                 Claim(
-                    claim_id=info.claim_id,
+                    claim_id=claim_id,
                     source_line=info.source_line,
                     expr_source=info.expr_source,
                     expr_node=None,
@@ -396,7 +450,7 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
         except Exception as exc:
             out.append(
                 Claim(
-                    claim_id=info.claim_id,
+                    claim_id=claim_id,
                     source_line=info.source_line,
                     expr_source=info.expr_source,
                     expr_node=None,
@@ -408,8 +462,72 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
     return out
 
 
+def _parse_direct_constraints(
+    specifications: Iterable,
+) -> tuple[List, List[Claim]]:
+    """Validate jointly assumed direct constraints.
+
+    Invalid context formulas are returned as translation/unsupported claims so
+    the result records the failure instead of silently dropping the context.
+    """
+    validated = []
+    errors: List[Claim] = []
+    for index, spec in enumerate(specifications, start=1):
+        formula = _spec_value(spec, "formula", "")
+        variables = _spec_value(spec, "variables", [])
+        rationale = _spec_value(spec, "rationale", "")
+        claim_id = f"direct_constraint_{index}"
+        claim_text = formula if isinstance(formula, str) else repr(formula)
+        rationale_text = rationale if isinstance(rationale, str) else str(rationale)
+        try:
+            item = validate_direct_formula(
+                formula,
+                variables,
+                rationale=rationale_text,
+            )
+        except DirectUnsupportedError:
+            errors.append(
+                Claim(
+                    claim_id=claim_id,
+                    source_line=0,
+                    expr_source=claim_text,
+                    expr_node=None,
+                    anchor=None,
+                    status="UNSUPPORTED",
+                    explanation=rationale_text,
+                )
+            )
+        except DirectFormulaError:
+            errors.append(
+                Claim(
+                    claim_id=claim_id,
+                    source_line=0,
+                    expr_source=claim_text,
+                    expr_node=None,
+                    anchor=None,
+                    status="TRANSLATION_ERROR",
+                    explanation=rationale_text,
+                )
+            )
+        except Exception as exc:
+            errors.append(
+                Claim(
+                    claim_id=claim_id,
+                    source_line=0,
+                    expr_source=claim_text,
+                    expr_node=None,
+                    anchor=None,
+                    status="TRANSLATION_ERROR",
+                    explanation=f"direct constraint validation failed: {exc}",
+                )
+            )
+        else:
+            validated.append(item)
+    return validated, errors
+
+
 def _parse_direct_claims(specifications: Iterable) -> List[Claim]:
-    """Validate injected/generated direct specifications one-by-one."""
+    """Validate generated direct target specifications one-by-one."""
     out: List[Claim] = []
     for index, spec in enumerate(specifications, start=1):
         formula = _spec_value(spec, "formula", "")
@@ -474,6 +592,14 @@ def _parse_direct_claims(specifications: Iterable) -> List[Claim]:
                 )
             )
     return out
+
+
+def _combine_direct_constraints(validated_constraints: Iterable) -> z3.BoolRef:
+    """Build the one joint SatLM context from validated constraint formulas."""
+    expressions = [item.expression for item in validated_constraints]
+    if not expressions:
+        return z3.BoolVal(True)
+    return z3.simplify(z3.And(*expressions))
 
 
 def _merge_direct_claims(
@@ -715,8 +841,19 @@ def _process_claim(
     )
 
 
-def _process_direct_claim(claim: Claim) -> ClaimResult:
-    """Check one Direct Formalization claim with only the ``not C`` query."""
+def _process_direct_claim(
+    claim: Claim,
+    *,
+    constraints: z3.BoolRef,
+    context_kind: str,
+    context_elapsed: Optional[float],
+    context_error: str = "",
+) -> ClaimResult:
+    """Check one direct target with the joint SatLM-style context.
+
+    The direct result deliberately has no AST anchor, source target location,
+    symbolic-executor state, reachability query, or replay verdict.
+    """
     anchor = AnchorInfo(node_ids=[], source_lines=[], has_grounding=False)
 
     if claim.status == "UNSUPPORTED":
@@ -747,20 +884,62 @@ def _process_direct_claim(claim: Claim) -> ClaimResult:
             explanation=claim.explanation,
         )
 
+    if context_kind == "error":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor,
+            z3_stats={
+                "context_ms": (context_elapsed or 0) * 1000,
+            },
+            reason=(
+                "joint direct constraints could not be translated or validated"
+                + (f": {context_error}" if context_error else "")
+            ),
+            explanation=claim.explanation,
+        )
+    if context_kind == "unsat":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor,
+            z3_stats={"context_ms": (context_elapsed or 0) * 1000},
+            reason=(
+                "joint direct constraints are inconsistent; target entailment "
+                "would otherwise be vacuous"
+            ),
+            explanation=claim.explanation,
+        )
+    if context_kind == "unknown":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNKNOWN_TIMEOUT,
+            anchor=anchor,
+            z3_stats={"context_ms": (context_elapsed or 0) * 1000},
+            reason="Z3 returned unknown while checking direct constraint consistency",
+            explanation=claim.explanation,
+        )
+
     try:
-        obligation = build_direct_obligation(claim.direct_expression)
+        obligation = build_direct_obligation(constraints, claim.direct_expression)
     except Exception as exc:
         return ClaimResult(
             claim_id=claim.claim_id,
             claim_text=claim.expr_source,
             status=StatusEnum.TRANSLATION_ERROR,
             anchor=anchor,
-            reason=f"direct formula could not build the not-C obligation: {exc}",
+            reason=f"direct entailment obligation could not be built: {exc}",
             explanation=claim.explanation,
         )
 
     kind, elapsed, model = run_validity(obligation)
-    stats = {"valid_ms": (elapsed or 0) * 1000}
+    stats = {
+        "context_ms": (context_elapsed or 0) * 1000,
+        "valid_ms": (elapsed or 0) * 1000,
+    }
     if kind == "unsat":
         return ClaimResult(
             claim_id=claim.claim_id,
@@ -768,7 +947,10 @@ def _process_direct_claim(claim: Claim) -> ClaimResult:
             status=StatusEnum.VERIFIED,
             anchor=anchor,
             z3_stats=stats,
-            reason="the direct SMT-LIB2 formula is valid for every declared integer assignment",
+            reason=(
+                "the target follows from the joint direct constraints; "
+                "no AST anchor or replay is applicable"
+            ),
             explanation=claim.explanation,
         )
     if kind == "unknown":
@@ -778,13 +960,13 @@ def _process_direct_claim(claim: Claim) -> ClaimResult:
             status=StatusEnum.UNKNOWN_TIMEOUT,
             anchor=anchor,
             z3_stats=stats,
-            reason="Z3 returned unknown for the direct not-C validity query",
+            reason="Z3 returned unknown for the direct constraints AND not-target query",
             explanation=claim.explanation,
         )
 
     assert model is not None
-    # Direct counterexamples are deliberately not replayed: there is no
-    # target location or program-state binding in this baseline.
+    # Direct counterexamples are deliberately not replayed: there is no target
+    # location or program-state binding in this baseline.
     return ClaimResult(
         claim_id=claim.claim_id,
         claim_text=claim.expr_source,
@@ -792,7 +974,10 @@ def _process_direct_claim(claim: Claim) -> ClaimResult:
         anchor=anchor,
         counterexample=_counterexample_from_model(model, claim),
         z3_stats=stats,
-        reason="Z3 found an integer assignment satisfying not C; no program replay is applicable",
+        reason=(
+            "Z3 found an integer model satisfying the joint direct constraints "
+            "and not the target; no program replay is applicable"
+        ),
         explanation=claim.explanation,
     )
 
@@ -873,6 +1058,7 @@ def _roll_up(
     tokens_in: int = 0,
     tokens_out: int = 0,
     cot_trace: str = "",
+    direct_constraints: Optional[Sequence[str]] = None,
 ) -> ProgramResult:
     by_status: Dict[StatusEnum, int] = {s: 0 for s in StatusEnum}
     for c in claims:
@@ -894,6 +1080,7 @@ def _roll_up(
         total_tokens_in=tokens_in,
         total_tokens_out=tokens_out,
         cot_trace=cot_trace,
+        direct_constraints=list(direct_constraints or []),
     )
 
 

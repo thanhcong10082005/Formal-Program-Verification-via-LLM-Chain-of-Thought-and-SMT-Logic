@@ -132,8 +132,8 @@ th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;lett
 .tin{background:var(--acc)}.tout{background:#2f3a5e}
 .tokbar .cap{font-size:10.5px;color:var(--mut);margin-top:5px;text-align:center}
 </style></head><body>
-<h1>AST-Anchored vs Direct Formalization Dashboard</h1>
-<div class="lead">AST_ANCHORED uses anchored Python claims; UNANCHORED is Baseline A Direct Formalization with independent SMT-LIB2 specifications and no replay.</div>
+<h1>AST-Anchored vs SatLM-style Direct Formalization Dashboard</h1>
+<div class="lead">AST_ANCHORED uses anchored Python claims; UNANCHORED is Baseline A SatLM-style Direct Formalization with independent SMT-LIB2 constraints and target specifications, and no replay.</div>
 
 <h2>MBPP Experiment — 10 tasks</h2>
 <div class="cards">
@@ -167,7 +167,7 @@ __MBPP_ROWS__
 <span style="margin-left:12px">Top row = AST_ANCHORED · Bottom = UNANCHORED</span>
 </div>
 <div id="complex"></div>
-<div class="note"><b>Direct baseline</b>: UNANCHORED checks only the negation of each validated SMT-LIB2 formula, so its counterexamples have no target location or replay verdict. <b>Grounding</b>: AST_ANCHORED retains exact NodeId binding and target-state replay.</div>
+<div class="note"><b>Direct baseline</b>: UNANCHORED checks each target using the joint SMT-LIB2 context and its negation, so its counterexamples have no target location or replay verdict. <b>Grounding</b>: AST_ANCHORED retains exact NodeId binding and target-state replay.</div>
 <script>
 const C=__DATA__;
 // complex grouped bars

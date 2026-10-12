@@ -3,6 +3,8 @@ run_complex_experiment.py - Run AST_ANCHORED vs UNANCHORED on complex programs:
 1. Dead Code / Unreachable Path (Vacuous Truth defense)
 2. LLM Hallucination Stress-test (Anchor Gate defense)
 3. Complex Loops & Multi-branching (MBPP Advanced with Gemini 3.5 Flash)
+
+The UNANCHORED branch uses the SatLM-style direct context/target contract.
 """
 import sys
 import json
@@ -23,7 +25,7 @@ GEMINI_KEY = _get_api_key()
 
 OUT_DIR = PROJECT_ROOT / "results" / "complex_experiment"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 
 # -----------------------------------------------------------------------------
 # 1. TEST PROGRAMS DEFINITION
@@ -224,6 +226,8 @@ def run_benchmark():
         tokens_in = 0
         tokens_out = 0
         raw_claims_data = []
+        raw_direct_constraints = None
+        raw_direct_specs = None
 
         if cache_file.exists():
             print("    [Cache Hit] Reusing existing results.")
@@ -258,15 +262,18 @@ def run_benchmark():
                 model="gemini-3.5-flash",
             )
             direct_dur = time.time() - t0
+            raw_direct_constraints = direct_llm.constraints
             raw_direct_specs = direct_llm.specifications
             print(
                 f"    UNANCHORED Direct Formalization completed in {direct_dur:.2f}s "
                 f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out}; "
+                f"{len(raw_direct_constraints)} constraints, "
                 f"{len(raw_direct_specs)} specifications)"
             )
         else:
             # Synthetic / injected claims
             raw_claims_data = item.get("inject_claims", [])
+            raw_direct_constraints = item.get("inject_direct_constraints")
             raw_direct_specs = item.get("inject_direct_specs")
             anchored_llm = None
             direct_llm = None
@@ -284,6 +291,7 @@ def run_benchmark():
             code,
             raw_claims_data,
             baseline="UNANCHORED",
+            direct_constraints=raw_direct_constraints,
             direct_specs=raw_direct_specs,
             tokens_in=direct_llm.tokens_in if direct_llm else 0,
             tokens_out=direct_llm.tokens_out if direct_llm else 0,
@@ -306,6 +314,7 @@ def run_benchmark():
                 "model": direct_llm.model_name if direct_llm else "deterministic",
                 "tokens_in": direct_llm.tokens_in if direct_llm else 0,
                 "tokens_out": direct_llm.tokens_out if direct_llm else 0,
+                "constraint_count": len(raw_direct_constraints or []),
                 "specification_count": len(raw_direct_specs or []),
             },
             "ast_anchored": ast_result.model_dump(),
@@ -330,6 +339,7 @@ def run_pipeline_with_claims(
     code: str,
     raw_claims: list,
     baseline: str,
+    direct_constraints: list | None = None,
     direct_specs: list | None = None,
     cot_trace: str = "",
     tokens_in: int = 0,
@@ -339,8 +349,11 @@ def run_pipeline_with_claims(
     kwargs = {}
     if baseline == "AST_ANCHORED":
         kwargs.update(suggested_claims=raw_claims, cot_trace=cot_trace)
-    elif direct_specs is not None:
-        kwargs.update(direct_specifications=direct_specs)
+    elif direct_specs is not None or direct_constraints is not None:
+        kwargs.update(
+            direct_constraints=direct_constraints,
+            direct_specifications=direct_specs,
+        )
     kwargs.update(
         program_id="<test>",
         source_path="<test>",
