@@ -50,25 +50,70 @@ python tools/demo_gemini_verify.py
 python tools/demo_gemini_verify.py --file path/to/code.py
 ```
 
-## Chạy nhanh Benchmark có sẵn
+## E2E flow: chạy benchmark và lấy metrics
+
+Chạy các lệnh dưới đây từ thư mục gốc của repository. `run_benchmark.py` tìm
+dataset ở `../Dataset` trước, sau đó mới thử `./Dataset`. Cần có
+`sv-benchmarks-loops-py/` và `cruxeval-main/data/cruxeval.jsonl`. Nếu mới chỉ
+có các file SV-COMP `.c`, dịch chúng sang Python QF-LIA trước:
 
 ```powershell
-# 1. (Tuỳ chọn) dịch SV-COMP .c sang Python QF-LIA nếu chưa có
 python tools/run_svcomp_translate.py
-
-# 2. Chạy benchmark end-to-end (mặc định deterministic, không gọi LLM)
-python tools/run_benchmark.py
-
-# 3. Generate báo cáo Markdown
-python tools/compare_baselines.py
-# → results/summary.md
-
-# Muốn benchmark sinh claim bằng Gemini thì bật rõ ràng. Hai baseline sẽ có
-# hai lời gọi Gemini độc lập, dùng cùng model/temperature/timeout:
-python tools/run_benchmark.py --use-llm
-# Mặc định model ghi nhận là gemini-3.5-flash; có thể chọn rõ ràng:
-python tools/run_benchmark.py --use-llm --model gemini-3.5-flash
 ```
+
+### 1. Refresh deterministic (không dùng API)
+
+Chế độ mặc định dùng các `assert` trong source làm claim, nên phù hợp để kiểm
+tra pipeline và tạo một mốc lặp lại được. Token và cost được ghi là zero.
+
+```powershell
+python tools/run_benchmark.py
+python tools/compare_baselines.py
+```
+
+### 2. Refresh bằng Gemini (LLM E2E)
+
+`--use-llm` tạo hai claim pool độc lập cho mỗi source: một lời gọi cho
+`AST_ANCHORED` (Python claims có line anchor) và một lời gọi cho
+`UNANCHORED` (Baseline A, SMT-LIB2 Direct Formalization). Với corpus mặc định
+94 source, đây là khoảng 188 request Gemini; cần model và quota hoạt động.
+
+Không commit file key. Có thể nạp key cục bộ từ `geminiapi.txt` như sau:
+
+```powershell
+$env:GEMINI_API_KEY = (Get-Content -Raw geminiapi.txt).Trim()
+$env:PYTHONPATH = "src"
+python tools/run_benchmark.py --use-llm --model gemini-3.5-flash
+python tools/compare_baselines.py
+Remove-Item Env:GEMINI_API_KEY
+```
+
+Trên macOS/Linux:
+
+```bash
+export GEMINI_API_KEY="$(tr -d '\r\n' < geminiapi.txt)"
+PYTHONPATH=src python tools/run_benchmark.py --use-llm --model gemini-3.5-flash
+PYTHONPATH=src python tools/compare_baselines.py
+unset GEMINI_API_KEY
+```
+
+Mỗi lần chạy benchmark sẽ ghi đè các JSON trong
+`results/AST_ANCHORED/` và `results/UNANCHORED/`. Lệnh
+`compare_baselines.py` tạo lại `results/summary.md`; đây là file metrics chính.
+Token input/output được lưu riêng cho hai baseline. Nếu Gemini trả về lỗi
+quota hoặc permission, không dùng run đó làm metrics mới; sửa quyền/quota rồi
+chạy lại toàn bộ benchmark.
+
+### 3. Kiểm tra kết quả
+
+```powershell
+PYTHONPATH=src pytest -q tests
+python -m compileall -q src tools tests
+```
+
+Xem `results/summary.md` để kiểm tra FDR, accuracy, token consumption,
+hallucination rate và CRVR. Các JSON per-program chứa trạng thái chi tiết và
+`total_tokens_in`/`total_tokens_out` của lần chạy tương ứng.
 
 ## Smoke test pipeline
 

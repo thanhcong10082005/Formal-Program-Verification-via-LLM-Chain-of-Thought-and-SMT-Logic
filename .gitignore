@@ -56,3 +56,6 @@ prototype/results/UNANCHORED/*.json
 # Dataset gốc nằm ở ../Dataset/ (không commit trong prototype repo này).
 # Nếu người dùng translate locally thì file sẽ được gen lại.
 Dataset/sv-benchmarks-loops-py/
+geminiapi.txt
+proposal
+Dataset
