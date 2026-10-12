@@ -29,15 +29,15 @@
         "replay_diff": null
       },
       "z3_stats": {
-        "valid_ms": 1.3127918355166912
+        "valid_ms": 1.3237081002444029
       },
       "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
-      "explanation": "Deterministic source assertion."
+      "explanation": "The source assertion requires that y is equal to z upon program completion."
     }
   ],
-  "elapsed_seconds": 0.0031005830969661474,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
+  "elapsed_seconds": 0.0037607080303132534,
+  "total_tokens_in": 361,
+  "total_tokens_out": 69,
   "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,

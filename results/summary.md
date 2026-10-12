@@ -10,16 +10,16 @@ Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu 
 
 | Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |
 |--------|-----------|--------------|------------|-----------|
-| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |
-| Accuracy | $(TP+TN)/N$ | **0.059** | 0.059 | +0.000 |
-| Precision (VERIFIED) | $TP/(TP+FP)$ | **n/a** | n/a | - |
-| Recall (VERIFIED) | $TP/(TP+FN)$ | **0.000** | 0.000 | - |
-| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **0.000** | 0.000 | - |
-| Avg Tokens (in) | $T_{in}$ | 0.0 | 0.0 | +0.0 |
-| Avg Tokens (out) | $T_{out}$ | 0.0 | 0.0 | +0.0 |
-| Avg Cost (USD) | $C_{usd}$ | 0.000000 | 0.000000 | +0.000000 |
-| Hallucination Rate (HR) | $H = \frac{N_{UNSUP} + N_{TE}}{N_{claims}}$ | **0.000** | 0.000 | +0.000 |
-| Counterexample Replay Validity (CRVR) | $\frac{\text{card}(REPRODUCED)}{\text{card}(CE_{Z3})}$ | **0.250** | n/a | - |
+| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **0.062** | 0.000 | +0.062 |
+| Accuracy | $(TP+TN)/N$ | **0.298** | 0.053 | +0.246 |
+| Precision (VERIFIED) | $TP/(TP+FP)$ | **0.938** | 1.000 | - |
+| Recall (VERIFIED) | $TP/(TP+FN)$ | **0.278** | 0.027 | - |
+| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **0.429** | 0.053 | - |
+| Avg Tokens (in) | $T_{in}$ | 452.4 | 470.2 | -17.8 |
+| Avg Tokens (out) | $T_{out}$ | 214.2 | 121.2 | +93.0 |
+| Avg Cost (USD) | $C_{usd}$ | 0.005475 | 0.004170 | +0.001306 |
+| Hallucination Rate (HR) | $H = \frac{N_{UNSUP} + N_{TE}}{N_{claims}}$ | **0.017** | 0.000 | +0.017 |
+| Counterexample Replay Validity (CRVR) | $\frac{\text{card}(REPRODUCED)}{\text{card}(CE_{Z3})}$ | **0.176** | n/a | - |
 
 Trong đó:
 - $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.
@@ -30,16 +30,16 @@ Trong đó:
 ## 2. Verdict Matrix (against SV-COMP ground truth)
 
 Chỉ các claims thuộc programs trong ground-truth được tính. Tổng cộng:
-`17` claims.
+`57` claims.
 
 | Baseline | TP | FP | FN | TN | FDR |
 |----------|---:|---:|---:|---:|----:|
-| AST_ANCHORED | 0 | 0 | 16 | 1 | **n/a** |
-| UNANCHORED   | 0 | 0 | 16 | 1 | n/a |
+| AST_ANCHORED | 15 | 1 | 39 | 2 | **0.062** |
+| UNANCHORED   | 1 | 0 | 36 | 1 | 0.000 |
 
 **Diễn giải:**
-- AST_ANCHORED: 0 VERIFIED verdicts (0 TP, 0 FP) → FDR = n/a.
-- UNANCHORED: 0 VERIFIED verdicts (0 TP, 0 FP) → FDR = n/a.
+- AST_ANCHORED: 16 VERIFIED verdicts (15 TP, 1 FP) → FDR = 0.062.
+- UNANCHORED: 1 VERIFIED verdicts (1 TP, 0 FP) → FDR = 0.000.
 
 ## 3. Phân bố trạng thái (claim-level)
 
@@ -47,56 +47,67 @@ Chỉ các claims thuộc programs trong ground-truth được tính. Tổng c�
 
 | Status | Count | % |
 |--------|------:|--:|
-| REJECTED | 82 | 81.2% |
-| UNKNOWN_TIMEOUT | 9 | 8.9% |
-| COUNTEREXAMPLE | 8 | 7.9% |
-| NO_CLAIMS | 2 | 2.0% |
+| REJECTED | 82 | 58.2% |
+| UNKNOWN_TIMEOUT | 24 | 17.0% |
+| COUNTEREXAMPLE | 17 | 12.1% |
+| VERIFIED | 16 | 11.3% |
+| UNSUPPORTED | 1 | 0.7% |
+| NO_CLAIMS | 1 | 0.7% |
 
 ### UNANCHORED
 
 | Status | Count | % |
 |--------|------:|--:|
-| REJECTED | 82 | 81.2% |
-| COUNTEREXAMPLE | 17 | 16.8% |
-| NO_CLAIMS | 2 | 2.0% |
+| REJECTED | 82 | 67.2% |
+| COUNTEREXAMPLE | 39 | 32.0% |
+| VERIFIED | 1 | 0.8% |
 
 ## 4. Program-level Coverage
 
 - Tổng programs: 94 (mỗi baseline)
 - Subset pass rate (AST_ANCHORED): 12/94 (12.8%)
 - Subset pass rate (UNANCHORED): 12/94 (12.8%)
-- Claims (anchored): 17
-- Claims (unanchored): 17
+- Claims (anchored): 58
+- Claims (unanchored): 40
 
 ## 5. Per-program verdicts (AST_ANCHORED, accepted subset)
 
 | Program | Claims | V | CE | UNREACH | UNSUP | TE |
 |---------|-------:|--:|---:|--------:|------:|---:|
-| `cruxeval/sample_51` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `loop-invariants/eq2` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/Mono3_1` | 1 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/Mono4_1` | 1 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/loopv1` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/mono-crafted_12` | 1 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/mono-crafted_9` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-1` | 3 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-1_abstracted` | 4 | 0 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-2` | 3 | 0 | 3 | 0 | 0 | 0 |
+| `cruxeval/sample_51` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `loop-invariants/eq2` | 2 | 1 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/Mono3_1` | 5 | 2 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/Mono4_1` | 6 | 2 | 2 | 0 | 0 | 0 |
+| `loops-crafted-1/loopv1` | 3 | 1 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/mono-crafted_12` | 5 | 3 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/mono-crafted_9` | 6 | 2 | 3 | 0 | 1 | 0 |
+| `loops-crafted-1/nested3-1` | 9 | 1 | 0 | 0 | 0 | 0 |
+| `loops-crafted-1/nested3-1_abstracted` | 8 | 2 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/nested3-2` | 9 | 1 | 6 | 0 | 0 | 0 |
 | `loops-crafted-1/net_reset` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/sumt2` | 1 | 0 | 1 | 0 | 0 | 0 |
+| `loops-crafted-1/sumt2` | 4 | 1 | 2 | 0 | 0 | 0 |
 
 ## 6. Counterexample Replay (AST_ANCHORED)
 
 | Claim | Model bindings | Replay verdict | Replay output |
 |-------|----------------|----------------|---------------|
-| `assert_L5_#5` | y=1, z=0, w=0, _state_2512195878482767437_w=0, _state_2512195878482767437_z=0 | REPRODUCED | None |
-| `assert_L10_#5` | n=1, i=1, j=0, _state_1160043897638109363_j=0, _state_1160043897638109363_i=1 | REPRODUCED | None |
-| `assert_L10_#7` | _state_3578772684183996446_y=500000, _state_3578772684183996446_x=1 | NOT_REPRODUCED | None |
-| `assert_L9_#37` | _state_1695543961181983335_x=0, _state_1695543961181983335_z=0, _state_1695543961181983335_y=0, _state_1695543961181983335_w=0 | NOT_REPRODUCED | None |
-| `assert_L14_#9` | _state_2004503844709881656_y=1, _state_2004503844709881656_w=0, _state_2004503844709881656_z=1, _state_2004503844709881656_x=1 | NOT_REPRODUCED | None |
-| `assert_L12_#25` | _state_7317074119006952051_x=0, _state_7317074119006952051_z=1, _state_7317074119006952051_w=0, _state_7317074119006952051_y=1 | NOT_REPRODUCED | None |
-| `assert_L10_#37` | _state_5881341219498615900_z=1, _state_5881341219498615900_x=0, _state_5881341219498615900_w=0, _state_5881341219498615900_y=0 | NOT_REPRODUCED | None |
-| `assert_L12_#6` | n=0, i=1, j=0, _state_1870059617629343542_j=0, _state_1870059617629343542_n=0 | NOT_REPRODUCED | None |
+| `llm_claim_1_L2` | num=-2147483649, _state_5377847993748766589_num=-2147483649 | REPRODUCED | -2147483650 |
+| `assert_L5_#5` | y=1, z=0, _state_42965111498772409_z=0, _state_42965111498772409_y=1, x=0 | REPRODUCED | None |
+| `llm_claim_3_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
+| `llm_claim_4_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
+| `assert_L10_#5` | n=1, i=1, _state_6006930900743687437_n=1, _state_6006930900743687437_i=1, j=0 | REPRODUCED | None |
+| `assert_L10_#7` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
+| `llm_claim_4_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
+| `llm_claim_5_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
+| `assert_L9_#37` | _state_4069729154077372838_z=0, _state_4069729154077372838_w=0, _state_4069729154077372838_x=0, _state_4069729154077372838_y=0 | NOT_REPRODUCED | None |
+| `assert_L14_#9` | _state_6647481356346844098_y=1, _state_6647481356346844098_x=1, _state_6647481356346844098_w=0, _state_6647481356346844098_z=1 | NOT_REPRODUCED | None |
+| `assert_L12_#25` | _state_5919542300938332834_z=1, _state_5919542300938332834_w=0, _state_5919542300938332834_y=1, _state_5919542300938332834_x=0 | NOT_REPRODUCED | None |
+| `assert_L10_#37` | _state_2323538479351049394_w=0, _state_2323538479351049394_x=0, _state_2323538479351049394_y=0, _state_2323538479351049394_z=1 | NOT_REPRODUCED | None |
+| `llm_claim_4_L10` | _state_2323538479351049394_w=0, _state_2323538479351049394_x=0, _state_2323538479351049394_y=0, _state_2323538479351049394_z=1 | NOT_REPRODUCED | None |
+| `llm_claim_5_L12` | _state_5919542300938332834_z=1, _state_5919542300938332834_w=0, _state_5919542300938332834_y=1, _state_5919542300938332834_x=0 | NOT_REPRODUCED | None |
+| `llm_claim_6_L14` | _state_6647481356346844098_y=1, _state_6647481356346844098_x=1, _state_6647481356346844098_w=0, _state_6647481356346844098_z=1 | NOT_REPRODUCED | None |
+| `assert_L12_#6` | i=1, n=0, j=0, _state_6493095030292635476_n=0, _state_6493095030292635476_j=0 | NOT_REPRODUCED | None |
+| `llm_claim_2_L6` | n=-1, j=0, _state_4134104508008881893_j=0, _state_4134104508008881893_n=-1, _state_4134104508008881893_l=0 | NOT_REPRODUCED | None |
 
 ## 7. Ghi chú thực nghiệm
 

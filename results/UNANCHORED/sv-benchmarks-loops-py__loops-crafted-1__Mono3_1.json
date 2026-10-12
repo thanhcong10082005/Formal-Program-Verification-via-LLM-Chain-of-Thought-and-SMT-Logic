@@ -2,9 +2,9 @@
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
   "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/Mono3_1.py",
   "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
-  "n_claims": 1,
+  "n_claims": 2,
   "n_verified": 0,
-  "n_counterexample": 1,
+  "n_counterexample": 2,
   "n_unreachable": 0,
   "n_unsupported": 0,
   "n_translation_error": 0,
@@ -28,15 +28,38 @@
         "replay_diff": null
       },
       "z3_stats": {
-        "valid_ms": 1.2017497792840004
+        "valid_ms": 1.0916248429566622
       },
       "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
       "explanation": "Deterministic source assertion."
+    },
+    {
+      "claim_id": "direct_spec_1",
+      "claim_text": "(= y 0)",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [],
+        "has_grounding": false
+      },
+      "counterexample": {
+        "z3_model": {
+          "y": 1
+        },
+        "replay_verdict": null,
+        "replay_output": null,
+        "replay_diff": null
+      },
+      "z3_stats": {
+        "valid_ms": 1.8811668269336224
+      },
+      "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
+      "explanation": "Represents the negated assertion from the program stating y must not be zero at the end of the loop, used for finding potential counterexamples."
     }
   ],
-  "elapsed_seconds": 0.0028607079293578863,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
+  "elapsed_seconds": 0.007498125080019236,
+  "total_tokens_in": 397,
+  "total_tokens_out": 84,
   "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,

@@ -2,13 +2,13 @@
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12",
   "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/mono-crafted_12.py",
   "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 0\n    while x<y:\n        if (x>=5000000):\n            z=z+2\n        x += 1\n    assert ( not (z%2)) != 0\n    return\n",
-  "n_claims": 1,
-  "n_verified": 0,
+  "n_claims": 5,
+  "n_verified": 3,
   "n_counterexample": 0,
   "n_unreachable": 0,
   "n_unsupported": 0,
   "n_translation_error": 0,
-  "n_unknown_timeout": 1,
+  "n_unknown_timeout": 2,
   "claim_results": [
     {
       "claim_id": "assert_L9_#8",
@@ -25,17 +25,101 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.1276667937636375,
+        "reach_ms": 1.9150001462548971,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_1_L5",
+      "claim_text": "x >= 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L5:C4#0"
+        ],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.9078329205513,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_2_L5",
+      "claim_text": "y == 10000000",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L5:C4#0"
+        ],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.4637080021202564,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_3_L5",
+      "claim_text": "z >= 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L5:C4#0"
+        ],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.433291006833315,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_4_L8",
+      "claim_text": "x < y",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@AugAssign:L8:C8#0"
+        ],
+        "source_lines": [
+          8
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.297124894335866,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 0.005827125161886215,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
-  "cot_trace": "",
+  "elapsed_seconds": 0.02603950002230704,
+  "total_tokens_in": 341,
+  "total_tokens_out": 330,
+  "cot_trace": "We analyze the function f(x, y, z) where x is initialized to 0, y to 10000000, and z to 0. In the while loop, x increments from 0 up to y. For each iteration, if x is greater than or equal to 5000000, z increases by 2. Since z starts at 0 and increments by 2 each time, z will always be an even number. Thus z % 2 is always 0. The assertion checks (not (z % 2)) != 0, which means (not 0) != 0, i.e., True != 0, which holds. At line 5, before the loop condition starts, x is 0, y is 10000000, and z is 0. Inside the loop, x <= 10000000 and x >= 0.",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": false,
   "subset_rejection_reason": null

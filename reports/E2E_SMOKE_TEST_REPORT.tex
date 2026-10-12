@@ -15,7 +15,7 @@
 
 \title{Smoke-Test Evaluation of AST-Anchored and Direct Formalization Verification}
 \author{Standalone experimental note}
-\date{10 October 2026}
+\date{12 October 2026}
 
 \begin{document}
 
@@ -27,10 +27,12 @@ AST-anchored verification method and Baseline A Direct Formalization.  The
 experiment compares an anchored baseline, which binds claims to program
 locations and states, with the compatibility-named \unanchored{} baseline,
 which receives independent SMT-LIB2 specifications and checks only their
-negations.  The refreshed deterministic run produced 0.000 F1 and 0.059
-accuracy for both baselines over the available ground-truth labels.  The
-result is an engineering check for the research prototype; it is not a claim
-of complete soundness for arbitrary Python programs.
+negations.  The Gemini run used the economical \texttt{gemini-3.5-flash-lite}
+model and produced 0.429 F1 / 0.298 accuracy for the anchored baseline and
+0.053 F1 / 0.053 accuracy for Direct Formalization over the available
+ground-truth labels.  The result is an engineering check for the research
+prototype; it is not a claim of complete soundness for arbitrary Python
+programs.
 \end{abstract}
 
 \section{Purpose and Scope}
@@ -65,28 +67,27 @@ claim representation and the verification context supplied to it:
   replay; Z3 checks only $\neg C$ and stores any integer model.
 \end{description}
 
-When LLM mode is enabled, each source receives one anchored claim-generation
-call and one direct-formalization call.  The persisted token totals are
-therefore independent; deterministic runs record zero tokens for both.
+Each source received one anchored claim-generation call and one
+direct-formalization call using \texttt{gemini-3.5-flash-lite}.  The persisted
+token totals are therefore independent and are not copied between baselines.
 
 \section{Smoke-Test Protocol}
 
 The run used 94 source programs: 73 programs from the loop benchmark and 21
 usable Python programs extracted from CRUXEval.  The arithmetic subset gate
-accepted 12 programs and rejected 82 programs.  No LLM call was made for this
-refreshed deterministic report.  An LLM run, when requested, uses the
-configured `gemini-3.5-flash` model separately for the anchored Python-claim
-contract and the direct SMT-LIB2 contract; token totals are persisted
-independently.
+accepted 12 programs and rejected 82 programs.  The run completed 188 Gemini
+generation requests (94 per baseline) with no provider failures, using
+\texttt{gemini-3.5-flash-lite}.  The persisted JSON records contain 58
+anchored claims and 40 direct-formalization claims.
 
 The run produced 188 persisted program records, 94 for each baseline.  The
-accepted programs yielded 17 source-assert claims per baseline.  The curated
-ground-truth comparison covers 17 claims.  The reported values below are computed from the
+curated ground-truth comparison covers 57 anchored claims and 38
+direct-formalization claims.  The reported values below are computed from the
 persisted JSON results and the aggregated summary.
 
 For the classification metrics, \texttt{VERIFIED} is the positive class and
 every other status is negative.  Accuracy, precision, recall, and F1 are
-computed only on the 17 ground-truth claims.  This convention makes the
+computed only on the ground-truth claims for each baseline.  This convention makes the
 comparison explicit while keeping \texttt{UNKNOWN\_TIMEOUT},
 \texttt{COUNTEREXAMPLE}, and translation errors visible in the status table.
 
@@ -103,24 +104,25 @@ comparison explicit while keeping \texttt{UNKNOWN\_TIMEOUT},
 \toprule
 Metric & \anchored & \unanchored \\
 \midrule
-False Discovery Rate (FDR) & n/a & n/a \\
-Accuracy (\texttt{VERIFIED} positive) & \textbf{0.059} & 0.059 \\
-Precision (\texttt{VERIFIED}) & n/a & n/a \\
-Recall (\texttt{VERIFIED}) & 0.000 & 0.000 \\
-F1 (\texttt{VERIFIED}) & 0.000 & 0.000 \\
-Average input tokens / program & 0.0 & 0.0 \\
-Average output tokens / program & 0.0 & 0.0 \\
-Average recorded cost / program & \$0.000000 & \$0.000000 \\
-Hallucination Rate (HR) & 0.000 & 0.000 \\
-Counterexample Replay Validity (CRVR) & \textbf{0.250} & n/a$^{*}$ \\
+False Discovery Rate (FDR) & \textbf{0.062} & 0.000 \\
+Accuracy (\texttt{VERIFIED} positive) & \textbf{0.298} & 0.053 \\
+Precision (\texttt{VERIFIED}) & \textbf{0.938} & 1.000 \\
+Recall (\texttt{VERIFIED}) & \textbf{0.278} & 0.027 \\
+F1 (\texttt{VERIFIED}) & \textbf{0.429} & 0.053 \\
+Average input tokens / program & 452.4 & 470.2 \\
+Average output tokens / program & 214.2 & 121.2 \\
+Average recorded cost / program & \$0.005475 & \$0.004170 \\
+Hallucination Rate (HR) & \textbf{0.017} & 0.000 \\
+Counterexample Replay Validity (CRVR) & \textbf{0.176} & n/a$^{*}$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The anchored mode produced 8 \texttt{COUNTEREXAMPLE} claims and 9
-\texttt{UNKNOWN\_TIMEOUT} claims among accepted programs.  Baseline A produced
-17 direct SMT-LIB2 \texttt{COUNTEREXAMPLE} claims.  In addition, 82 programs
-were rejected by the subset
+The anchored mode produced 16 \texttt{VERIFIED}, 17
+\texttt{COUNTEREXAMPLE}, 24 \texttt{UNKNOWN\_TIMEOUT}, and one
+\texttt{UNSUPPORTED} claim among accepted programs.  Baseline A produced one
+verified and 39 direct SMT-LIB2 \texttt{COUNTEREXAMPLE} claims.  In addition,
+82 programs were rejected by the subset
 gate for each baseline; these are program-level rejections and are not
 included as claim verdicts.
 
@@ -133,17 +135,17 @@ included as claim verdicts.
 \toprule
 Baseline & TP & FP & FN & TN & FDR \\
 \midrule
-\anchored & 0 & 0 & 16 & 1 & n/a \\
-\unanchored & 0 & 0 & 16 & 1 & n/a \\
+\anchored & 15 & 1 & 39 & 2 & 0.062 \\
+\unanchored & 1 & 0 & 36 & 1 & 0.000 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The refreshed deterministic matrix contains no \texttt{VERIFIED} claims.  The
-single true-negative claim gives accuracy $1/17 = 0.059$ for each baseline;
-there are no positive predictions from which to compute precision or FDR.
-The equal zero token totals reflect deterministic source-assert input; this
-refresh contains no LLM-generation comparison.
+The anchored matrix contains 15 true-positive and one false-positive verified
+claim.  Direct Formalization contains one true-positive verified claim and no
+false-positive verified claims.  The matrix is claim-level and uses the
+curated ground truth only; it does not pair the independently generated claim
+pools.
 
 \noindent\textsuperscript{*}\,The direct-formalization mode has no executable target
 location for replay, so CRVR is not applicable to its counterexamples.
@@ -166,8 +168,7 @@ This smoke test supports three limited conclusions:
 \end{enumerate}
 
 The evidence has important boundaries.  Only 12 of 94 programs passed the
-current arithmetic subset gate, the deterministic run used no LLM requests,
-and the symbolic executor uses bounded approximations
+current arithmetic subset gate, and the symbolic executor uses bounded approximations
 for some loops and control-flow constructs.  Consequently, the result is a
 viability signal for the proposed method, not a universal soundness claim.
 The next evaluation should enlarge the accepted subset, add independently
@@ -178,7 +179,8 @@ counterexamples.
 
 The numerical source for this report is stored in the repository under
 \texttt{results/AST\_ANCHORED/}, \texttt{results/UNANCHORED/}, and
-\texttt{results/summary.md}.  The implementation regression suite passed with
+\texttt{results/summary.md}.  The run used
+\texttt{gemini-3.5-flash-lite}.  The implementation regression suite passed with
 \texttt{PYTHONPATH=src pytest -q tests}: 16 tests passed.  The companion
 Markdown metrics report is \texttt{reports/E2E\_METRICS\_REPORT.md}.
 

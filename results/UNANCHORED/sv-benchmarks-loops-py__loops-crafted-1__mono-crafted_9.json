@@ -2,9 +2,9 @@
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_9",
   "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/mono-crafted_9.py",
   "source_text": "def f(x, y):\n    x = 0\n    y = 500000\n    while x < 1000000:\n        if (x < 500000):\n            x = x + 1\n        else:\n            x = x + 1\n            y = y + 1\n    assert y==x\n    return\n",
-  "n_claims": 1,
+  "n_claims": 2,
   "n_verified": 0,
-  "n_counterexample": 1,
+  "n_counterexample": 2,
   "n_unreachable": 0,
   "n_unsupported": 0,
   "n_translation_error": 0,
@@ -29,15 +29,39 @@
         "replay_diff": null
       },
       "z3_stats": {
-        "valid_ms": 1.2779580429196358
+        "valid_ms": 1.2465829495340586
       },
       "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
-      "explanation": "Deterministic source assertion."
+      "explanation": "Asserts the final postcondition of the program where y equals x."
+    },
+    {
+      "claim_id": "direct_spec_2",
+      "claim_text": "(and (= x 1000000) (= y 1000000))",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [],
+        "has_grounding": false
+      },
+      "counterexample": {
+        "z3_model": {
+          "x": 1000001,
+          "y": 1000000
+        },
+        "replay_verdict": null,
+        "replay_output": null,
+        "replay_diff": null
+      },
+      "z3_stats": {
+        "valid_ms": 1.2590829282999039
+      },
+      "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
+      "explanation": "Infers the exact terminal values of x and y after the loop completes."
     }
   ],
-  "elapsed_seconds": 0.0031037500593811274,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
+  "elapsed_seconds": 0.006432250142097473,
+  "total_tokens_in": 412,
+  "total_tokens_out": 146,
   "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,

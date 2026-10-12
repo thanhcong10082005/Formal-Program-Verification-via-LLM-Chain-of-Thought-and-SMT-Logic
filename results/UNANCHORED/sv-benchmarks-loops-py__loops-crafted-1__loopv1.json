@@ -28,15 +28,15 @@
         "replay_diff": null
       },
       "z3_stats": {
-        "valid_ms": 0.7429998368024826
+        "valid_ms": 0.7493749726563692
       },
       "reason": "Z3 found an integer assignment satisfying not C; no program replay is applicable",
-      "explanation": "Deterministic source assertion."
+      "explanation": "The assertion requires that the remainder of i divided by 3 is 0 upon completion of the loop."
     }
   ],
-  "elapsed_seconds": 0.0027979582082480192,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
+  "elapsed_seconds": 0.0037111251149326563,
+  "total_tokens_in": 412,
+  "total_tokens_out": 77,
   "cot_trace": "",
   "baseline": "UNANCHORED",
   "rejected_by_subset": false,

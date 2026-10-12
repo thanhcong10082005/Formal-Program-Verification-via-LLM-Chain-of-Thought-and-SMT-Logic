@@ -2,13 +2,13 @@
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
   "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/Mono3_1.py",
   "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
-  "n_claims": 1,
-  "n_verified": 0,
+  "n_claims": 5,
+  "n_verified": 2,
   "n_counterexample": 0,
   "n_unreachable": 0,
   "n_unsupported": 0,
   "n_translation_error": 0,
-  "n_unknown_timeout": 1,
+  "n_unknown_timeout": 3,
   "claim_results": [
     {
       "claim_id": "assert_L10_#7",
@@ -25,17 +25,101 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.2940410524606705,
+        "reach_ms": 4.3789169285446405,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_1_L4",
+      "claim_text": "x == 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L4:C4#0"
+        ],
+        "source_lines": [
+          4
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.103708054870367,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_2_L4",
+      "claim_text": "y == 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L4:C4#0"
+        ],
+        "source_lines": [
+          4
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.212709117680788,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_3_L9",
+      "claim_text": "x >= 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@AugAssign:L9:C8#0"
+        ],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.066042110323906,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_4_L9",
+      "claim_text": "x <= 1000000",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@AugAssign:L9:C8#0"
+        ],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.0598329827189445,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 0.009112291969358921,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
-  "cot_trace": "",
+  "elapsed_seconds": 0.05880929087288678,
+  "total_tokens_in": 331,
+  "total_tokens_out": 282,
+  "cot_trace": "We analyze the loop starting at line 4 where x goes from 0 to 999999. Inside the loop, x increments by 1 at each iteration. When x < 500000, y increments by 1. When x >= 500000, y decrements by 1. At the end of the loop, x reaches 1000000, and y goes through 500000 increments followed by 500000 decrements, resulting in y == 0. Thus, the assertion y != 0 at line 10 will fail, but at line 4 (loop entry) x equals 0 and y equals 0.",
   "baseline": "AST_ANCHORED",
   "rejected_by_subset": false,
   "subset_rejection_reason": null
