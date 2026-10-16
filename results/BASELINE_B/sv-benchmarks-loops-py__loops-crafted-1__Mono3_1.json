@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono3_1.py",
+  "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_b_L10",
+      "claim_text": "y != 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "The function reassigns x and y to 0 at lines 2 and 3 regardless of their initial input values. The loop runs 1,000,000 times, incrementing y 500,000 times and then decrementing y 500,000 times, resulting in y being 0 at the end. Thus, the assertion assert y != 0 will always fail because y will be 0, but across all concrete inputs tested, the execution path uniformly guarantees this behavior and no counterexample violates the assertion logic.",
+      "explanation": "Execution-grounding (2-stage prompt, symbolic-aware inputs)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 5945,
+  "total_tokens_out": 295,
+  "cot_trace": "The function executes a loop bounded by 1,000,000 iterations where the variable x starts at 0 and increments by 1 in each step. Inside the loop, y is incremented when x is less than 500,000 and decremented when x is 500,000 or greater. Across the observed traces, the execution is truncated and the final assertion is not violated within the visible steps. There are no observed counterexamples showing the claim y != 0 to be false.",
+  "baseline": "BASELINE_B",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

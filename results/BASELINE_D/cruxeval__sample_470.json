@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__sample_470",
+  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_470.py",
+  "source_text": "def f(number):\n    transl = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5}\n    result = []\n    for key, value in transl.items():\n        if value % number == 0:\n            result.append(key)\n    return result\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_D",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": "no claims found"
+}

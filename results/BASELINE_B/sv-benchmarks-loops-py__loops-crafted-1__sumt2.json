@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt2",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt2.py",
+  "source_text": "def f(i, j, l, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    l = 0\n    while l < n:\n        if ( not (l%2)):\n            i = i + 1\n        else:\n            j = j+1\n        l = l+1\n    assert (i+j) == l\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_b_L12",
+      "claim_text": "i + j == l",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          12
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Across all completed execution traces, the assertion i + j == l holds true.",
+      "explanation": "Execution-grounding (2-stage prompt, symbolic-aware inputs)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 8130,
+  "total_tokens_out": 153,
+  "cot_trace": "The function executes a loop running from zero up to the parameter n, incrementing either i or j on each iteration depending on the parity of l. The return value is consistently None across all tested execution traces. The claim that i + j equals l always evaluates to True at the designated assertion line. No counterexamples were observed in any of the provided traces.",
+  "baseline": "BASELINE_B",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

@@ -30,7 +30,7 @@ PY_LOOPS_ROOT = DATASET_ROOT / "sv-benchmarks-loops-py"
 CRUXEVAL_JSONL = DATASET_ROOT / "cruxeval-main" / "data" / "cruxeval.jsonl"
 RESULT_ROOT = PROJECT_ROOT / "results"
 
-BASELINES = ("AST_ANCHORED", "UNANCHORED")
+BASELINES = ("AST_ANCHORED", "UNANCHORED", "BASELINE_B", "BASELINE_C", "BASELINE_D")
 DEFAULT_MODEL = "gemini-3.5-flash"
 
 
@@ -128,6 +128,15 @@ def _collect_svcomp_sources() -> List[Path]:
         for f in sorted(d.glob("*.py")):
             out.append(f)
     return out
+
+
+def _id_for(src_path: Path) -> str:
+    """Return a stable identifier for a source file (matching output naming)."""
+    try:
+        relative = str(src_path.relative_to(DATASET_ROOT)).replace("\\", "/")
+        return relative.replace("/", "__").replace(".py", "")
+    except ValueError:
+        return "cruxeval__" + src_path.stem
 
 
 def _cruxeval_python_subset(limit: int = 200) -> List[Path]:
@@ -255,6 +264,7 @@ def _run_one(
     baseline: str,
     *,
     use_llm: bool = False,
+    model: str = DEFAULT_MODEL,
     llm_result: LLMResult | None = None,
     direct_llm_result: DirectLLMResult | None = None,
     llm_error_message: str | None = None,
@@ -308,6 +318,7 @@ def _run_one(
         baseline=baseline,
         do_replay=True,
         use_llm=use_llm,
+        gemini_model=model,
     )
 
 
@@ -319,6 +330,62 @@ def main(argv: List[str]) -> int:
         if model_index + 1 >= len(argv):
             raise SystemExit("--model requires a model name")
         model = argv[model_index + 1]
+
+    # Filter baselines via --only {AST_ANCHORED|UNANCHORED|BASELINE_B|BASELINE_C|BASELINE_D}
+    selected_baselines: tuple = BASELINES
+    if "--only" in argv[1:]:
+        idx = argv.index("--only")
+        if idx + 1 >= len(argv):
+            raise SystemExit("--only requires a baseline name")
+        sel = argv[idx + 1]
+        if sel not in BASELINES:
+            raise SystemExit(
+                f"--only must be one of {BASELINES}; got {sel!r}"
+            )
+        selected_baselines = (sel,)
+
+    # Optional: subset filter (e.g. --subset 12 to run only the 12-bench subset)
+    subset_filter: set | None = None
+    if "--subset" in argv[1:]:
+        idx = argv.index("--subset")
+        if idx + 1 >= len(argv):
+            raise SystemExit("--subset requires an integer N (12 or 188)")
+        try:
+            n = int(argv[idx + 1])
+        except ValueError:
+            raise SystemExit("--subset requires an integer")
+        if n == 12:
+            subset_filter = {
+                "cruxeval__sample_51",
+                "loop-invariants__eq2",
+                "loops-crafted-1__Mono3_1",
+                "loops-crafted-1__Mono4_1",
+                "loops-crafted-1__loopv1",
+                "loops-crafted-1__mono-crafted_12",
+                "loops-crafted-1__mono-crafted_9",
+                "loops-crafted-1__nested3-1",
+                "loops-crafted-1__nested3-1_abstracted",
+                "loops-crafted-1__nested3-2",
+                "loops-crafted-1__net_reset",
+                "loops-crafted-1__sumt2",
+            }
+        else:
+            subset_filter = None
+
+    # Optional: --assert-subset keeps ONLY programs that have at least one
+    # assert in their source.  This is the focused evaluation set required
+    # by the user for Phase-1 of the baseline improvement.
+    assert_only = "--assert-subset" in argv[1:]
+
+    # Warn (but don't crash) when C/D are run without --use-llm.
+    if not use_llm and any(b in selected_baselines for b in ("BASELINE_C", "BASELINE_D")):
+        print(
+            "WARNING: --use-llm is OFF but BASELINE_C and/or BASELINE_D are "
+            "selected. These baselines will return UNKNOWN_TIMEOUT for every "
+            "claim.  Re-run with --use-llm to get real results.",
+            file=sys.stderr,
+        )
+
     RESULT_ROOT.mkdir(parents=True, exist_ok=True)
     sources = _collect_svcomp_sources()
     print(f"Collected {len(sources)} SV-COMP Python sources")
@@ -329,7 +396,23 @@ def main(argv: List[str]) -> int:
     print(f"Collected {len(crux)} CRUXEval samples (int/bool/None only)")
 
     all_sources = sources + crux
-    grand_total = len(all_sources) * len(BASELINES)
+    if subset_filter is not None:
+        all_sources = [s for s in all_sources if _id_for(s) in subset_filter]
+        print(f"Subset filter applied: {len(all_sources)} sources")
+    if assert_only:
+        import ast as _ast
+        kept = []
+        for s in all_sources:
+            try:
+                tree = _ast.parse(s.read_text(encoding="utf-8"))
+                if any(isinstance(n, _ast.Assert) for n in _ast.walk(tree)):
+                    kept.append(s)
+            except Exception:
+                pass
+        print(f"Assert-subset filter applied: {len(kept)} / {len(all_sources)} sources have asserts")
+        all_sources = kept
+
+    grand_total = len(all_sources) * len(selected_baselines)
     done = 0
     t0 = time.perf_counter()
 
@@ -338,7 +421,10 @@ def main(argv: List[str]) -> int:
         direct_generated: DirectLLMResult | None = None
         anchored_error: str | None = None
         direct_error: str | None = None
-        if use_llm:
+        # Only generate the expensive AST_ANCHORED / UNANCHORED LLM results
+        # when those baselines are actually being run.  Saves ~50% of LLM
+        # calls when the user passes --only BASELINE_B/C/D.
+        if use_llm and "AST_ANCHORED" in selected_baselines:
             try:
                 anchored_generated = generate_cot_and_claims(
                     src_path.read_text(encoding="utf-8"),
@@ -347,6 +433,7 @@ def main(argv: List[str]) -> int:
             except Exception as exc:
                 anchored_error = str(exc)
                 print(f"  [anchored llm error] {src_path.name}: {anchored_error}")
+        if use_llm and "UNANCHORED" in selected_baselines:
             try:
                 direct_generated = generate_direct_formalization(
                     src_path.read_text(encoding="utf-8"),
@@ -355,13 +442,14 @@ def main(argv: List[str]) -> int:
             except Exception as exc:
                 direct_error = str(exc)
                 print(f"  [direct llm error] {src_path.name}: {direct_error}")
-        for baseline in BASELINES:
+        for baseline in selected_baselines:
             t1 = time.perf_counter()
             try:
                 result = _run_one(
                     src_path,
                     baseline,
-                    use_llm=False,
+                    use_llm=use_llm,
+                    model=model,
                     llm_result=anchored_generated,
                     direct_llm_result=direct_generated,
                     llm_error_message=(

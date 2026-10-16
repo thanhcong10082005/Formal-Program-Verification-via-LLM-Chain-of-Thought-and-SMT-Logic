@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1b",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_1b.py",
+  "source_text": "def f(a):\n    a = 6\n    a = 0\n    while a < 6:\n        pass\n        ++a  # for-step\n    assert a == 6\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_c_L7",
+      "claim_text": "a == 6",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          7
+        ],
+        "has_grounding": false
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Precondition: a is any integer parameter. Block B0 sets a=6, then overwrites a=0. The while loop runs with condition a < 6, incrementing a by 1 each iteration until a reaches 6. Loop invariant candidate: 0 <= a <= 6. Base case: a=0, 0 <= 0 <= 6 holds. Inductive step: assuming 0 <= a < 6, after incrementing a, new_a = a + 1, so 1 <= new_a <= 6, maintaining the bounds. Upon loop exit, the negation of the loop condition (a < 6 is false) combined with the invariant (a <= 6) gives a == 6. Therefore, the assertion at line 7 holds on every execution path.",
+      "explanation": "CFG-based NSP + k-induction (3-sample self-consistency)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "def f(a: int) -> int\n  Block B0 (entry):\n    L2: a = 6\n    L3: a = 0\n    L4: while a < 6:   [control-var: a, dir: +1, bound: <6]\n      L5: [Pass]\n      L6: [Expr]\n    L4: end while\n    L7: assert a == 6\n    L8: return None",
+  "baseline": "BASELINE_C",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

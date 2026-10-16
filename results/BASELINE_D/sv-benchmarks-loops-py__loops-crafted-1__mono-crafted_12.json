@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_12.py",
+  "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 0\n    while x<y:\n        if (x>=5000000):\n            z=z+2\n        x += 1\n    assert ( not (z%2)) != 0\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_d_L9",
+      "claim_text": "(not z % 2) != 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": false
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Step 1: The variables are x, y, z which are integer parameters. Step 2: x is reset to 0, y to 10000000, and z to 0. The while loop runs 10000000 times as x increments from 0 to 9999999. When x >= 5000000 (i.e. from x = 5000000 to 9999999, which is 5000000 times), z is incremented by 2 each time. Thus, the final value of z is 5000000 * 2 = 10000000. Step 3: At line 9, z = 10000000, which is even. Therefore, z % 2 == 0. Then, not (z % 2) evaluates to not (0) which is True. Finally, True != 0 evaluates to 1 != 0, which is True. The assertion holds for all inputs regardless of initial parameter values because x, y, and z are immediately overwritten at the start of the function. Step 4: VERIFIED.",
+      "explanation": "LLM-as-judge (3-sample self-consistency, JSON auto-retry)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_D",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

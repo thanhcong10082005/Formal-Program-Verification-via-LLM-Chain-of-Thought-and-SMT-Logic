@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__sample_197",
+  "source_path": "E:\\HK261\\DACN\\prototype\\results\\_cruxeval_py\\sample_197.py",
+  "source_text": "def f(temp, timeLimit):\n    s = timeLimit // temp\n    e = timeLimit % temp\n    return [f'{e} oC', f'{s} {e}'][s > 1]\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_C",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": "no claims found"
+}

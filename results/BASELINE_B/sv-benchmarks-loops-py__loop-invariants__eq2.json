@@ -1,0 +1,48 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loop-invariants__eq2",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq2.py",
+  "source_text": "def f(w, x, y, z):\n    while 0:\n        y += 1\n        z += 1\n    assert y == z\n    return\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_b_L5",
+      "claim_text": "y == z",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "w": 0,
+          "x": 0,
+          "y": 0,
+          "z": 1
+        },
+        "replay_verdict": true,
+        "replay_output": "None",
+        "replay_diff": null
+      },
+      "z3_stats": {},
+      "reason": "At z=1, y=0, so the claim y == z evaluates to false and triggers an AssertionError.",
+      "explanation": "Execution-grounding (2-stage prompt, symbolic-aware inputs)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 5134,
+  "total_tokens_out": 193,
+  "cot_trace": "Across all execution traces, the while loop with a condition of 0 never executes its body. The return value of the function is consistently None for all tested inputs. The input variable y is always initialized to 0, and the claim y == z is evaluated against various values of z. The claim holds true when z is equal to 0, and no counterexamples are observed in the provided traces.",
+  "baseline": "BASELINE_B",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

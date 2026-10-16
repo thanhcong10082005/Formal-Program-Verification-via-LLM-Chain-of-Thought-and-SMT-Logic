@@ -1,0 +1,21 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-2_abstracted",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested3-2_abstracted.py",
+  "source_text": "def f(long int __VERIFIER_LA_iterations0, long int z__VERIFIER_LA_tmp0, w, x, y, z, z__VERIFIER_LA_old_tmp0):\n    x = 0\n    y = 0\n    z = 0\n    w = 0\n    while x < 268435455:\n        while y < 268435455:\n            if (z < (268435455)):\n                # declared: long int z__VERIFIER_LA_tmp0 (kept as param)\n                z__VERIFIER_LA_tmp0 = z\n                # declared: long int __VERIFIER_LA_iterations0 (kept as param)\n                __VERIFIER_LA_iterations0 = (268435455 - z__VERIFIER_LA_tmp0) / 1\n                # declared: z__VERIFIER_LA_old_tmp0 (kept as param)\n                z__VERIFIER_LA_old_tmp0 = z\n                z = (__VERIFIER_LA_iterations0 * 1) + z__VERIFIER_LA_old_tmp0\n            assert ( not (z % 4)) != 0\n            y += 1\n        assert ( not (y % 2)) != 0\n        x += 1\n    assert ( not (x % 2)) != 0\n    return\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_C",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": "syntax error: invalid syntax (<unknown>, line 1)"
+}

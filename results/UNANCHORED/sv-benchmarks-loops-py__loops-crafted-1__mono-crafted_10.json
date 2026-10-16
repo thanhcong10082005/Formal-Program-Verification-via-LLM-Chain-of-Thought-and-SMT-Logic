@@ -1,6 +1,6 @@
 {
   "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_10",
-  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/mono-crafted_10.py",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_10.py",
   "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 5000000\n    while x<y:\n        if (x>=5000000):\n            z++\n        x += 1\n    assert z==x\n    return\n",
   "n_claims": 0,
   "n_verified": 0,
@@ -10,11 +10,12 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.0001873329747468233,
-  "total_tokens_in": 403,
-  "total_tokens_out": 74,
+  "elapsed_seconds": 0.00018230010755360126,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
   "cot_trace": "",
   "baseline": "UNANCHORED",
+  "direct_constraints": [],
   "rejected_by_subset": true,
   "subset_rejection_reason": "SyntaxError: invalid syntax"
 }

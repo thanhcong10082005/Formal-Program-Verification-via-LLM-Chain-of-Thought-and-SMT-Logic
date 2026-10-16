@@ -110,8 +110,47 @@ def run_pipeline(
     """
     start = time.perf_counter()
 
-    if baseline not in {"AST_ANCHORED", "UNANCHORED"}:
+    if baseline not in {"AST_ANCHORED", "UNANCHORED", "BASELINE_B", "BASELINE_C", "BASELINE_D"}:
         raise ValueError(f"unknown baseline: {baseline}")
+
+    # --- Dispatch to baselines B/C/D early (they don't use the subset gate) ---
+    if baseline in {"BASELINE_B", "BASELINE_C", "BASELINE_D"}:
+        from .baselines.execution_grounding import run_baseline_b
+        from .baselines.structural_reasoning import run_baseline_c
+        from .baselines.llm_judge import run_baseline_d
+        if baseline == "BASELINE_B":
+            return run_baseline_b(
+                source,
+                program_id=program_id,
+                source_path=source_path,
+                do_replay=do_replay,
+                use_llm=use_llm,
+                gemini_api_key=gemini_api_key,
+                gemini_model=gemini_model,
+                suggested_verdicts=suggested_claims,
+            )
+        if baseline == "BASELINE_C":
+            return run_baseline_c(
+                source,
+                program_id=program_id,
+                source_path=source_path,
+                do_replay=do_replay,
+                use_llm=use_llm,
+                gemini_api_key=gemini_api_key,
+                gemini_model=gemini_model,
+                suggested_verdicts=suggested_claims,
+            )
+        if baseline == "BASELINE_D":
+            return run_baseline_d(
+                source,
+                program_id=program_id,
+                source_path=source_path,
+                do_replay=do_replay,
+                use_llm=use_llm,
+                gemini_api_key=gemini_api_key,
+                gemini_model=gemini_model,
+                suggested_verdicts=suggested_claims,
+            )
 
     if direct_specs is not None:
         if direct_specifications is not None:

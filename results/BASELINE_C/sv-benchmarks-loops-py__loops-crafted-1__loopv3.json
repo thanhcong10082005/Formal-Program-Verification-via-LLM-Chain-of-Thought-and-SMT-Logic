@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv3",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv3.py",
+  "source_text": "def f(i, j):\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    while i<SIZE:\n        if (0):\n            i = i + 8\n        else:\n            i = i + 4\n    j = i/4\n    assert (j * 4) == i\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_c_L10",
+      "claim_text": "j * 4 == i",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": false
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "We trace the program execution. The function takes parameters i and j. Assuming SIZE is a constant (commonly 1024 or some integer), the loop condition is i < SIZE. Inside the loop, the 'if (0)' condition is always false, so the execution always takes the 'else' branch: i = i + 4. Thus, in each iteration, i is incremented by a multiple of 4 (specifically 4). Since integer division and multiplication (j = i / 4 followed by j * 4) are evaluated in Python, for integer i, i / 4 * 4 equals i if i is a multiple of 4, or truncated appropriately. Wait, in Python 3, '/' performs true division yielding a float, but assuming integer semantics as is standard in Hoare verification of C-like programs: if i is initialized as a multiple of 4 (or after being incremented by 4 repeatedly), j * 4 == i holds. However, if i is not initially a multiple of 4, the condition i < SIZE combined with increments of 4 means i increments by 4 each step. In Python, i/4 is float division, but let's assume standard integer division or that i and SIZE align such that i starts at a value where the invariant holds or the assertion is checked. Wait, the claim is 'j * 4 == i' right after j = i / 4. In Python, j = i / 4 gives a float unless '//' is used. If '/' is float division, then j * 4 == i is mathematically true for any number i. Let's verify: for any number i, (i / 4) * 4 == i holds identically in floating-point arithmetic (ignoring rounding for integers fitting in standard precision). Therefore, j * 4 == i is always true at line 10 regardless of the loop execution.",
+      "explanation": "CFG-based NSP + k-induction (3-sample self-consistency)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "def f(i: int, j: int) -> int\n  Block B0 (entry):\n    L4: while i < SIZE:   \n      L5: if 0:\n        L6: i = i + 8\n      L8: else:\n        L8: i = i + 4\n    L4: end while\n    L9: j = i / 4\n    L10: assert j * 4 == i\n    L11: return None",
+  "baseline": "BASELINE_C",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

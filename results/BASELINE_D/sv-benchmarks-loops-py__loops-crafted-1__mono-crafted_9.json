@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_9",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_9.py",
+  "source_text": "def f(x, y):\n    x = 0\n    y = 500000\n    while x < 1000000:\n        if (x < 500000):\n            x = x + 1\n        else:\n            x = x + 1\n            y = y + 1\n    assert y==x\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_d_L10",
+      "claim_text": "y == x",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": false
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Step 1: x and y are variables initialized inside the function. x starts at 0, y starts at 500000. Step 2: The while loop runs while x < 1000000. Inside the loop, whether x < 500000 or not, both branches increment x by 1 (x = x + 1). However, only the 'else' branch (when x >= 500000) increments y by 1 (y = y + 1). Step 3: Initially, before the loop starts, x=0 and y=500000. For the first 500000 iterations (when x goes from 0 up to 499999), x is incremented by 1 each time, but y is NOT incremented, so y remains 500000. Once x reaches 500000, for the remaining 500000 iterations (x from 500000 to 999999), both x and y are incremented by 1 in each iteration. Therefore, at the end of the loop, x reaches 1000000, and y starts at 500000 and is incremented 500000 times, ending up at 500000 + 500000 = 1000000. Thus, at line 10, y equals x (both are 1000000). Step 4: VERIFIED.",
+      "explanation": "LLM-as-judge (3-sample self-consistency, JSON auto-retry)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_D",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

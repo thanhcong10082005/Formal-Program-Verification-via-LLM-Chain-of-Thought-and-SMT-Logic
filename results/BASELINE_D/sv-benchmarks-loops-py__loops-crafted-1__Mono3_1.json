@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono3_1.py",
+  "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_d_L10",
+      "claim_text": "y != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": false
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Step 1: Variables x and y are initialized to 0 at lines 2 and 3. Step 2: The loop runs exactly 1,000,000 times, as x starts at 0 and increments by 1 at each iteration until it reaches 1,000,000. Step 3: During the first 500,000 iterations (when x is 0 to 499,999), the condition x < 500000 is true, so y is incremented by 1 each time, resulting in y = 500,000. Step 4: During the next 500,000 iterations (when x is 500,000 to 999,999), the condition x < 500000 is false, so y is decremented by 1 each time, bringing y back to 0. Step 5: At line 10, y equals 0, so the assertion y != 0 is violated. Step 6: Thus, the claim y != 0 does not hold.",
+      "explanation": "LLM-as-judge (3-sample self-consistency, JSON auto-retry)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_D",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

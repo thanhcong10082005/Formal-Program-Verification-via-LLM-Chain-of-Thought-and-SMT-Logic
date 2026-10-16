@@ -1,0 +1,48 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loop-invariants__eq2",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq2.py",
+  "source_text": "def f(w, x, y, z):\n    while 0:\n        y += 1\n        z += 1\n    assert y == z\n    return\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_d_L5",
+      "claim_text": "y == z",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": false
+      },
+      "counterexample": {
+        "z3_model": {
+          "w": 0,
+          "x": 0,
+          "y": 1,
+          "z": 0
+        },
+        "replay_verdict": true,
+        "replay_output": "None",
+        "replay_diff": null
+      },
+      "z3_stats": {},
+      "reason": "Step 1: Variables w, x, y, z are integers. Step 2: The while loop condition is '0', which evaluates to False. Therefore, the body of the while loop (lines 3 and 4) is never executed. Step 3: Since the loop never executes, the values of y and z remain unchanged from their initial values passed to the function f. Thus, y == z holds if and only if the initial arguments satisfy y == z. If we choose initial values where y != z, for example, y = 1 and z = 0, then the assertion y == z will fail. Step 4: Let's test with input w=0, x=0, y=1, z=0. The condition y == z evaluates to 1 == 0 which is false, triggering an AssertionError. Thus, a counterexample exists.",
+      "explanation": "LLM-as-judge (3-sample self-consistency, JSON auto-retry)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "BASELINE_D",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

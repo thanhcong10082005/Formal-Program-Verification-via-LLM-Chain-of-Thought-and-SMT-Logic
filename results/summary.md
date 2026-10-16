@@ -1,145 +1,118 @@
-# Báo cáo thực nghiệm: AST-Anchored vs Direct Formalization
+# So sánh 5 Baseline kiểm chứng chương trình (2026-10-15)
 
-Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.
-Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.
+> **Subset đánh giá:** 13 chương trình SV-COMP có `assert` (assert-bearing subset) cho B, C, D.  
+> Proposed Method và Baseline A vẫn dùng 94 programs (full set).  
+> **LLM:** Gemini 3.5 Flash Lite (free tier, 15 RPM)
 
-- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.
-- `UNANCHORED`: Baseline A, Direct Formalization bằng SMT-LIB2; không dùng NodeId, program state, executor hoặc reachability.
+---
 
-## 1. So sánh đối chứng — Bảng chính
+## Tổng quan
 
-| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |
-|--------|-----------|--------------|------------|-----------|
-| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **0.062** | 0.000 | +0.062 |
-| Accuracy | $(TP+TN)/N$ | **0.298** | 0.053 | +0.246 |
-| Precision (VERIFIED) | $TP/(TP+FP)$ | **0.938** | 1.000 | - |
-| Recall (VERIFIED) | $TP/(TP+FN)$ | **0.278** | 0.027 | - |
-| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **0.429** | 0.053 | - |
-| Avg Tokens (in) | $T_{in}$ | 452.4 | 470.2 | -17.8 |
-| Avg Tokens (out) | $T_{out}$ | 214.2 | 121.2 | +93.0 |
-| Avg Cost (USD) | $C_{usd}$ | 0.005475 | 0.004170 | +0.001306 |
-| Hallucination Rate (HR) | $H = \frac{N_{UNSUP} + N_{TE}}{N_{claims}}$ | **0.017** | 0.000 | +0.017 |
-| Counterexample Replay Validity (CRVR) | $\frac{\text{card}(REPRODUCED)}{\text{card}(CE_{Z3})}$ | **0.176** | n/a | - |
 
-Trong đó:
-- $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.
-- $H$: claim bị reject vì UNSUPPORTED + TRANSLATION_ERROR.
-- $S.V.$: Soundness Violation — counterexample từ Z3 không reproduce trên CPython.
-- Accuracy / Precision / Recall / F1 treat `VERIFIED` as positive; all other statuses are negative.
+| Baseline        | Mô tả                            | Reference                                |     |
+| --------------- | -------------------------------- | ---------------------------------------- | --- |
+| Proposed Method | CoT + Z3 + Anchor binding        | DACN 2026 (thesis)                       |     |
+| Baseline A      | SatLM-style Direct Formalization | pipeline.py (existing)                   |     |
+| **Baseline B**  | **Execution Grounding**          | Thakur et al. 2026, CRUXEval, Self-Debug |     |
+| **Baseline C**  | **Structural Reasoning**         | HoarePrompt, ICSE 2026                   |     |
+| **Baseline D**  | **LLM-as-Judge**                 | Wei et al. NeurIPS 2022, VeryTrace       |     |
 
-## 2. Verdict Matrix (against SV-COMP ground truth)
 
-Chỉ các claims thuộc programs trong ground-truth được tính. Tổng cộng:
-`57` claims.
+---
 
-| Baseline | TP | FP | FN | TN | FDR |
-|----------|---:|---:|---:|---:|----:|
-| AST_ANCHORED | 15 | 1 | 39 | 2 | **0.062** |
-| UNANCHORED   | 1 | 0 | 36 | 1 | 0.000 |
 
-**Diễn giải:**
-- AST_ANCHORED: 16 VERIFIED verdicts (15 TP, 1 FP) → FDR = 0.062.
-- UNANCHORED: 1 VERIFIED verdicts (1 TP, 0 FP) → FDR = 0.000.
 
-## 3. Phân bố trạng thái (claim-level)
+## Bảng so sánh chính
 
-### AST_ANCHORED
 
-| Status | Count | % |
-|--------|------:|--:|
-| REJECTED | 82 | 58.2% |
-| UNKNOWN_TIMEOUT | 24 | 17.0% |
-| COUNTEREXAMPLE | 17 | 12.1% |
-| VERIFIED | 16 | 11.3% |
-| UNSUPPORTED | 1 | 0.7% |
-| NO_CLAIMS | 1 | 0.7% |
+| Metric                                | AST_ANCHORED | UNANCHORED | **BASELINE_B (P1)**   | **BASELINE_C (P1)** | **BASELINE_D (P1)** |
+| ------------------------------------- | ------------ | ---------- | --------------------- | ------------------- | ------------------- |
+| False Discovery Rate (FDR)            | **0.062**    | **0.000**  | **0.333**             | **0.273**           | **0.357**           |
+| Accuracy                              | **0.298**    | **0.053**  | **0.400**             | **0.400**           | **0.450**           |
+| Precision                             | 0.938        | 1.000      | **0.667**             | **0.727**           | **0.643**           |
+| Recall                                | 0.278        | 0.027      | **0.500**             | **0.471**           | **0.600**           |
+| **F1 Score**                          | 0.429        | 0.053      | **0.571**             | **0.571**           | **0.621**           |
+| Hallucination Rate (HR)               | 0.017        | 0.000      | 0.000                 | 0.000               | 0.000               |
+| Counterexample Replay Validity (CRVR) | 0.176        | n/a        | n/a*                  | n/a*                | **1.000**           |
+| Programs processed                    | 94           | 94         | **13**                | **13**              | **13**              |
+| Claims processed                      | 58           | 40         | 20                    | 20                  | 20                  |
+| Avg LLM calls per claim               | 1            | 1          | 2 (Stage 1 + Stage 2) | 1                   | 1                   |
 
-### UNANCHORED
 
-| Status | Count | % |
-|--------|------:|--:|
-| REJECTED | 82 | 67.2% |
-| COUNTEREXAMPLE | 39 | 32.0% |
-| VERIFIED | 1 | 0.8% |
+*Baseline B & C: CRVR = n/a trong Phase 1 vì LLM không report counterexample nào đúng. Baseline D có CRVR = 1.000 (1 CE ở `loopv1` được CPython xác nhận).
 
-## 4. Program-level Coverage
+---
 
-- Tổng programs: 94 (mỗi baseline)
-- Subset pass rate (AST_ANCHORED): 12/94 (12.8%)
-- Subset pass rate (UNANCHORED): 12/94 (12.8%)
-- Claims (anchored): 58
-- Claims (unanchored): 40
+---
 
-## 5. Per-program verdicts (AST_ANCHORED, accepted subset)
 
-| Program | Claims | V | CE | UNREACH | UNSUP | TE |
-|---------|-------:|--:|---:|--------:|------:|---:|
-| `cruxeval/sample_51` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `loop-invariants/eq2` | 2 | 1 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/Mono3_1` | 5 | 2 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/Mono4_1` | 6 | 2 | 2 | 0 | 0 | 0 |
-| `loops-crafted-1/loopv1` | 3 | 1 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/mono-crafted_12` | 5 | 3 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/mono-crafted_9` | 6 | 2 | 3 | 0 | 1 | 0 |
-| `loops-crafted-1/nested3-1` | 9 | 1 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-1_abstracted` | 8 | 2 | 1 | 0 | 0 | 0 |
-| `loops-crafted-1/nested3-2` | 9 | 1 | 6 | 0 | 0 | 0 |
-| `loops-crafted-1/net_reset` | 0 | 0 | 0 | 0 | 0 | 0 |
-| `loops-crafted-1/sumt2` | 4 | 1 | 2 | 0 | 0 | 0 |
 
-## 6. Counterexample Replay (AST_ANCHORED)
+## Verdict Matrix (so với ground truth SV-COMP, claim-level)
 
-| Claim | Model bindings | Replay verdict | Replay output |
-|-------|----------------|----------------|---------------|
-| `llm_claim_1_L2` | num=-2147483649, _state_5377847993748766589_num=-2147483649 | REPRODUCED | -2147483650 |
-| `assert_L5_#5` | y=1, z=0, _state_42965111498772409_z=0, _state_42965111498772409_y=1, x=0 | REPRODUCED | None |
-| `llm_claim_3_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
-| `llm_claim_4_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
-| `assert_L10_#5` | n=1, i=1, _state_6006930900743687437_n=1, _state_6006930900743687437_i=1, j=0 | REPRODUCED | None |
-| `assert_L10_#7` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
-| `llm_claim_4_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
-| `llm_claim_5_L10` | _state_6911736308847080190_y=500000, _state_6911736308847080190_x=1 | NOT_REPRODUCED | None |
-| `assert_L9_#37` | _state_4069729154077372838_z=0, _state_4069729154077372838_w=0, _state_4069729154077372838_x=0, _state_4069729154077372838_y=0 | NOT_REPRODUCED | None |
-| `assert_L14_#9` | _state_6647481356346844098_y=1, _state_6647481356346844098_x=1, _state_6647481356346844098_w=0, _state_6647481356346844098_z=1 | NOT_REPRODUCED | None |
-| `assert_L12_#25` | _state_5919542300938332834_z=1, _state_5919542300938332834_w=0, _state_5919542300938332834_y=1, _state_5919542300938332834_x=0 | NOT_REPRODUCED | None |
-| `assert_L10_#37` | _state_2323538479351049394_w=0, _state_2323538479351049394_x=0, _state_2323538479351049394_y=0, _state_2323538479351049394_z=1 | NOT_REPRODUCED | None |
-| `llm_claim_4_L10` | _state_2323538479351049394_w=0, _state_2323538479351049394_x=0, _state_2323538479351049394_y=0, _state_2323538479351049394_z=1 | NOT_REPRODUCED | None |
-| `llm_claim_5_L12` | _state_5919542300938332834_z=1, _state_5919542300938332834_w=0, _state_5919542300938332834_y=1, _state_5919542300938332834_x=0 | NOT_REPRODUCED | None |
-| `llm_claim_6_L14` | _state_6647481356346844098_y=1, _state_6647481356346844098_x=1, _state_6647481356346844098_w=0, _state_6647481356346844098_z=1 | NOT_REPRODUCED | None |
-| `assert_L12_#6` | i=1, n=0, j=0, _state_6493095030292635476_n=0, _state_6493095030292635476_j=0 | NOT_REPRODUCED | None |
-| `llm_claim_2_L6` | n=-1, j=0, _state_4134104508008881893_j=0, _state_4134104508008881893_n=-1, _state_4134104508008881893_l=0 | NOT_REPRODUCED | None |
 
-## 7. Ghi chú thực nghiệm
+| Baseline                                 | TP  | FP  | FN  | TN  | FDR       | Claims matched |
+| ---------------------------------------- | --- | --- | --- | --- | --------- | -------------- |
+| Proposed Method (CoT + Z3) — P0, 94 prog | 15  | 1   | 39  | 2   | **0.062** | 57             |
+| Baseline A (SatLM-style) — P0, 94 prog   | 1   | 0   | 36  | 1   | **0.000** | 38             |
+| **Baseline B (P1, 13 assert-bearing)**   | 8   | 4   | 8   | 0   | **0.333** | 20             |
+| **Baseline C (P1, 13 assert-bearing)**   | 8   | 3   | 9   | 0   | **0.273** | 20             |
+| **Baseline D (P1, 13 assert-bearing)**   | 9   | 5   | 6   | 0   | **0.357** | 20             |
 
-1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.
-2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.
-3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.
-4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.
-5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.
-6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.
 
-## 8. Cấu trúc sản phẩm
+---
 
+
+
+## Error Taxonomy
+
+
+| Category                    | B      | C      | D      |
+| --------------------------- | ------ | ------ | ------ |
+| `OK_VERIFIED`               | 8      | 8      | 8      |
+| `OK_COUNTEREXAMPLE`         | 0      | 0      | **1**  |
+| `TIMEOUT`                   | 8      | 9      | 6      |
+| `LLM_HALLUCINATED_CE`       | 3      | 2      | 5      |
+| `LLM_HALLUCINATED_VERIFIED` | 1      | 1      | 0      |
+| **Tổng claims**             | **20** | **20** | **20** |
+
+
+**Nhận xét:**
+
+- Baseline D là **DUY NHẤT** tìm được counterexample đúng (1 ở `loopv1`).
+- Baseline C có nhiều TIMEOUT nhất (9/20) — LLM bỏ cuộc với loops phức tạp.
+- Baseline D có nhiều hallucinated CE nhất (5/20) — FDR cao nhưng cũng recall cao nhất.
+
+
+
+### CLI
+
+- Thêm `--assert-subset` flag để chỉ chạy 13 programs có `assert`.
+- Warning khi chạy B/C/D mà quên `--use-llm`.
+
+---
+
+---
+
+
+
+## Cách reproduce
+
+```powershell
+# Phase 1
+cd e:\HK261\DACN\prototype
+$env:PYTHONPATH = "src"
+
+# Chạy từng baseline
+python tools/run_benchmark.py --only BASELINE_B --assert-subset --use-llm --model gemini-3.5-flash-lite
+python tools/run_benchmark.py --only BASELINE_C --assert-subset --use-llm --model gemini-3.5-flash-lite
+python tools/run_benchmark.py --only BASELINE_D --assert-subset --use-llm --model gemini-3.5-flash-lite
+
+# Tính metrics
+python tools/compute_bcd_metrics.py
 ```
-prototype/
-├── src/astverifier/    # Mã nguồn framework
-│   ├── subset.py       # QF-LIA whitelist gate
-│   ├── nodes.py        # NodeId registry
-│   ├── classify.py     # 6-status Pydantic schemas
-│   ├── executor.py     # Trusted symbolic executor
-│   ├── binding.py      # Anchor binding gate α(c)
-│   ├── obligations.py  # Two-query Z3 protocol
-│   ├── direct.py       # Direct SMT-LIB2 validator
-│   ├── replay.py       # CPython subprocess counterexample replay
-│   ├── pipeline.py     # End-to-end orchestrator
-│   └── metrics.py      # FDR / Tokens / HR / CRVR aggregation
-├── tools/
-│   ├── translate_svcomp.py   # C → Python translator
-│   ├── run_svcomp_translate.py
-│   ├── run_benchmark.py      # Phase-4 runner
-│   └── compare_baselines.py  # This report
-└── results/
-    ├── AST_ANCHORED/*.json  # per-program verdicts
-    ├── UNANCHORED/*.json
-    └── summary.md           # this file
-```
+
+---
+
+---
+
+*Summary regenerated: 2026-10-15* 

@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_12.py",
+  "source_text": "def f(x, y, z):\n    x = 0\n    y = 10000000\n    z = 0\n    while x<y:\n        if (x>=5000000):\n            z=z+2\n        x += 1\n    assert ( not (z%2)) != 0\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_b_L9",
+      "claim_text": "(not z % 2) != 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "Across all tested inputs, variable z is reset to 0 at the start of the function and incremented by 2 5000000 times, resulting in an even final value of z. Thus z % 2 is 0, not z % 2 is True (1), which is != 0, satisfying the assertion on all paths.",
+      "explanation": "Execution-grounding (2-stage prompt, symbolic-aware inputs)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 8156,
+  "total_tokens_out": 251,
+  "cot_trace": "The function initializes variable x to 0, y to 10000000, and z to 0 at the start of execution regardless of the input values. The loop runs with bounds from x equals 0 up to y, incrementing x by 1 in each iteration. Inside the loop, z increments by 2 when x is greater than or equal to 5000000. Across all observed traces, the claim does not evaluate to false. Therefore, no counterexample is observed in the traces.",
+  "baseline": "BASELINE_B",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

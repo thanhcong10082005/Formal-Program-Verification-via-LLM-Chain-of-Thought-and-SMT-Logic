@@ -1,0 +1,38 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv1",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv1.py",
+  "source_text": "def f(i, j, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    while i<n:\n        if (0):\n            i = i + 6\n        else:\n            i = i + 3\n    assert (i%3) == 0\n    return\n",
+  "n_claims": 1,
+  "n_verified": 1,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "baseline_b_L10",
+      "claim_text": "i % 3 == 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {},
+      "reason": "The execution traces show that starting from i=0, the variable i is incremented by 3 in each iteration of the while loop. Since the initial value of i is 0 (which is a multiple of 3) and it only changes by adding multiples of 3, the value of i remains a multiple of 3 at all points including the assertion i % 3 == 0.",
+      "explanation": "Execution-grounding (2-stage prompt, symbolic-aware inputs)"
+    }
+  ],
+  "elapsed_seconds": 0.0,
+  "total_tokens_in": 5491,
+  "total_tokens_out": 232,
+  "cot_trace": "The execution traces demonstrate that the function enters a while loop incrementing the variable i by 3 on each iteration until it reaches or exceeds the value of n. Across all tested inputs, which range from negative to very large positive integers, the function consistently terminates and returns None. The claim that i % 3 == 0 is satisfied in every observed trace without exception. Therefore, no counterexamples are observed in the execution traces.",
+  "baseline": "BASELINE_B",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

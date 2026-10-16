@@ -1,7 +1,15 @@
 """
-compare_baselines.py - Aggregate the per-program JSON outputs from both
-baselines, compute the 4 metrics, and emit a Markdown summary to
-results/summary.md.
+compare_baselines.py - Aggregate results from 5 baselines and emit a Markdown summary.
+
+Baselines:
+  AST_ANCHORED  : Proposed Method (CoT + Z3 + Anchor binding)
+  UNANCHORED    : Baseline A / SatLM-style Direct Formalization
+  BASELINE_B    : Baseline B / Execution Grounding (Thakur et al. 2026)
+  BASELINE_C    : Baseline C / Structural Reasoning (HoarePrompt, ICSE 2026)
+  BASELINE_D    : Baseline D / LLM-as-Judge (Zero-shot CoT, Wei et al. 2022)
+
+Usage:
+  python tools/compare_baselines.py [--subset 12] [--out summary.md]
 """
 from __future__ import annotations
 
@@ -9,18 +17,30 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from astverifier.classify import ProgramResult, StatusEnum
-from astverifier.metrics import aggregate, load_ground_truth
+from astverifier.metrics import aggregate
 
 
-RESULT_ROOT = (Path(__file__).resolve().parent.parent / "results")
-GT_FILE = Path(__file__).resolve().parent / "ground_truth.json"
+RESULT_ROOT = Path(__file__).resolve().parent.parent / "results"
+TOOLS_ROOT = Path(__file__).resolve().parent
+
+BASELINES = ["AST_ANCHORED", "UNANCHORED", "BASELINE_B", "BASELINE_C", "BASELINE_D"]
+BASELINE_LABELS: Dict[str, str] = {
+    "AST_ANCHORED": "**Proposed Method** (CoT + Z3)",
+    "UNANCHORED": "Baseline A (SatLM-style)",
+    "BASELINE_B": "Baseline B (Execution Grounding)",
+    "BASELINE_C": "Baseline C (Structural Reasoning)",
+    "BASELINE_D": "Baseline D (LLM-as-Judge)",
+}
 
 
-# Hand-curated ground truth for SV-COMP loops (loaded from run_benchmark.py too).
+# -------------------------------------------------------------------
+# Ground truth (SV-COMP loops + CRUXEval)
+# -------------------------------------------------------------------
+
 GROUND_TRUTH: dict[str, str] = {
     # loop-simple
     "loop-simple/nested_1": "VERIFIED", "loop-simple/nested_1b": "VERIFIED",
@@ -35,7 +55,7 @@ GROUND_TRUTH: dict[str, str] = {
     "loop-invariants/linear-inequality-inv-a": "VERIFIED",
     "loop-invariants/linear-inequality-inv-b": "VERIFIED",
     "loop-invariants/linear-inequality-inv-c": "VERIFIED",
-    # loops-crafted-1: many are COUNTEREXAMPLE
+    # loops-crafted-1: a few are COUNTEREXAMPLE
     "loops-crafted-1/iftelse": "COUNTEREXAMPLE",
     "loops-crafted-1/in-de20": "COUNTEREXAMPLE",
     "loops-crafted-1/in-de31": "COUNTEREXAMPLE",
@@ -92,6 +112,26 @@ GROUND_TRUTH: dict[str, str] = {
     "loops-crafted-1/watermelon": "VERIFIED",
 }
 
+# 12-program QF-LIA subset used for fair 5-way comparison
+SUBSET_12: set[str] = {
+    "cruxeval/sample_51",
+    "loop-invariants/eq2",
+    "loops-crafted-1/Mono3_1",
+    "loops-crafted-1/Mono4_1",
+    "loops-crafted-1/loopv1",
+    "loops-crafted-1/mono-crafted_12",
+    "loops-crafted-1/mono-crafted_9",
+    "loops-crafted-1/nested3-1",
+    "loops-crafted-1/nested3-1_abstracted",
+    "loops-crafted-1/nested3-2",
+    "loops-crafted-1/net_reset",
+    "loops-crafted-1/sumt2",
+}
+
+
+# -------------------------------------------------------------------
+# Load results
+# -------------------------------------------------------------------
 
 def _load_results(baseline_dir: Path) -> List[ProgramResult]:
     out: List[ProgramResult] = []
@@ -104,272 +144,325 @@ def _load_results(baseline_dir: Path) -> List[ProgramResult]:
     return out
 
 
-def _status_table(results: List[ProgramResult]) -> str:
-    by_status = Counter()
-    by_status_accepted = Counter()  # claim-level counts among non-rejected
-    for r in results:
-        if r.rejected_by_subset:
-            by_status["REJECTED"] += 1
-        elif r.claim_results:
-            by_status_accepted.update(c.status for c in r.claim_results)
-        else:
-            by_status["NO_CLAIMS"] += 1
-    by_status_combined = Counter(by_status_accepted)
-    for k, v in by_status.items():
-        by_status_combined[k] += v
-    rows = [
-        "| Status | Count | % |",
-        "|--------|------:|--:|",
-    ]
-    total = sum(by_status_combined.values()) or 1
-    for status, n in sorted(by_status_combined.items(), key=lambda x: -x[1]):
-        if status is StatusEnum:
-            continue
-        if hasattr(status, "value"):
-            name = status.value
-        else:
-            name = str(status)
-        rows.append(f"| {name} | {n} | {n/total*100:.1f}% |")
-    return "\n".join(rows)
-
-
-def _verdict_matrix(results: List[ProgramResult], gt: Dict[str, str]) -> Tuple[int, int, int, int, int]:
-    """Return claim-level (TP, FP, FN, TN, total) for known programs.
-
-    Normalize program_id: `sv-benchmarks-loops-py__loop-simple__nested_1`
-    becomes `loop-simple/nested_1`.
-    """
-    tp = fp = fn = tn = 0
-    matched = 0
-    for r in results:
-        norm = _normalize_program_id(r.program_id)
-        if norm in gt:
-            expected = gt[norm]
-            for claim in r.claim_results:
-                matched += 1
-                verdict = claim.status.value
-                if verdict == "VERIFIED" and expected == "VERIFIED":
-                    tp += 1
-                elif verdict == "VERIFIED" and expected != "VERIFIED":
-                    fp += 1
-                elif verdict != "VERIFIED" and expected == "VERIFIED":
-                    fn += 1
-                else:
-                    tn += 1
-    return tp, fp, fn, tn, matched
-
-
 def _normalize_program_id(program_id: str) -> str:
     """Map persisted benchmark IDs to the keys used by ground truth."""
     norm = program_id.replace("__", "/")
     prefix = "sv-benchmarks-loops-py/"
     if norm.startswith(prefix):
         norm = norm[len(prefix):]
+    # cruxeval files: cruxeval__sample_51 -> cruxeval/sample_51
+    crux_prefix = "cruxeval__"
+    if norm.startswith(crux_prefix):
+        norm = "cruxeval/" + norm[len(crux_prefix):]
     return norm
 
 
-def _fdr(tp: int, fp: int) -> float | None:
+# -------------------------------------------------------------------
+# Metrics computation
+# -------------------------------------------------------------------
+
+def _verdict_matrix(results: List[ProgramResult], gt: Dict[str, str]) -> Tuple[int, int, int, int, int]:
+    """Return claim-level (TP, FP, FN, TN, total) for known programs."""
+    tp = fp = fn = tn = 0
+    total = 0
+    for r in results:
+        norm = _normalize_program_id(r.program_id)
+        if norm not in gt:
+            continue
+        expected = gt[norm]
+        for claim in r.claim_results:
+            total += 1
+            verdict = claim.status.value
+            if verdict == "VERIFIED" and expected == "VERIFIED":
+                tp += 1
+            elif verdict == "VERIFIED" and expected != "VERIFIED":
+                fp += 1
+            elif verdict != "VERIFIED" and expected == "VERIFIED":
+                fn += 1
+            else:
+                tn += 1
+    return tp, fp, fn, tn, total
+
+
+def _status_table(results: List[ProgramResult]) -> str:
+    by_status = Counter()
+    for r in results:
+        if r.rejected_by_subset:
+            by_status["REJECTED"] += 1
+        elif r.claim_results:
+            by_status.update(c.status for c in r.claim_results)
+        else:
+            by_status["NO_CLAIMS"] += 1
+
+    total = sum(by_status.values()) or 1
+    rows = ["| Status | Count | % |", "|--------|------:|--:|"]
+    for status, n in sorted(by_status.items(), key=lambda x: -x[1]):
+        name = getattr(status, "value", str(status))
+        rows.append(f"| {name} | {n} | {n/total*100:.1f}% |")
+    return "\n".join(rows)
+
+
+def _format_crvr(crvr: Optional[float]) -> str:
+    return f"{crvr:.3f}" if crvr is not None else "n/a"
+
+
+def _fdr(tp: int, fp: int) -> Optional[float]:
     if tp + fp == 0:
         return None
     return fp / (tp + fp)
 
 
-def main() -> int:
+# -------------------------------------------------------------------
+# Markdown generation
+# -------------------------------------------------------------------
+
+def _header(title: str, level: int = 1) -> str:
+    return ("#" * level) + " " + title
+
+
+def main(argv: List[str]) -> int:
+    subset_only = "--subset" in argv
+    out_file = RESULT_ROOT / "summary.md"
+    if "--out" in argv:
+        idx = argv.index("--out")
+        if idx + 1 < len(argv):
+            out_file = Path(argv[idx + 1])
+
+    # Load all baselines
+    all_results: Dict[str, List[ProgramResult]] = {}
+    for bl in BASELINES:
+        results = _load_results(RESULT_ROOT / bl)
+        if subset_only:
+            results = [
+                r for r in results
+                if _normalize_program_id(r.program_id) in SUBSET_12
+            ]
+        all_results[bl] = results
+        print(f"Loaded {len(results)} results for {bl}")
+
     gt = GROUND_TRUTH
-    GT_FILE.write_text(json.dumps(gt, indent=2), encoding="utf-8")
 
-    anchored = _load_results(RESULT_ROOT / "AST_ANCHORED")
-    unanchored = _load_results(RESULT_ROOT / "UNANCHORED")
-    print(f"Loaded {len(anchored)} anchored, {len(unanchored)} unanchored results")
+    # Compute metrics per baseline
+    metrics_map: Dict[str, object] = {}
+    tp_fp_fn_tn: Dict[str, Tuple[int, int, int, int, int]] = {}
+    fdr_map: Dict[str, Optional[float]] = {}
 
-    # --- Per-baseline status counts ----------------------------------------
-    anchored_table = _status_table(anchored)
-    unanchored_table = _status_table(unanchored)
+    for bl in BASELINES:
+        results = all_results[bl]
+        m = aggregate(results, gt)
+        metrics_map[bl] = m
+        tp, fp, fn, tn, total = _verdict_matrix(results, gt)
+        tp_fp_fn_tn[bl] = (tp, fp, fn, tn, total)
+        fdr_map[bl] = _fdr(tp, fp)
 
-    # --- FDR via ground truth ---------------------------------------------
-    a_tp, a_fp, a_fn, a_tn, a_total = _verdict_matrix(anchored, gt)
-    u_tp, u_fp, u_fn, u_tn, u_total = _verdict_matrix(unanchored, gt)
-
-    a_fdr = _fdr(a_tp, a_fp)
-    u_fdr = _fdr(u_tp, u_fp)
-
-    # --- Aggregate metrics -------------------------------------------------
-    a_metrics = aggregate(anchored, gt)
-    u_metrics = aggregate(unanchored, gt)
-
-    # --- Build Markdown ----------------------------------------------------
     md: List[str] = []
-    md.append("# Báo cáo thực nghiệm: AST-Anchored vs SatLM-style Direct Formalization\n")
-    md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.")
-    md.append("Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.\n")
-    md.append("- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.")
-    md.append("- `UNANCHORED`: Baseline A, SatLM-style Direct Formalization bằng SMT-LIB2; LLM sinh joint constraints và target specifications, không dùng NodeId, program state, executor hoặc reachability. Mỗi target được kiểm tra bằng `constraints AND NOT(target)`.\n")
 
-    md.append("## 1. So sánh đối chứng — Bảng chính\n")
-    md.append("| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |")
-    md.append("|--------|-----------|--------------|------------|-----------|")
-    # FDR
-    if a_fdr is not None and u_fdr is not None:
-        md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **{a_fdr:.3f}** | {u_fdr:.3f} | {(a_fdr or 0)-(u_fdr or 0):+.3f} |")
-    elif a_fdr is not None:
-        md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **{a_fdr:.3f}** | n/a | - |")
-    elif u_fdr is not None:
-        md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | **n/a** | {u_fdr:.3f} | - |")
+    # Title
+    md.append("# So sánh 5 Baseline kiểm chứng chương trình\n")
+    md.append("| Generated: " + __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M") + " |")
+    md.append("")
+    md.append("## Tổng quan\n")
+    md.append("| Baseline | Mô tả | Reference |")
+    md.append("|---------|-------|----------|")
+    md.append("| Proposed Method | CoT + Z3 + Anchor binding | DACN 2026 (thesis) |")
+    md.append("| Baseline A | SatLM-style Direct Formalization | pipeline.py (existing) |")
+    md.append("| Baseline B | Execution Grounding | Thakur et al. 2026, CRUXEval, Self-Debug |")
+    md.append("| Baseline C | Structural Reasoning (CFG only, no Z3) | HoarePrompt, ICSE 2026 |")
+    md.append("| Baseline D | LLM-as-Judge (Zero-shot CoT) | Wei et al. NeurIPS 2022, VeryTrace |")
+    md.append("")
+
+    # Main comparison table
+    md.append("## Bảng so sánh chính\n")
+    if subset_only:
+        md.append(f"*Chỉ {len(SUBSET_12)} bài toán QF-LIA subset.*\n")
+    cols = ["Metric"] + BASELINES
+    md.append("| " + " | ".join(cols) + " |")
+    md.append("| " + " | ".join("---" for _ in cols) + " |")
+
+    def _metric_row(name: str, formula: str, getter) -> None:
+        row = [f"{name} ({formula})"]
+        for bl in BASELINES:
+            val = getter(metrics_map[bl], tp_fp_fn_tn[bl], fdr_map[bl])
+            row.append(val)
+        md.append("| " + " | ".join(row) + " |")
+
+    def _fdr_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        if fdr_val is None:
+            return "n/a"
+        return f"**{fdr_val:.3f}**"
+
+    def _acc_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        acc = getattr(m, "accuracy", None)
+        if acc is None:
+            return "n/a"
+        return f"**{acc:.3f}**"
+
+    def _prec_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        p = getattr(m, "precision", None)
+        return f"{p:.3f}" if p is not None else "n/a"
+
+    def _recall_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        r = getattr(m, "recall", None)
+        return f"{r:.3f}" if r is not None else "n/a"
+
+    def _f1_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        f1 = getattr(m, "f1", None)
+        return f"{f1:.3f}" if f1 is not None else "n/a"
+
+    def _tin_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return f"{getattr(m,'token_avg_in',0):.1f}"
+
+    def _tout_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return f"{getattr(m,'token_avg_out',0):.1f}"
+
+    def _cost_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return f"{getattr(m,'cost_avg_usd',0):.6f}"
+
+    def _hr_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return f"**{getattr(m,'hr',0):.3f}**"
+
+    def _crvr_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        crvr = getattr(m, "crvr", None)
+        return f"**{_format_crvr(crvr)}**"
+
+    def _n_prog_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return str(getattr(m, "n_programs", 0))
+
+    def _n_claims_getter(m, tp_fp_fn_tn_tuple, fdr_val):
+        return str(getattr(m, "n_claims", 0))
+
+    for name, formula, getter in [
+        ("False Discovery Rate (FDR)", r"$FP/(TP+FP)$", _fdr_getter),
+        ("Accuracy", r"$(TP+TN)/N$", _acc_getter),
+        ("Precision", r"$TP/(TP+FP)$", _prec_getter),
+        ("Recall", r"$TP/(TP+FN)$", _recall_getter),
+        ("F1 Score", r"$2TP/(2TP+FP+FN)$", _f1_getter),
+        ("Avg Tokens (in)", r"$T_{in}$", _tin_getter),
+        ("Avg Tokens (out)", r"$T_{out}$", _tout_getter),
+        ("Avg Cost (USD)", r"$C_{usd}$", _cost_getter),
+        ("Hallucination Rate (HR)", r"$H = (N_{UNSUP}+N_{TE})/N_{claims}$", _hr_getter),
+        ("Counterexample Replay Validity (CRVR)", r"$card(REPRODUCED)/card(CE_{Z3})$", _crvr_getter),
+        ("Programs processed", r"$N_{prog}$", _n_prog_getter),
+        ("Claims processed", r"$N_{claims}$", _n_claims_getter),
+    ]:
+        _metric_row(name, formula, getter)
+
+    md.append("")
+
+    # Verdict matrix
+    md.append("## Verdict Matrix (so với ground truth SV-COMP)\n")
+    md.append("| Baseline | TP | FP | FN | TN | FDR | Claims matched |")
+    md.append("|----------|---:|---:|---:|---:|----:|---:|")
+    for bl in BASELINES:
+        tp, fp, fn, tn, total = tp_fp_fn_tn[bl]
+        fdr = fdr_map[bl]
+        fdr_str = f"{fdr:.3f}" if fdr is not None else "n/a"
+        label = BASELINE_LABELS.get(bl, bl)
+        md.append(f"| {label} | {tp} | {fp} | {fn} | {tn} | **{fdr_str}** | {total} |")
+    md.append("")
+
+    # Status breakdown per baseline
+    md.append("## Phân bố trạng thái (claim-level)\n")
+    for bl in BASELINES:
+        md.append(f"### {BASELINE_LABELS.get(bl, bl)}\n")
+        md.append(_status_table(all_results[bl]))
+        md.append("")
+    md.append("")
+
+    # Per-program detail (all 5 baselines)
+    md.append("## Chi tiết per-program (5 baseline)\n")
+    if subset_only:
+        program_ids = SUBSET_12
     else:
-        md.append(f"| False Discovery Rate (FDR) | $FP/(TP+FP)$ | n/a | n/a | - |")
-    md.append(f"| Accuracy | $(TP+TN)/N$ | **{a_metrics.accuracy:.3f}** | {u_metrics.accuracy:.3f} | {a_metrics.accuracy - u_metrics.accuracy:+.3f} |")
-    a_precision = f"{a_metrics.precision:.3f}" if a_metrics.precision is not None else "n/a"
-    u_precision = f"{u_metrics.precision:.3f}" if u_metrics.precision is not None else "n/a"
-    md.append(f"| Precision (VERIFIED) | $TP/(TP+FP)$ | **{a_precision}** | {u_precision} | - |")
-    a_recall = f"{a_metrics.recall:.3f}" if a_metrics.recall is not None else "n/a"
-    u_recall = f"{u_metrics.recall:.3f}" if u_metrics.recall is not None else "n/a"
-    md.append(f"| Recall (VERIFIED) | $TP/(TP+FN)$ | **{a_recall}** | {u_recall} | - |")
-    a_f1 = f"{a_metrics.f1:.3f}" if a_metrics.f1 is not None else "n/a"
-    u_f1 = f"{u_metrics.f1:.3f}" if u_metrics.f1 is not None else "n/a"
-    md.append(f"| F1 (VERIFIED) | $2TP/(2TP+FP+FN)$ | **{a_f1}** | {u_f1} | - |")
-    # Token consumption
-    a_in = a_metrics.token_avg_in
-    u_in = u_metrics.token_avg_in
-    a_out = a_metrics.token_avg_out
-    u_out = u_metrics.token_avg_out
-    md.append(f"| Avg Tokens (in) | $T_{{in}}$ | {a_in:.1f} | {u_in:.1f} | {a_in - u_in:+.1f} |")
-    md.append(f"| Avg Tokens (out) | $T_{{out}}$ | {a_out:.1f} | {u_out:.1f} | {a_out - u_out:+.1f} |")
-    # Cost
-    a_cost = a_metrics.cost_avg_usd
-    u_cost = u_metrics.cost_avg_usd
-    md.append(f"| Avg Cost (USD) | $C_{{usd}}$ | {a_cost:.6f} | {u_cost:.6f} | {a_cost - u_cost:+.6f} |")
-    # Hallucination
-    md.append(f"| Hallucination Rate (HR) | $H = \\frac{{N_{{UNSUP}} + N_{{TE}}}}{{N_{{claims}}}}$ | **{a_metrics.hr:.3f}** | {u_metrics.hr:.3f} | {a_metrics.hr - u_metrics.hr:+.3f} |")
-    # CRVR is not applicable to direct counterexamples because they have no
-    # target location and therefore no replay verdict.
-    a_crvr = f"{a_metrics.crvr:.3f}" if a_metrics.crvr is not None else "n/a"
-    u_crvr = f"{u_metrics.crvr:.3f}" if u_metrics.crvr is not None else "n/a"
-    crvr_delta = (
-        f"{a_metrics.crvr - u_metrics.crvr:+.3f}"
-        if a_metrics.crvr is not None and u_metrics.crvr is not None
-        else "-"
-    )
-    md.append(f"| Counterexample Replay Validity (CRVR) | $\\frac{{\\text{{card}}(REPRODUCED)}}{{\\text{{card}}(CE_{{Z3}})}}$ | **{a_crvr}** | {u_crvr} | {crvr_delta} |")
+        # Collect all program IDs
+        program_ids: set = set()
+        for results in all_results.values():
+            for r in results:
+                norm = _normalize_program_id(r.program_id)
+                program_ids.add(norm)
+        program_ids = sorted(program_ids)
 
-    md.append("")
-    md.append("Trong đó:")
-    md.append("- $T_{in}, T_{out}$: tokens in/out from the recorded run; deterministic runs report zero.")
-    md.append("- $H$: claim bị reject vì UNSUPPORTED + TRANSLATION_ERROR.")
-    md.append("- $S.V.$: Soundness Violation — counterexample từ Z3 không reproduce trên CPython.")
-    md.append("- Accuracy / Precision / Recall / F1 treat `VERIFIED` as positive; all other statuses are negative.")
-    md.append("")
-
-    # --- Verdict matrix ---------------------------------------------------
-    md.append("## 2. Verdict Matrix (against SV-COMP ground truth)\n")
-    md.append("Chỉ các claims thuộc programs trong ground-truth được tính. Tổng cộng:")
-    md.append(f"`{a_total}` claims.\n")
-    md.append("| Baseline | TP | FP | FN | TN | FDR |")
-    md.append("|----------|---:|---:|---:|---:|----:|")
-    a_fdr_str = f"{a_fdr:.3f}" if a_fdr is not None else "n/a"
-    u_fdr_str = f"{u_fdr:.3f}" if u_fdr is not None else "n/a"
-    md.append(f"| AST_ANCHORED | {a_tp} | {a_fp} | {a_fn} | {a_tn} | **{a_fdr_str}** |")
-    md.append(f"| UNANCHORED   | {u_tp} | {u_fp} | {u_fn} | {u_tn} | {u_fdr_str} |")
-    md.append("")
-    md.append("**Diễn giải:**")
-    md.append(f"- AST_ANCHORED: {a_tp + a_fp} VERIFIED verdicts ({a_tp} TP, {a_fp} FP) → FDR = {a_fdr_str}.")
-    md.append(f"- UNANCHORED: {u_tp + u_fp} VERIFIED verdicts ({u_tp} TP, {u_fp} FP) → FDR = {u_fdr_str}.")
-    md.append("")
-
-    # --- Status breakdown -------------------------------------------------
-    md.append("## 3. Phân bố trạng thái (claim-level)\n")
-    md.append("### AST_ANCHORED\n")
-    md.append(anchored_table)
-    md.append("\n### UNANCHORED\n")
-    md.append(unanchored_table)
-    md.append("")
-
-    # --- Program-level summary -------------------------------------------
-    md.append("## 4. Program-level Coverage\n")
-    a_passed = sum(1 for r in anchored if not r.rejected_by_subset)
-    u_passed = sum(1 for r in unanchored if not r.rejected_by_subset)
-    md.append(f"- Tổng programs: {len(anchored)} (mỗi baseline)")
-    md.append(f"- Subset pass rate (AST_ANCHORED): {a_passed}/{len(anchored)} ({a_passed/len(anchored)*100:.1f}%)")
-    md.append(f"- Subset pass rate (UNANCHORED): {u_passed}/{len(unanchored)} ({u_passed/len(unanchored)*100:.1f}%)")
-    md.append(f"- Claims (anchored): {a_metrics.n_claims}")
-    md.append(f"- Claims (unanchored): {u_metrics.n_claims}")
-    md.append("")
-
-    # --- Per-program details (AST_ANCHORED) ------------------------------
-    md.append("## 5. Per-program verdicts (AST_ANCHORED, accepted subset)\n")
-    md.append("| Program | Claims | V | CE | UNREACH | UNSUP | TE |")
-    md.append("|---------|-------:|--:|---:|--------:|------:|---:|")
-    for r in sorted(anchored, key=lambda r: r.program_id):
-        if r.rejected_by_subset:
-            continue
-        short = r.program_id.replace("sv-benchmarks-loops-py__", "").replace("__", "/")
-        md.append(
-            f"| `{short}` | {r.n_claims} | {r.n_verified} | {r.n_counterexample} | {r.n_unreachable} | {r.n_unsupported} | {r.n_translation_error} |"
-        )
-    md.append("")
-
-    # --- Counterexample details ------------------------------------------
-    md.append("## 6. Counterexample Replay (AST_ANCHORED)\n")
-    md.append("| Claim | Model bindings | Replay verdict | Replay output |")
-    md.append("|-------|----------------|----------------|---------------|")
-    for r in sorted(anchored, key=lambda r: r.program_id):
-        for cr in r.claim_results:
-            if cr.status.value != "COUNTEREXAMPLE" or not cr.counterexample:
-                continue
-            ce = cr.counterexample
-            bindings = ", ".join(f"{k}={v}" for k, v in list(ce.z3_model.items())[:5])
-            verdict = ce.replay_verdict
-            if verdict is True:
-                vstr = "REPRODUCED"
-            elif verdict is False:
-                vstr = "NOT_REPRODUCED"
+    md.append("| Program | " + " | ".join(bl.split("_")[0] + " V/CE" for bl in BASELINES) + " |")
+    md.append("|--------|" + "|".join("---:" for _ in BASELINES) + "|")
+    for pid in program_ids:
+        short = pid.replace("loop-simple/", "").replace("loops-crafted-1/", "").replace("loop-invariants/", "").replace("cruxeval/", "crx:")
+        row = [f"`{short}`"]
+        for bl in BASELINES:
+            found = None
+            for r in all_results[bl]:
+                if _normalize_program_id(r.program_id) == pid:
+                    found = r
+                    break
+            if found:
+                v = found.n_verified
+                ce = found.n_counterexample
+                un = found.n_unknown_timeout
+                row.append(f"{v}V/{ce}CE/{un}?")
             else:
-                vstr = "N/A"
-            out = (ce.replay_output or "")[:60]
-            md.append(f"| `{cr.claim_id}` | {bindings} | {vstr} | {out} |")
+                row.append("-")
+        md.append("| " + " | ".join(row) + " |")
     md.append("")
 
-    # --- Notes -----------------------------------------------------------
-    md.append("## 7. Ghi chú thực nghiệm\n")
-    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one SatLM-style direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.")
-    md.append("2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.")
-    md.append("3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.")
-    md.append("4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.")
-    md.append("5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.")
-    md.append("6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.")
+    # Method descriptions
+    md.append("## Mô tả phương pháp\n")
+    md.append("### Proposed Method (AST_ANCHORED)\n")
+    md.append("- **CoT + Z3 + Anchor binding**: Gemini sinh Chain-of-Thought reasoning + Python assertions, sau đó Z3 kiểm chứng mỗi claim qua reachability query và target-state validity.")
+    md.append("- **Key advantage**: Anchor binding đảm bảo claim chỉ được kiểm tra trên path thực sự chứa assertion. Z3 cung cấp completeness trên QF-LIA.")
+    md.append("")
+    md.append("### Baseline A (UNANCHORED / SatLM-style)\n")
+    md.append("- **Direct SMT-LIB2**: Gemini sinh trực tiếp SMT-LIB2 constraints và specifications (không có NodeId, program state, executor, reachability).")
+    md.append("- **Key difference**: Không có trace reasoning, không có anchor binding. LLM đóng vai trò symbolic reasoner thuần túy.")
+    md.append("")
+    md.append("### Baseline B (Execution Grounding)\n")
+    md.append("- **References**: Thakur et al. 2026, CRUXEval (Gu et al., ICLR 2024), Self-Debug (Chen et al., ICLR 2024).")
+    md.append("- **Mechanism**: Sinh N bộ input biên (boundary values + random), chạy CPython subprocess với `sys.settrace`, LLM đối chiếu trace với claim. Nếu >=1 input vi phạm -> COUNTEREXAMPLE. Replay bằng CPython.")
+    md.append("- **Key characteristic**: Dynamic verification — chỉ đúng trên tập mẫu, không guarantees toàn diện.")
+    md.append("")
+    md.append("### Baseline C (Structural Reasoning / HoarePrompt)\n")
+    md.append("- **Reference**: HoarePrompt (Bouras et al., ICSE 2026).")
+    md.append("- **Mechanism**: Trích xuất CFG (Control Flow Graph) từ AST, LLM suy luận qua CFG bằng Natural State Propagation (NSP) và k-induction cho loops. KHÔNG dùng Z3.")
+    md.append("- **Key question**: Liệu cấu trúc hoá CoT theo Hoare-style mà không có SMT solver có đủ để kiểm chứng chính xác?")
+    md.append("")
+    md.append("### Baseline D (LLM-as-Judge / Zero-shot CoT)\n")
+    md.append("- **References**: Wei et al. NeurIPS 2022 (Chain-of-Thought Prompting), VeryTrace (Zhong et al., 2026).")
+    md.append("- **Mechanism**: Prompt CoT đơn giản (few-shot, step-by-step), LLM tự đánh giá claim. KHÔNG có execution, KHÔNG có CFG, KHÔNG có Z3.")
+    md.append("- **Key question**: Lower bound của LLM verification — baseline thô (mộc) nhất, không có bất kỳ hỗ trợ nào.")
     md.append("")
 
-    # --- File map -------------------------------------------------------
-    md.append("## 8. Cấu trúc sản phẩm\n")
+    # File structure
+    md.append("## Cấu trúc sản phẩm\n")
     md.append("```")
     md.append("prototype/")
-    md.append("├── src/astverifier/    # Mã nguồn framework")
-    md.append("│   ├── subset.py       # QF-LIA whitelist gate")
-    md.append("│   ├── nodes.py        # NodeId registry")
-    md.append("│   ├── classify.py     # 6-status Pydantic schemas")
-    md.append("│   ├── executor.py     # Trusted symbolic executor")
-    md.append("│   ├── binding.py      # Anchor binding gate α(c)")
-    md.append("│   ├── obligations.py  # Two-query Z3 protocol")
-    md.append("│   ├── direct.py       # Direct SMT-LIB2 validator")
-    md.append("│   ├── replay.py       # CPython subprocess counterexample replay")
-    md.append("│   ├── pipeline.py     # End-to-end orchestrator")
-    md.append("│   └── metrics.py      # FDR / Tokens / HR / CRVR aggregation")
+    md.append("├── src/astverifier/")
+    md.append("│   ├── baselines/           # MỚI: package baselines B, C, D")
+    md.append("│   │   ├── __init__.py")
+    md.append("│   │   ├── inputs.py        # Boundary-value input generation (B)")
+    md.append("│   │   ├── tracing.py       # Subprocess execution trace (B)")
+    md.append("│   │   ├── execution_grounding.py  # Baseline B engine")
+    md.append("│   │   ├── structural_reasoning.py # Baseline C engine")
+    md.append("│   │   └── llm_judge.py            # Baseline D engine")
+    md.append("│   ├── pipeline.py          # Mở rộng dispatch cho 5 baseline")
+    md.append("│   ├── classify.py          # 6-status schemas (unchanged)")
+    md.append("│   ├── metrics.py           # aggregate() (unchanged)")
+    md.append("│   └── ... (các module khác)")
     md.append("├── tools/")
-    md.append("│   ├── translate_svcomp.py   # C → Python translator")
-    md.append("│   ├── run_svcomp_translate.py")
-    md.append("│   ├── run_benchmark.py      # Phase-4 runner")
-    md.append("│   └── compare_baselines.py  # This report")
+    md.append("│   ├── run_benchmark.py     # Mở rộng: --only, --subset, 5 baselines")
+    md.append("│   └── compare_baselines.py  # Mở rộng: 5-way comparison")
     md.append("└── results/")
-    md.append("    ├── AST_ANCHORED/*.json  # per-program verdicts")
+    md.append("    ├── AST_ANCHORED/*.json")
     md.append("    ├── UNANCHORED/*.json")
-    md.append("    └── summary.md           # this file")
+    md.append("    ├── BASELINE_B/*.json    # MỚI")
+    md.append("    ├── BASELINE_C/*.json    # MỚI")
+    md.append("    ├── BASELINE_D/*.json    # MỚI")
+    md.append("    └── summary.md")
     md.append("```")
     md.append("")
 
-    out = "\n".join(md)
-    (RESULT_ROOT / "summary.md").write_text(out, encoding="utf-8")
-    print(f"Wrote {RESULT_ROOT / 'summary.md'} ({len(out)} chars)")
+    out_text = "\n".join(md)
+    out_file.write_text(out_text, encoding="utf-8")
+    print(f"\nWrote {out_file} ({len(out_text)} chars)")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv))
