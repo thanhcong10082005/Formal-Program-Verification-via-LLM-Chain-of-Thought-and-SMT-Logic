@@ -106,6 +106,63 @@ class TrustedSymbolicExecutor:
                 break
         return paths
 
+    def extract_loops_in_path(
+        self, path: List[NodeId]
+    ) -> List[Tuple[NodeId, ast.AST]]:
+        """Return [(loop_node_id, loop_ast_node), ...] for every loop on a path.
+
+        Used by the Loop Invariant Generator (Phase 2) to enumerate
+        ``while``/``for`` loops that the path traverses, in source order.
+        """
+        result: List[Tuple[NodeId, ast.AST]] = []
+        for nid in path:
+            ast_node = self._node_for_id(nid)
+            if ast_node is None:
+                continue
+            for stmt in ast.walk(ast_node):
+                if isinstance(stmt, (ast.While, ast.For)):
+                    sub_id = self.ids.get(stmt)
+                    if sub_id is not None and (sub_id, stmt) not in result:
+                        result.append((sub_id, stmt))
+        return result
+
+    def _node_for_id(self, nid: NodeId) -> Optional[ast.AST]:
+        """Reverse lookup: NodeId -> AST node. None if not registered."""
+        for node, stored in self.ids.items():
+            if stored == nid:
+                return node
+        return None
+
+    def has_loop_in_subtree(self, anchor_id: NodeId) -> bool:
+        """True if the AST node identified by ``anchor_id`` has any
+        while/for in its enclosing function (cheap test for Invariant
+        Generation trigger)."""
+        anchor_node = self._node_for_id(anchor_id)
+        if anchor_node is None:
+            return False
+        func = self._enclosing_function(anchor_node)
+        if func is None:
+            return False
+        return any(
+            isinstance(n, (ast.While, ast.For))
+            for n in ast.walk(func)
+        )
+
+    def _enclosing_function(self, node: ast.AST) -> Optional[ast.FunctionDef]:
+        for stmt in self.tree.body:
+            if isinstance(stmt, ast.FunctionDef) and node in ast.walk(stmt):
+                return stmt
+        return None
+
+    def _enclosing_function_node(self, anchor_id: NodeId) -> Optional[ast.FunctionDef]:
+        """Return the FunctionDef that contains the AST node identified by
+        ``anchor_id``.  Used by the Feedback Loop to recover the function
+        name from a claim's anchor (which may be an Assert/If/While)."""
+        anchor_node = self._node_for_id(anchor_id)
+        if anchor_node is None:
+            return None
+        return self._enclosing_function(anchor_node)
+
     def build_reachability(
         self,
         path: Optional[List[NodeId]],

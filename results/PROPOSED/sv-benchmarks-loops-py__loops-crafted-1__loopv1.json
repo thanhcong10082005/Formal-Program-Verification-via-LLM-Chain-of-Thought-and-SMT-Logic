@@ -1,0 +1,107 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv1",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/loopv1.py",
+  "source_text": "def f(i, j, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    while i<n:\n        if (0):\n            i = i + 6\n        else:\n            i = i + 3\n    assert (i%3) == 0\n    return\n",
+  "n_claims": 3,
+  "n_verified": 1,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 1,
+  "claim_results": [
+    {
+      "claim_id": "assert_L10_#5",
+      "claim_text": "i % 3 == 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C4#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "n": 1,
+          "i": 1,
+          "_state_7260221078443031038_n": 1,
+          "j": 0,
+          "_state_7260221078443031038_j": 0,
+          "_state_7260221078443031038_i": 1
+        },
+        "replay_verdict": true,
+        "replay_output": "None",
+        "replay_diff": null,
+        "replay_iteration_count": 0,
+        "replay_failing_state": {
+          "i": 1,
+          "j": 0,
+          "n": 1
+        },
+        "feedback_iterations": 1,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": "llm_error"
+      },
+      "z3_stats": {
+        "reach_ms": 1.7691000102786347,
+        "valid_ms": 1.5621000056853518
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay confirmed the target violation",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_1_L5",
+      "claim_text": "i >= i",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L5:C4#0"
+        ],
+        "source_lines": [
+          5
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.7117999959737062,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_2_L10",
+      "claim_text": "i >= i",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C4#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 3.0374999914783984,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 10.593496100002085,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

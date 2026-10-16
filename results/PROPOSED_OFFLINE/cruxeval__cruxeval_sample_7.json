@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_7",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_7.py",
+  "source_text": "def f(list):\n    original = list[:]\n    while len(list) > 1:\n        list.pop(len(list) - 1)\n        for i in range(len(list)):\n            list.pop(i)\n    list = original[:]\n    if list:\n        list.pop(0)\n    return list",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00022279999393504113,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "expression type Subscript not in the supported subset"
+}

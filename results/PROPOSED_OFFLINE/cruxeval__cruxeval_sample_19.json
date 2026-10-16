@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_19",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_19.py",
+  "source_text": "def f(x, y):\n    tmp = ''.join(['0' if c == '9' else '9' for c in y[::-1]])\n    if (x.isnumeric() and tmp.isnumeric()):\n        return x + tmp\n    else:\n        return x",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.0006431000074371696,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "only bare-name function calls allowed (no methods)"
+}

@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_15",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_15.py",
+  "source_text": "def f(text, wrong, right):\n    new_text = text.replace(wrong, right)\n    return new_text.upper()",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00023209999199025333,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "only bare-name function calls allowed (no methods)"
+}

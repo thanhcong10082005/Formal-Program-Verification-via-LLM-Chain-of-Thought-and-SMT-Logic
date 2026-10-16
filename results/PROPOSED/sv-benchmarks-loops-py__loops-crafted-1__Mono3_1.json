@@ -1,0 +1,127 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/Dataset/sv-benchmarks-loops-py/loops-crafted-1/Mono3_1.py",
+  "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
+  "n_claims": 5,
+  "n_verified": 2,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 3,
+  "claim_results": [
+    {
+      "claim_id": "assert_L10_#7",
+      "claim_text": "y != 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C4#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.3363000034587458,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_1_L4",
+      "claim_text": "x == 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L4:C4#0"
+        ],
+        "source_lines": [
+          4
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.2756000069202855,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_2_L4",
+      "claim_text": "y == 0",
+      "status": "VERIFIED",
+      "anchor": {
+        "node_ids": [
+          "f@While:L4:C4#0"
+        ],
+        "source_lines": [
+          4
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.5700000076321885,
+        "valid_ms": 0.0
+      },
+      "reason": "claim holds on every complete path to its exact target node",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_3_L9",
+      "claim_text": "x >= 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@AugAssign:L9:C8#0"
+        ],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.2700000079348683,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "llm_claim_4_L9",
+      "claim_text": "x <= 1000000",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@AugAssign:L9:C8#0"
+        ],
+        "source_lines": [
+          9
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.2515999987954274,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 1.5791802999883657,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

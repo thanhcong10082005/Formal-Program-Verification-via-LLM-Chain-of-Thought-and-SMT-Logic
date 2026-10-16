@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_5",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_5.py",
+  "source_text": "def f(text, lower, upper):\n    count = 0\n    new_text = list()\n    for char in text:\n        char = lower if char.isdecimal() else upper\n        if char in ['p', 'C']:\n            count += 1\n        new_text.append(char)\n    return count, ''.join(new_text)",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00024369999300688505,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+}

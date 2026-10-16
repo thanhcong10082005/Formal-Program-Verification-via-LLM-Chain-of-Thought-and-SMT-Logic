@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_2",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_2.py",
+  "source_text": "def f(text):\n    new_text = list(text)\n    for i in '+':\n        if i in new_text:\n            new_text.remove(i)\n    return ''.join(new_text)",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00020119998953305185,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+}

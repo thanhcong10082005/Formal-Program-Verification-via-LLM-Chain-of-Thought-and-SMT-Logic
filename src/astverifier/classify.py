@@ -33,6 +33,14 @@ class CounterexampleInfo(BaseModel):
     replay_verdict: Optional[bool] = None  # True=reproduced, False=violation, None=not replayed
     replay_output: Optional[str] = None
     replay_diff: Optional[str] = None
+    # Phase 1 extension: state at failing line for Feedback Loop
+    replay_iteration_count: Optional[int] = None
+    replay_failing_state: Optional[Dict[str, int]] = None
+    # Phase 3 extension: feedback loop trace
+    feedback_iterations: Optional[int] = None
+    feedback_refined_claim_text: Optional[str] = None
+    feedback_refined_claim_line: Optional[int] = None
+    feedback_resolution: Optional[str] = None  # "verified"|"still_counter"|"llm_rejected_ce"|"max_iter_reached"|"llm_error"|"not_run"
 
 
 class ClaimResult(BaseModel):

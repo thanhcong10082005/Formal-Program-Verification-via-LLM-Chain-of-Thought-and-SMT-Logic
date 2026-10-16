@@ -12,6 +12,7 @@ Baseline == "UNANCHORED"    : Baseline A SatLM-style Direct Formalization
 from __future__ import annotations
 
 import ast
+import logging
 import time
 from typing import Dict, Iterable, List, Optional, Sequence
 
@@ -52,6 +53,8 @@ from .obligations import (
 )
 from .replay import replay_counterexample
 from .subset import check_and_normalize
+
+log = logging.getLogger(__name__)
 
 
 # --- Path selection ----------------------------------------------------------
@@ -94,6 +97,10 @@ def run_pipeline(
     tokens_out: int = 0,
     cot_trace: str = "",
     llm_error_message: Optional[str] = None,
+    enable_feedback: bool = True,
+    enable_invariants: bool = True,
+    feedback_loop=None,
+    invariant_generator=None,
 ) -> ProgramResult:
     """Execute one baseline on a single source.
 
@@ -306,6 +313,35 @@ def run_pipeline(
     # --- 5. Process each claim ---
     reachability = _select_reachability(executor, claims)
 
+    # Phase 2/3: optional invariant generator + feedback loop
+    # Auto-create when caller did not pass them explicitly AND a Gemini
+    # key is available.  ``use_llm`` controls claim generation; the
+    # feedback loop is allowed to run regardless because it only consumes
+    # an already-detected counterexample.
+    if feedback_loop is None and enable_feedback:
+        try:
+            from .feedback_loop import RetrospectiveFeedbackLoop
+            from .llm import _make_client, _get_api_key
+            key = _get_api_key(gemini_api_key)
+            if baseline == "AST_ANCHORED" and key:
+                feedback_loop = RetrospectiveFeedbackLoop(
+                    llm_client=_make_client(key),
+                )
+        except Exception as exc:
+            log.warning("Failed to init feedback loop: %s", exc)
+    if invariant_generator is None and enable_invariants:
+        try:
+            from .invariant import LoopInvariantGenerator
+            from .llm import _make_client, _get_api_key
+            key = _get_api_key(gemini_api_key)
+            if baseline == "AST_ANCHORED" and key:
+                invariant_generator = LoopInvariantGenerator(
+                    llm_client=_make_client(key),
+                    use_llm=True,
+                )
+        except Exception as exc:
+            log.warning("Failed to init invariant generator: %s", exc)
+
     claim_results: List[ClaimResult] = []
 
     # Process claims that passed anchor gate
@@ -317,6 +353,9 @@ def run_pipeline(
             baseline=baseline,
             source=source,
             do_replay=do_replay,
+            feedback_loop=feedback_loop,
+            invariant_generator=invariant_generator,
+            cot_trace=cot_trace,
         )
         claim_results.append(cr)
 
@@ -695,6 +734,9 @@ def _process_claim(
     source: str,
     do_replay: bool,
     reachability: Optional[Reachability] = None,
+    feedback_loop=None,
+    invariant_generator=None,
+    cot_trace: str = "",
 ) -> ClaimResult:
     """Run target-specific reachability and validity queries for a claim."""
     if reachability is not None:
@@ -785,6 +827,52 @@ def _process_claim(
                 ce_info.replay_verdict = replay_v
                 ce_info.replay_output = replay_out
                 ce_info.replay_diff = replay.error
+                ce_info.replay_iteration_count = replay.failing_iteration_count
+                ce_info.replay_failing_state = replay.failing_variable_state
+                # === PHASE 3: Retrospective Feedback Loop ===
+                if (
+                    replay_v is True
+                    and feedback_loop is not None
+                    and claim.anchor is not None
+                    and any(r is not None for r in reachabilities)
+                ):
+                    try:
+                        func_node = executor._enclosing_function_node(claim.anchor)
+                        func_name = func_node.name if func_node is not None else "f"
+                        refined_claim, rounds, resolution = feedback_loop.run_loop(
+                            source=source,
+                            previous_cot=cot_trace or "",
+                            claim=claim,
+                            z3_counterexample=ce_info.z3_model,
+                            replay=replay,
+                            executor=executor,
+                            reachability=reachabilities[0],
+                            func_name=func_name,
+                        )
+                        ce_info.feedback_iterations = len(rounds)
+                        if refined_claim is not None and refined_claim.claim_id != claim.claim_id:
+                            ce_info.feedback_refined_claim_text = refined_claim.expr_source
+                            ce_info.feedback_refined_claim_line = refined_claim.source_line
+                        ce_info.feedback_resolution = resolution
+                        if resolution == "verified" and refined_claim is not None:
+                            return ClaimResult(
+                                claim_id=claim.claim_id + "_verified_by_feedback",
+                                claim_text=refined_claim.expr_source,
+                                status=StatusEnum.VERIFIED,
+                                anchor=anchor_info,
+                                z3_stats={
+                                    "reach_ms": reach_ms,
+                                    "valid_ms": valid_ms,
+                                    "feedback_rounds": len(rounds),
+                                },
+                                reason=(
+                                    f"Original claim refined after {len(rounds)} feedback "
+                                    f"rounds: now verified."
+                                ),
+                            )
+                    except Exception as exc:
+                        # Fail-safe: keep original COUNTEREXAMPLE
+                        ce_info.feedback_resolution = f"feedback_error: {exc}"
             return ClaimResult(
                 claim_id=claim.claim_id,
                 claim_text=claim.expr_source,
@@ -1042,6 +1130,7 @@ def _replay_with_model(source: str, model_bindings: Dict[str, int], claim: Claim
         inputs,
         target_line=claim.source_line,
         claim_expression=claim.expr_source,
+        capture_state=True,
         timeout=2.0,
     )
 

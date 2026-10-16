@@ -1,0 +1,61 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv1",
+  "source_path": "E:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv1.py",
+  "source_text": "def f(i, j, n):\n    # declared: n (kept as param)\n    # declared: i (kept as param)\n    # declared: j (kept as param)\n    while i<n:\n        if (0):\n            i = i + 6\n        else:\n            i = i + 3\n    assert (i%3) == 0\n    return\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "assert_L10_#5",
+      "claim_text": "i % 3 == 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C4#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "n": 1,
+          "i": 1,
+          "j": 0,
+          "_state_5701472627185537183_j": 0,
+          "_state_5701472627185537183_n": 1,
+          "_state_5701472627185537183_i": 1
+        },
+        "replay_verdict": true,
+        "replay_output": "None",
+        "replay_diff": null,
+        "replay_iteration_count": 0,
+        "replay_failing_state": null,
+        "feedback_iterations": null,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": null
+      },
+      "z3_stats": {
+        "reach_ms": 3.211799994460307,
+        "valid_ms": 37.725200003478676
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay confirmed the target violation",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 0.16558820000500418,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

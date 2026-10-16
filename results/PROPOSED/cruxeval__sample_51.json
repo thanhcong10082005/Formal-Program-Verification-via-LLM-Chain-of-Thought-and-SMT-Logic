@@ -1,0 +1,59 @@
+{
+  "program_id": "cruxeval__sample_51",
+  "source_path": "/Users/tama/Documents/projects/Formal-Program-Verification-via-LLM-Chain-of-Thought-and-SMT-Logic/results/_cruxeval_py/sample_51.py",
+  "source_text": "def f(num):\n    if num % 2 == 0:\n        return s\n    else:\n        return num - 1\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 1,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "llm_claim_1_L2",
+      "claim_text": "num >= -2147483648",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@If:L2:C4#0"
+        ],
+        "source_lines": [
+          2
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "num": -2147483649,
+          "_state_8689333070506160952_num": -2147483649
+        },
+        "replay_verdict": true,
+        "replay_output": "-2147483650",
+        "replay_diff": null,
+        "replay_iteration_count": 0,
+        "replay_failing_state": {
+          "num": -2147483649
+        },
+        "feedback_iterations": 1,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": "llm_error"
+      },
+      "z3_stats": {
+        "reach_ms": 2.377100012381561,
+        "valid_ms": 2.2224000131245703
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay confirmed the target violation",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 11.710404899989953,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

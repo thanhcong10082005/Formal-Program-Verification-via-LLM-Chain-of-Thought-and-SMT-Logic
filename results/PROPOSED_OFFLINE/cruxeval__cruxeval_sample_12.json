@@ -1,0 +1,21 @@
+{
+  "program_id": "cruxeval__cruxeval_sample_12",
+  "source_path": "C:\\Users\\Admin\\AppData\\Local\\Temp\\cruxeval_proposed_offline\\cruxeval_sample_12.py",
+  "source_text": "def f(s, x):\n    count = 0\n    while s[:len(x)] == x and count < len(s)-len(x):\n        s = s[len(x):]\n        count += len(x)\n    return s",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00025860000459942967,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "expression type Subscript not in the supported subset"
+}
