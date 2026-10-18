@@ -4,7 +4,7 @@ run_complex_experiment.py - Run AST_ANCHORED vs UNANCHORED on complex programs:
 2. LLM Hallucination Stress-test (Anchor Gate defense)
 3. Complex Loops & Multi-branching (MBPP Advanced with Gemini 3.5 Flash)
 
-The UNANCHORED branch uses the SatLM-style direct context/target contract.
+The UNANCHORED branch uses the structured simple claim-list contract.
 """
 import sys
 import json
@@ -17,15 +17,15 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 from astverifier.pipeline import run_pipeline
 from astverifier.llm import (
     _get_api_key,
-    generate_cot_and_claims,
-    generate_direct_formalization,
+    generate_anchored_formalization,
+    generate_simple_claims,
 )
 
 GEMINI_KEY = _get_api_key()
 
 OUT_DIR = PROJECT_ROOT / "results" / "complex_experiment"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
-CACHE_VERSION = 3
+CACHE_VERSION = 5
 
 # -----------------------------------------------------------------------------
 # 1. TEST PROGRAMS DEFINITION
@@ -45,7 +45,7 @@ TEST_SUITE = [
             "    return\n"
         ),
         "use_llm": False,
-        "inject_claims": []
+        "inject_simple_claims": []
     },
     {
         "id": "A2_dead_branch_loopv1",
@@ -62,7 +62,7 @@ TEST_SUITE = [
             "    return\n"
         ),
         "use_llm": False,
-        "inject_claims": []
+        "inject_simple_claims": []
     },
     {
         "id": "A3_unreachable_contradiction",
@@ -77,7 +77,7 @@ TEST_SUITE = [
             "    return res\n"
         ),
         "use_llm": False,
-        "inject_claims": []
+        "inject_simple_claims": []
     },
 
     # --- Group B: LLM Hallucination Stress-Test (Anchor Gate Defense) ---
@@ -94,14 +94,26 @@ TEST_SUITE = [
             "    return val\n"
         ),
         "use_llm": False,
-        "inject_claims": [
-            # Line 0 or 42 beyond file boundaries
-            {"id": "halluc_line_42", "line": 42, "expression": "val >= low and val <= high"}
+        "inject_anchored_specs": [
+            # Line 42 is beyond the source and must fail the anchor gate.
+            {"line": 42, "formula": "(and (>= val low) (<= val high))", "variables": ["val", "low", "high"]}
         ],
-        "inject_direct_specs": [
+        "inject_simple_claims": [
             {
-                "formula": "(and (>= val low) (<= val high))",
-                "variables": ["val", "low", "high"],
+                "expression": {
+                    "kind": "op",
+                    "op": "and",
+                    "args": [
+                        {"kind": "op", "op": "ge", "args": [
+                            {"kind": "var", "name": "val"},
+                            {"kind": "var", "name": "low"},
+                        ]},
+                        {"kind": "op", "op": "le", "args": [
+                            {"kind": "var", "name": "val"},
+                            {"kind": "var", "name": "high"},
+                        ]},
+                    ],
+                },
                 "rationale": "The clamp output lies between its bounds.",
             }
         ],
@@ -116,14 +128,23 @@ TEST_SUITE = [
             "    return y\n"
         ),
         "use_llm": False,
-        "inject_claims": [
-            {"id": "halluc_syntax", "line": 3, "expression": "2x == y"}
+        "inject_anchored_specs": [
+            {"line": 3, "formula": "(= (* x y) 0)", "variables": ["x", "y"]}
         ],
-        "inject_direct_specs": [
+        "inject_simple_claims": [
             {
-                "formula": "(= (* x y) 0)",
-                "variables": ["x", "y"],
-                "rationale": "Intentional nonlinear direct-formalization rejection.",
+                "expression": {
+                    "kind": "op",
+                    "op": "eq",
+                    "args": [
+                        {"kind": "op", "op": "mul", "args": [
+                            {"kind": "var", "name": "x"},
+                            {"kind": "var", "name": "y"},
+                        ]},
+                        {"kind": "int", "value": 0},
+                    ],
+                },
+                "rationale": "Intentional nonlinear simple-claim rejection.",
             }
         ],
     },
@@ -222,12 +243,11 @@ def run_benchmark():
         print(f"\n[+] Processing: {p_id} ({category})")
         print(f"    Desc: {desc}")
 
-        cot_trace = ""
         tokens_in = 0
         tokens_out = 0
-        raw_claims_data = []
-        raw_direct_constraints = None
-        raw_direct_specs = None
+        raw_anchored_constraints = []
+        raw_anchored_specs = []
+        raw_simple_claims = None
 
         if cache_file.exists():
             print("    [Cache Hit] Reusing existing results.")
@@ -239,62 +259,58 @@ def run_benchmark():
             print("    [Stale Cache] Regenerating independent baseline inputs.")
 
         if use_llm:
-            print("    Calling Gemini 3.5 Flash independently for both baselines...")
+            print("    Calling independent Gemini prompts for both baselines...")
             t0 = time.time()
-            anchored_llm = generate_cot_and_claims(
+            anchored_llm = generate_anchored_formalization(
                 code,
                 api_key=GEMINI_KEY,
                 model="gemini-3.5-flash",
             )
             anchored_dur = time.time() - t0
-            cot_trace = anchored_llm.cot_trace
-            raw_claims_data = anchored_llm.claims
+            raw_anchored_constraints = anchored_llm.constraints
+            raw_anchored_specs = anchored_llm.specifications
             print(
                 f"    AST_ANCHORED Gemini completed in {anchored_dur:.2f}s "
                 f"(In: {anchored_llm.tokens_in}, Out: {anchored_llm.tokens_out}; "
-                f"{len(raw_claims_data)} claims)"
+                f"{len(raw_anchored_constraints)} constraints, "
+                f"{len(raw_anchored_specs)} anchored specifications)"
             )
             time.sleep(13)  # Respect free tier rate limit
             t0 = time.time()
-            direct_llm = generate_direct_formalization(
+            simple_llm = generate_simple_claims(
                 code,
                 api_key=GEMINI_KEY,
                 model="gemini-3.5-flash",
             )
-            direct_dur = time.time() - t0
-            raw_direct_constraints = direct_llm.constraints
-            raw_direct_specs = direct_llm.specifications
+            simple_dur = time.time() - t0
+            raw_simple_claims = simple_llm.claims
             print(
-                f"    UNANCHORED Direct Formalization completed in {direct_dur:.2f}s "
-                f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out}; "
-                f"{len(raw_direct_constraints)} constraints, "
-                f"{len(raw_direct_specs)} specifications)"
+                f"    UNANCHORED simple claims completed in {simple_dur:.2f}s "
+                f"(In: {simple_llm.tokens_in}, Out: {simple_llm.tokens_out}; "
+                f"{len(raw_simple_claims)} claims)"
             )
         else:
-            # Synthetic / injected claims
-            raw_claims_data = item.get("inject_claims", [])
-            raw_direct_constraints = item.get("inject_direct_constraints")
-            raw_direct_specs = item.get("inject_direct_specs")
+            # Synthetic / injected structured simple claims
+            raw_anchored_constraints = item.get("inject_anchored_constraints", [])
+            raw_anchored_specs = item.get("inject_anchored_specs", [])
+            raw_simple_claims = item.get("inject_simple_claims", [])
             anchored_llm = None
-            direct_llm = None
-            cot_trace = ""
+            simple_llm = None
 
         ast_result = run_pipeline_with_claims(
             code,
-            raw_claims_data,
             baseline="AST_ANCHORED",
-            cot_trace=cot_trace,
+            anchored_constraints=raw_anchored_constraints,
+            anchored_specs=raw_anchored_specs,
             tokens_in=anchored_llm.tokens_in if anchored_llm else 0,
             tokens_out=anchored_llm.tokens_out if anchored_llm else 0,
         )
         un_result = run_pipeline_with_claims(
             code,
-            raw_claims_data,
             baseline="UNANCHORED",
-            direct_constraints=raw_direct_constraints,
-            direct_specs=raw_direct_specs,
-            tokens_in=direct_llm.tokens_in if direct_llm else 0,
-            tokens_out=direct_llm.tokens_out if direct_llm else 0,
+            simple_claims=raw_simple_claims,
+            tokens_in=simple_llm.tokens_in if simple_llm else 0,
+            tokens_out=simple_llm.tokens_out if simple_llm else 0,
         )
 
         res_entry = {
@@ -305,17 +321,16 @@ def run_benchmark():
             "code": code,
             "ast_generation": {
                 "model": anchored_llm.model_name if anchored_llm else "deterministic",
-                "cot_trace": cot_trace,
                 "tokens_in": anchored_llm.tokens_in if anchored_llm else 0,
                 "tokens_out": anchored_llm.tokens_out if anchored_llm else 0,
-                "claim_count": len(raw_claims_data),
+                "constraint_count": len(raw_anchored_constraints or []),
+                "specification_count": len(raw_anchored_specs or []),
             },
-            "direct_generation": {
-                "model": direct_llm.model_name if direct_llm else "deterministic",
-                "tokens_in": direct_llm.tokens_in if direct_llm else 0,
-                "tokens_out": direct_llm.tokens_out if direct_llm else 0,
-                "constraint_count": len(raw_direct_constraints or []),
-                "specification_count": len(raw_direct_specs or []),
+            "simple_generation": {
+                "model": simple_llm.model_name if simple_llm else "deterministic",
+                "tokens_in": simple_llm.tokens_in if simple_llm else 0,
+                "tokens_out": simple_llm.tokens_out if simple_llm else 0,
+                "claim_count": len(raw_simple_claims or []),
             },
             "ast_anchored": ast_result.model_dump(),
             "unanchored": un_result.model_dump()
@@ -337,23 +352,22 @@ def run_benchmark():
 
 def run_pipeline_with_claims(
     code: str,
-    raw_claims: list,
     baseline: str,
-    direct_constraints: list | None = None,
-    direct_specs: list | None = None,
-    cot_trace: str = "",
+    anchored_constraints: list | None = None,
+    anchored_specs: list | None = None,
+    simple_claims: list | None = None,
     tokens_in: int = 0,
     tokens_out: int = 0,
 ):
     """Run one baseline through the public pipeline with its own input pool."""
     kwargs = {}
     if baseline == "AST_ANCHORED":
-        kwargs.update(suggested_claims=raw_claims, cot_trace=cot_trace)
-    elif direct_specs is not None or direct_constraints is not None:
         kwargs.update(
-            direct_constraints=direct_constraints,
-            direct_specifications=direct_specs,
+            anchored_constraints=anchored_constraints,
+            anchored_specifications=anchored_specs,
         )
+    elif simple_claims is not None:
+        kwargs.update(simple_claims=simple_claims)
     kwargs.update(
         program_id="<test>",
         source_path="<test>",

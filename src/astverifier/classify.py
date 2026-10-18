@@ -46,6 +46,9 @@ class ClaimResult(BaseModel):
     z3_stats: Dict[str, float] = {}
     reason: str = ""
     explanation: str = ""
+    # Assigned by the simple unanchored baseline after source-assert
+    # de-duplication.  Anchored results leave it at the neutral value 0.
+    step: int = 0
 
 
 class ProgramResult(BaseModel):
@@ -67,8 +70,8 @@ class ProgramResult(BaseModel):
     total_tokens_out: int = 0
     cot_trace: str = ""
     baseline: str = ""
-    # SatLM-style UNANCHORED context formulas used jointly with each target.
-    # AST_ANCHORED results leave this empty.
+    # SatLM-style context formulas used jointly with each target.  For
+    # AST_ANCHORED these are additionally checked against the anchored state.
     direct_constraints: List[str] = []
     rejected_by_subset: bool = False
     subset_rejection_reason: Optional[str] = None

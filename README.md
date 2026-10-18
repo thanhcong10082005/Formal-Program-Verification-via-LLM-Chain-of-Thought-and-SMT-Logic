@@ -1,18 +1,18 @@
-# AST-Anchored CoT Verification Prototype
+# AST-Anchored SatLM Verification Prototype
 
 > Đồ án chuyên ngành — *"Kiểm Chứng Chương Trình Dựa trên Chuỗi Lý Luận: Xác Minh Logic Thông qua Dấu Vết Ngôn Ngữ Tự Nhiên"*
 > GVHD: TS. Lê Xuân Bách
 
-Framework thực hiện kiểm chứng neuro-symbolic cho chương trình Python: **AST
-là trusted backbone của chế độ `AST_ANCHORED`**, không quyết định nào đến từ
-LLM. Mọi claim được kiểm tra với `NodeId` trong chế độ này, và hai-truy vấn
-Z3 (reachability + validity) được dùng cho từng claim target.
+Framework thực hiện kiểm chứng neuro-symbolic cho chương trình Python:
+`AST_ANCHORED` dùng prompt SatLM-style để sinh joint SMT-LIB2 constraints và
+target formulas có line anchor. **AST là trusted backbone**, không quyết định
+nào đến từ LLM: từng target phải bind vào đúng `NodeId`, rồi qua hai truy vấn
+Z3 (reachability + validity).
 
-`UNANCHORED`: Baseline A, SatLM-style direct formalization without AST
-anchoring or reachability. Gemini returns a joint declarative context of
-SMT-LIB2 `constraints` and target `specifications`; Z3 checks each target with
-`constraints AND NOT(target)`. Tên baseline và thư mục kết quả được giữ lại
-để tương thích.
+`UNANCHORED`: Baseline A, simple claim-list không có AST anchoring,
+program-state hay reachability. Gemini trả về một JSON claim-list có biểu thức
+QF-LIA có cấu trúc; pipeline dịch từng claim sang SMT-LIB2 và Z3 kiểm tra chỉ
+với `NOT(claim)`. Tên baseline và thư mục kết quả được giữ lại để tương thích.
 
 ## Cấu trúc
 
@@ -25,11 +25,8 @@ prototype/
 ```
 
 Xem `documentation/IMPLEMENTATION_WALKTHROUGH.md` để hiểu chi tiết từng
-phase và quá trình debug.
-
-Xem `results/summary.md` để có báo cáo thực nghiệm cuối (4 metric: FDR,
-token consumption, Hallucination Rate, CRVR) trên 188 programs với 2
-baseline (`AST_ANCHORED` vs `UNANCHORED`).
+phase và quá trình debug. Metrics là artifact tùy chọn do benchmark tools sinh;
+working tree hiện không chứa persisted report.
 
 ## Cài đặt
 
@@ -74,34 +71,46 @@ python tools/compare_baselines.py
 
 ### 2. Refresh bằng Gemini (LLM E2E)
 
-`--use-llm` tạo hai claim pool độc lập cho mỗi source: một lời gọi cho
-`AST_ANCHORED` (Python claims có line anchor) và một lời gọi cho
-`UNANCHORED` (Baseline A, SatLM-style SMT-LIB2 constraints plus target
-specifications). Với corpus mặc định 94 source, đây là khoảng 188 request
-Gemini; cần model và quota hoạt động.
+`--use-llm` tạo hai claim pool độc lập cho mỗi source: một lời gọi SatLM-style
+cho `AST_ANCHORED` (SMT-LIB2 constraints và target có line anchor), và một lời
+gọi structured claim-list độc lập cho `UNANCHORED` (Baseline A, không
+anchor/state).
+Với corpus mặc định 94 source, đây là khoảng 188 request Gemini; cần model và
+quota hoạt động.
+
+Với `gemini-3.5-flash-lite`, adapter tự động chèn khoảng 4.2 giây giữa các
+lần thử request (xấp xỉ 14 request/phút), để nằm dưới giới hạn free-tier quan
+sát được là 15 request/phút. Có thể đặt rõ hoặc thay đổi khoảng chờ bằng
+`GEMINI_REQUEST_INTERVAL_SECONDS`; đây là throttling cục bộ, không làm tăng
+quota hoặc sửa lỗi project bị Google từ chối.
 
 Không commit file key. Có thể nạp key cục bộ từ `geminiapi.txt` như sau:
 
 ```powershell
 $env:GEMINI_API_KEY = (Get-Content -Raw geminiapi.txt).Trim()
 $env:PYTHONPATH = "src"
-python tools/run_benchmark.py --use-llm --model gemini-3.5-flash
+$env:GEMINI_REQUEST_INTERVAL_SECONDS = "4.2"
+python tools/run_benchmark.py --use-llm --model gemini-3.5-flash-lite
 python tools/compare_baselines.py
 Remove-Item Env:GEMINI_API_KEY
+Remove-Item Env:GEMINI_REQUEST_INTERVAL_SECONDS
 ```
 
 Trên macOS/Linux:
 
 ```bash
 export GEMINI_API_KEY="$(tr -d '\r\n' < geminiapi.txt)"
-PYTHONPATH=src python tools/run_benchmark.py --use-llm --model gemini-3.5-flash
+export GEMINI_REQUEST_INTERVAL_SECONDS=4.2
+PYTHONPATH=src python tools/run_benchmark.py --use-llm --model gemini-3.5-flash-lite
 PYTHONPATH=src python tools/compare_baselines.py
 unset GEMINI_API_KEY
+unset GEMINI_REQUEST_INTERVAL_SECONDS
 ```
 
-Mỗi lần chạy benchmark sẽ ghi đè các JSON trong
+Mỗi lần chạy benchmark sẽ ghi các JSON trong
 `results/AST_ANCHORED/` và `results/UNANCHORED/`. Lệnh
-`compare_baselines.py` tạo lại `results/summary.md`; đây là file metrics chính.
+`compare_baselines.py` có thể tạo `results/summary.md`; các artifact này không
+được commit trong working tree hiện tại.
 Token input/output được lưu riêng cho hai baseline. Nếu Gemini trả về lỗi
 quota hoặc permission, không dùng run đó làm metrics mới; sửa quyền/quota rồi
 chạy lại toàn bộ benchmark.
@@ -113,9 +122,9 @@ PYTHONPATH=src pytest -q tests
 python -m compileall -q src tools tests
 ```
 
-Xem `results/summary.md` để kiểm tra FDR, accuracy, token consumption,
-hallucination rate và CRVR. Các JSON per-program chứa trạng thái chi tiết và
-`total_tokens_in`/`total_tokens_out` của lần chạy tương ứng.
+Nếu đã chạy benchmark, xem `results/summary.md` để kiểm tra FDR, accuracy,
+token consumption, hallucination rate và CRVR. Các JSON per-program chứa
+trạng thái chi tiết và `total_tokens_in`/`total_tokens_out`.
 
 ## Smoke test pipeline
 
@@ -144,23 +153,25 @@ print(r.n_claims, r.claim_results[0].status.value, r.claim_results[0].reason)
 - **Output** (`ProgramResult`):
   - `n_verified`, `n_counterexample`, `n_unreachable`, `n_unsupported`,
   `n_translation_error`, `n_unknown_timeout`
-- `direct_constraints`: context SMT-LIB2 chung của `UNANCHORED`; rỗng với
-  `AST_ANCHORED`.
-- `claim_results`: list `ClaimResult` với anchor NodeId, Z3 model, replay verdict
-  (AST_ANCHORED), hoặc SMT-LIB2 target/rationale và không replay
-  (UNANCHORED).
+- `direct_constraints`: joint SMT-LIB2 context của formalization
+  `AST_ANCHORED`; context được kiểm tra cùng target state. Baseline
+  `UNANCHORED` luôn để trường này rỗng.
+- `claim_results`: list `ClaimResult` với target SMT-LIB2, anchor NodeId, Z3
+  model và replay verdict khi target là source assertion (AST_ANCHORED), hoặc
+  structured claim/rationale không anchor và không replay (UNANCHORED).
   - `rejected_by_subset`: True nếu source không phải QF-LIA subset.
 
 ## Diễn giải kết quả
 
-- `AST_ANCHORED` yêu cầu dòng chính xác, scope biến hợp lệ và kiểm tra các
-  path bounded dẫn tới đúng `NodeId`.
-- `UNANCHORED` là Baseline A SatLM-style Direct Formalization: không xây dựng
-  `NodeId`, symbolic executor, state relation hay reachability query. LLM sinh
-  một context gồm các constraint QF-LIA và các target SMT-LIB2; source `assert`
-  được thêm đúng một lần như target deterministic. Mỗi target được kiểm tra
-  bằng `constraints AND NOT(target)`. Anchor/location fields luôn rỗng, và
-  counterexample không có replay verdict.
+- `AST_ANCHORED` dùng SMT-LIB2 formalization với line anchor, scope biến,
+  trusted program state và kiểm tra các bounded
+  path dẫn tới đúng `NodeId`. Target do LLM suy ra có anchor nhưng không có
+  Python expression để replay; source `assert` vẫn replay được.
+- `UNANCHORED` là Baseline A simple claim-list: không xây dựng `NodeId`,
+  symbolic executor, state relation hay reachability query. LLM sinh một JSON
+  claim-list có biểu thức QF-LIA; source `assert` được dịch deterministic và
+  thêm đúng một lần. Mỗi claim được kiểm tra bằng `NOT(claim)`. Anchor/location
+  fields luôn rỗng, và counterexample không có replay verdict.
 - Loop unrolling và `break`/`continue` chưa tạo thành chứng minh toàn bộ
   execution space. Khi coverage không đầy đủ, kết quả là `UNKNOWN_TIMEOUT`
   thay vì `VERIFIED`.

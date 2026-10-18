@@ -5,9 +5,8 @@ Connects subset -> nodes -> executor -> binding -> obligations -> replay
 into a single function `run_pipeline(source, baseline)`.
 
 Baseline == "AST_ANCHORED"  : exact anchor binding + target reachability/state.
-Baseline == "UNANCHORED"    : Baseline A SatLM-style Direct Formalization
-                               (joint SMT-LIB2 constraints and targets, with
-                               no AST anchoring or reachability).
+Baseline == "UNANCHORED"    : simple structured claim-list validity checks
+                               (no AST anchoring, state, context, or replay).
 """
 from __future__ import annotations
 
@@ -19,6 +18,7 @@ import z3
 
 from .binding import (
     Claim,
+    bind_anchored_direct_claims,
     bind_llm_claims,
     extract_asserts,
 )
@@ -29,8 +29,8 @@ from .direct import (
     validate_direct_formula,
 )
 from .llm import (
-    generate_cot_and_claims,
-    generate_direct_formalization,
+    generate_anchored_formalization,
+    generate_simple_claims,
 )
 from .classify import (
     AnchorInfo,
@@ -44,13 +44,23 @@ from .executor import Reachability, TrustedSymbolicExecutor
 from .nodes import assign_ids
 from .obligations import (
     build_obligations,
+    build_anchored_direct_obligations,
     build_direct_context,
     build_direct_obligation,
+    build_simple_obligation,
     run_reachability,
     run_context,
+    run_simple_validity,
     run_validity,
 )
 from .replay import replay_counterexample
+from .simple import (
+    SimpleExpressionError,
+    SimpleTranslationError,
+    SimpleUnsupportedError,
+    source_assert_to_simple,
+    validate_simple_claim,
+)
 from .subset import check_and_normalize
 
 
@@ -87,6 +97,9 @@ def run_pipeline(
     gemini_api_key: Optional[str] = None,
     gemini_model: str = "gemini-3.5-flash",
     suggested_claims: Optional[Sequence] = None,
+    simple_claims: Optional[Sequence] = None,
+    anchored_constraints: Optional[Sequence] = None,
+    anchored_specifications: Optional[Sequence] = None,
     direct_constraints: Optional[Sequence] = None,
     direct_specifications: Optional[Sequence] = None,
     direct_specs: Optional[Sequence] = None,
@@ -97,16 +110,19 @@ def run_pipeline(
 ) -> ProgramResult:
     """Execute one baseline on a single source.
 
-    ``UNANCHORED`` is retained as the external compatibility name for
-    Baseline A, SatLM-style Direct Formalization. It does not construct
-    program node IDs, a symbolic executor, a target state, or reachability
-    queries. Gemini supplies jointly assumed SMT-LIB2 constraints and target
-    specifications; source assertions become deterministic target formulas.
-    Each target is checked with ``constraints AND not(target)``.
+    ``AST_ANCHORED`` uses the improved SatLM-style contract when
+    ``anchored_constraints``/``anchored_specifications`` are supplied (or
+    when ``use_llm=True``): Gemini returns joint SMT-LIB2 constraints and
+    line-anchored target specifications, then the trusted AST executor checks
+    reachability and validity at the anchored target state. The legacy
+    ``suggested_claims`` path remains available for compatibility.
 
-    ``suggested_claims`` is the legacy Python/line-number input and is valid
-    only for ``AST_ANCHORED``. Use ``direct_constraints`` and
-    ``direct_specifications`` for the direct baseline.
+    ``UNANCHORED`` is the simple claim-list baseline.  Gemini (or
+    ``simple_claims`` injected by a caller) supplies structured JSON Boolean
+    expressions.  Source assertions are converted deterministically, each
+    claim is translated to QF-LIA SMT-LIB2, and each is checked using only
+    ``not(claim)``.  The result is an ordered, 1-based list with empty
+    anchors and no replay.
     """
     start = time.perf_counter()
 
@@ -122,17 +138,80 @@ def run_pipeline(
         direct_constraints is not None or direct_specifications is not None
     ):
         raise ValueError(
-            "direct constraints/specifications are only valid for the UNANCHORED direct-formalization baseline"
+            "direct_constraints/direct_specifications are legacy simple-baseline inputs and are not valid for AST_ANCHORED"
+        )
+    if baseline == "UNANCHORED" and (
+        anchored_constraints is not None or anchored_specifications is not None
+    ):
+        raise ValueError(
+            "anchored constraints/specifications are only valid for AST_ANCHORED"
+        )
+    if baseline == "AST_ANCHORED" and simple_claims is not None:
+        raise ValueError("simple_claims are only valid for the UNANCHORED baseline")
+    if baseline == "AST_ANCHORED" and suggested_claims is not None and (
+        anchored_constraints is not None or anchored_specifications is not None
+    ):
+        raise ValueError(
+            "pass either legacy suggested_claims or anchored constraints/specifications"
         )
     if baseline == "UNANCHORED" and suggested_claims is not None:
         raise ValueError(
-            "suggested_claims are legacy Python claims; pass direct_constraints/direct_specifications for UNANCHORED"
+            "suggested_claims are legacy Python claims for the anchored baseline; pass simple_claims for UNANCHORED"
+        )
+    if baseline == "UNANCHORED" and (
+        direct_constraints is not None or direct_specifications is not None
+    ):
+        raise ValueError(
+            "direct_constraints/direct_specifications are legacy direct-formalization inputs; pass simple_claims for UNANCHORED"
         )
 
     # --- 1. Subset gate ---
     sub = check_and_normalize(source)
     if not sub.accepted:
         elapsed = time.perf_counter() - start
+        if baseline == "UNANCHORED":
+            # Keep the simple baseline's result contract total over dataset
+            # inputs.  A source outside the strict QF-LIA Python subset is
+            # still rejected, but it is represented as one ordered result so
+            # benchmark aggregation can distinguish unsupported syntax from
+            # an empty/missing run.  No Gemini request is made for rejected
+            # source, and no non-QF-LIA feature is admitted here.
+            rejection_status = (
+                StatusEnum.TRANSLATION_ERROR
+                if (sub.rejected_reason or "").startswith("SyntaxError:")
+                else StatusEnum.UNSUPPORTED
+            )
+            rejection_claim = ClaimResult(
+                claim_id="subset_rejection",
+                claim_text=f"SOURCE_REJECTED: {sub.rejected_reason or 'outside QF-LIA subset'}",
+                status=rejection_status,
+                anchor=AnchorInfo(
+                    node_ids=[],
+                    source_lines=[],
+                    has_grounding=False,
+                ),
+                reason=(
+                    "source could not enter the simple claim-list baseline "
+                    "because it is outside the strict QF-LIA Python subset"
+                ),
+                explanation=sub.rejected_reason or "source rejected by subset gate",
+                step=1,
+            )
+            result = _roll_up(
+                claims=[rejection_claim],
+                program_id=program_id,
+                source_path=source_path,
+                source=source,
+                baseline=baseline,
+                elapsed=elapsed,
+                transitions={},
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                cot_trace=cot_trace,
+            )
+            result.rejected_by_subset = True
+            result.subset_rejection_reason = sub.rejected_reason
+            return result
         result = make_empty_program_result(
             program_id=program_id,
             source_path=source_path,
@@ -149,111 +228,115 @@ def run_pipeline(
 
     # --- 2. Claim extraction & LLM Chain-of-Thought -------------------------
     llm_suggestions: list = []
-    direct_constraint_suggestions: list = []
-    direct_suggestions: list = []
+    anchored_constraint_suggestions: list = []
+    anchored_specification_suggestions: list = []
+    simple_claim_suggestions: list = []
     llm_error: Optional[Claim] = None
-    direct_llm_error: Optional[Claim] = None
+    simple_llm_error: Optional[Claim] = None
     if use_llm and baseline == "AST_ANCHORED" and (
-        suggested_claims is not None or llm_error_message is not None
+        suggested_claims is not None
+        or anchored_constraints is not None
+        or anchored_specifications is not None
+        or llm_error_message is not None
     ):
         raise ValueError(
             "pass either use_llm=True or injected LLM data, not both"
         )
     if use_llm and baseline == "UNANCHORED" and (
-        direct_constraints is not None
-        or direct_specifications is not None
-        or llm_error_message is not None
+        simple_claims is not None or llm_error_message is not None
     ):
         raise ValueError(
-            "pass either use_llm=True or injected direct constraints/specifications, not both"
+            "pass either use_llm=True or injected simple_claims, not both"
         )
 
     if use_llm:
         if baseline == "AST_ANCHORED":
             try:
-                llm_res = generate_cot_and_claims(
+                llm_res = generate_anchored_formalization(
                     source,
                     api_key=gemini_api_key,
                     model=gemini_model,
                 )
                 tokens_in = llm_res.tokens_in
                 tokens_out = llm_res.tokens_out
-                cot_trace = llm_res.cot_trace
-                llm_suggestions = list(llm_res.claims)
+                anchored_constraint_suggestions = list(llm_res.constraints)
+                anchored_specification_suggestions = list(llm_res.specifications)
             except Exception as e:
                 llm_error = _llm_error_claim(e)
         else:
             try:
-                direct_res = generate_direct_formalization(
+                simple_res = generate_simple_claims(
                     source,
                     api_key=gemini_api_key,
                     model=gemini_model,
                 )
-                tokens_in = direct_res.tokens_in
-                tokens_out = direct_res.tokens_out
-                direct_constraint_suggestions = list(direct_res.constraints)
-                direct_suggestions = list(direct_res.specifications)
+                tokens_in = getattr(simple_res, "tokens_in", 0)
+                tokens_out = getattr(simple_res, "tokens_out", 0)
+                if isinstance(simple_res, dict):
+                    raw_simple_claims = simple_res.get(
+                        "claims", simple_res.get("simple_claims", [])
+                    )
+                elif isinstance(simple_res, (list, tuple)):
+                    raw_simple_claims = simple_res
+                else:
+                    raw_simple_claims = getattr(
+                        simple_res,
+                        "claims",
+                        getattr(simple_res, "simple_claims", []),
+                    )
+                simple_claim_suggestions = list(raw_simple_claims or [])
             except Exception as e:
-                direct_llm_error = _llm_error_claim(e)
+                simple_llm_error = _llm_error_claim(e)
     elif baseline == "AST_ANCHORED" and suggested_claims is not None:
         llm_suggestions = _coerce_claim_inputs(suggested_claims)
-    elif baseline == "UNANCHORED":
-        if direct_constraints is not None:
-            direct_constraint_suggestions = _coerce_direct_inputs(direct_constraints)
-        if direct_specifications is not None:
-            direct_suggestions = _coerce_direct_inputs(direct_specifications)
+    elif baseline == "AST_ANCHORED":
+        if anchored_constraints is not None:
+            anchored_constraint_suggestions = _coerce_direct_inputs(anchored_constraints)
+        if anchored_specifications is not None:
+            anchored_specification_suggestions = list(anchored_specifications)
+    elif baseline == "UNANCHORED" and simple_claims is not None:
+        if isinstance(simple_claims, dict):
+            if "claims" in simple_claims or "simple_claims" in simple_claims:
+                simple_claim_suggestions = list(
+                    simple_claims.get(
+                        "claims", simple_claims.get("simple_claims", [])
+                    )
+                )
+            else:
+                simple_claim_suggestions = [simple_claims]
+        elif hasattr(simple_claims, "claims"):
+            simple_claim_suggestions = list(simple_claims.claims)
+        else:
+            simple_claim_suggestions = list(simple_claims)
 
     if llm_error_message is not None:
         if baseline == "AST_ANCHORED":
             llm_error = _llm_error_claim(llm_error_message)
         else:
-            direct_llm_error = _llm_error_claim(llm_error_message)
+            simple_llm_error = _llm_error_claim(llm_error_message)
+
+    anchored_formalization_mode = baseline == "AST_ANCHORED" and (
+        use_llm
+        or anchored_constraints is not None
+        or anchored_specifications is not None
+    )
 
     if baseline == "UNANCHORED":
-        # No NodeIds, executor, target state, target path, or replay is
-        # constructed in this branch.  The direct context is a declarative
-        # conjunction generated independently from the anchored claim pool.
-        static_claims = _source_direct_claims(sub.extracted_claims)
-        validated_constraints, constraint_errors = _parse_direct_constraints(
-            direct_constraint_suggestions
-        )
-        direct_claims = _parse_direct_claims(direct_suggestions)
-        claims = _merge_direct_claims(static_claims, direct_claims)
+        # No NodeIds, executor, target state, context formula, reachability,
+        # or replay is constructed for the simple baseline.  Every structured
+        # claim receives one independent ``Not(claim)`` query.
+        source_claims = _source_simple_claims(sub.extracted_claims)
+        generated_claims = _parse_simple_claims(simple_claim_suggestions)
+        claims = _merge_simple_claims(source_claims, generated_claims)
 
-        direct_context = _combine_direct_constraints(validated_constraints)
-        context_kind = "error" if constraint_errors else "sat"
-        context_elapsed: Optional[float] = None
-        context_error = ""
-        if constraint_errors:
-            context_error = "; ".join(
-                f"{claim.claim_id}: {claim.explanation or claim.expr_source}"
-                for claim in constraint_errors
-            )
-            claims = constraint_errors + claims
-        else:
-            try:
-                context_obligation = build_direct_context(direct_context)
-                context_kind, context_elapsed, _ = run_context(context_obligation)
-            except Exception as exc:
-                context_kind = "error"
-                context_error = f"direct context could not be built: {exc}"
+        if simple_llm_error is not None:
+            claims.append(simple_llm_error)
+        elif use_llm and not simple_claim_suggestions:
+            claims.append(_llm_error_claim("LLM returned no simple claims"))
 
-        if direct_llm_error is not None:
-            claims.append(direct_llm_error)
-        elif use_llm and not direct_suggestions:
-            claims.append(_llm_error_claim("LLM returned no direct specifications"))
-        elif direct_specifications is not None and not direct_suggestions:
-            claims.append(_llm_error_claim("direct specification list is empty"))
-        claim_results = [
-            _process_direct_claim(
-                c,
-                constraints=direct_context,
-                context_kind=context_kind,
-                context_elapsed=context_elapsed,
-                context_error=context_error,
-            )
-            for c in claims
-        ]
+        for step, claim in enumerate(claims, start=1):
+            claim.step = step
+        claim_results = [_process_simple_claim(c) for c in claims]
         result = _roll_up(
             claims=claim_results,
             program_id=program_id,
@@ -265,9 +348,6 @@ def run_pipeline(
             tokens_in=tokens_in,
             tokens_out=tokens_out,
             cot_trace=cot_trace,
-            direct_constraints=[
-                validated.formula for validated in validated_constraints
-            ],
         )
         return result
 
@@ -292,6 +372,79 @@ def run_pipeline(
         return result
 
     # --- 4. Anchor binding ---------------------------------------------------
+    if anchored_formalization_mode:
+        static_claims = extract_asserts(sub.tree, ids)
+        anchored_static_claims = _source_anchored_direct_claims(static_claims)
+        generated_claims = bind_anchored_direct_claims(
+            sub.tree,
+            ids,
+            anchored_specification_suggestions,
+        )
+        claims = _merge_anchored_direct_claims(
+            anchored_static_claims,
+            generated_claims,
+        )
+        validated_constraints, constraint_errors = _parse_direct_constraints(
+            anchored_constraint_suggestions
+        )
+        anchored_context = _combine_direct_constraints(validated_constraints)
+        context_kind = "error" if constraint_errors else "sat"
+        context_elapsed: Optional[float] = None
+        context_error = ""
+        if constraint_errors:
+            context_error = "; ".join(
+                f"{claim.claim_id}: {claim.explanation or claim.expr_source}"
+                for claim in constraint_errors
+            )
+        else:
+            try:
+                context_obligation = build_direct_context(anchored_context)
+                context_kind, context_elapsed, _ = run_context(context_obligation)
+            except Exception as exc:
+                context_kind = "error"
+                context_error = f"anchored context could not be built: {exc}"
+
+        if llm_error is not None:
+            claims.append(llm_error)
+        elif use_llm and not anchored_specification_suggestions:
+            claims.append(
+                _llm_error_claim("LLM returned no anchored specifications")
+            )
+        claim_results: List[ClaimResult] = [
+            _process_anchored_direct_claim(
+                c,
+                executor=executor,
+                reachabilities=[
+                    executor.build_reachability(path, guards)
+                    for path, guards in executor.enumerate_target_paths(c.anchor)
+                ] if c.anchor is not None else [],
+                constraints=anchored_context,
+                context_kind=context_kind,
+                context_elapsed=context_elapsed,
+                context_error=context_error,
+                baseline=baseline,
+                source=source,
+                do_replay=do_replay,
+            )
+            for c in (constraint_errors + claims)
+        ]
+        result = _roll_up(
+            claims=claim_results,
+            program_id=program_id,
+            source_path=source_path,
+            source=source,
+            baseline=baseline,
+            elapsed=time.perf_counter() - start,
+            transitions=transitions,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cot_trace=cot_trace,
+            direct_constraints=[
+                validated.formula for validated in validated_constraints
+            ],
+        )
+        return result
+
     static_claims = extract_asserts(sub.tree, ids)
     llm_claims = bind_llm_claims(sub.tree, ids, llm_suggestions)
     if llm_error is not None:
@@ -397,6 +550,244 @@ def _llm_error_claim(error: object) -> Claim:
     )
 
 
+def _simple_value(item, name: str, default=None):
+    if isinstance(item, dict):
+        return item.get(name, default)
+    return getattr(item, name, default)
+
+
+def _simple_expression_from_item(item):
+    """Extract an expression object without accepting direct SMT text.
+
+    The public schema uses ``expression``.  Accepting ``claim`` and a bare
+    expression object keeps injected fixtures ergonomic while still requiring
+    the actual expression to be structured JSON.
+    """
+    if isinstance(item, dict):
+        if "expression" in item:
+            return item["expression"]
+        if "claim" in item:
+            return item["claim"]
+        if "expr" in item:
+            return item["expr"]
+        if any(key in item for key in ("kind", "type", "node_type", "op", "operator", "var", "variable", "int", "bool")):
+            return item
+        return None
+    return getattr(item, "expression", None)
+
+
+def _simple_item_text(expression) -> str:
+    try:
+        import json
+
+        return json.dumps(expression, sort_keys=True, separators=(",", ":"))
+    except Exception:
+        return repr(expression)
+
+
+def _simple_claim_from_error(
+    *, claim_id: str, step: int, expression, status: str, explanation: str
+) -> Claim:
+    return Claim(
+        claim_id=claim_id,
+        source_line=0,
+        expr_source=_simple_item_text(expression),
+        expr_node=None,
+        anchor=None,
+        status=status,
+        explanation=explanation,
+        step=step,
+    )
+
+
+def _source_simple_claims(claim_infos: Iterable) -> List[Claim]:
+    """Translate every source assertion exactly once, in source order."""
+    out: List[Claim] = []
+    for index, info in enumerate(claim_infos, start=1):
+        try:
+            validated = source_assert_to_simple(
+                info.expr_node,
+                rationale="Deterministic source assertion.",
+            )
+        except SimpleUnsupportedError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=f"source_assert_{index}",
+                    step=0,
+                    expression=info.expr_source,
+                    status="UNSUPPORTED",
+                    explanation=str(exc),
+                )
+            )
+        except SimpleTranslationError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=f"source_assert_{index}",
+                    step=0,
+                    expression=info.expr_source,
+                    status="TRANSLATION_ERROR",
+                    explanation=str(exc),
+                )
+            )
+        except SimpleExpressionError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=f"source_assert_{index}",
+                    step=0,
+                    expression=info.expr_source,
+                    status="TRANSLATION_ERROR",
+                    explanation=str(exc),
+                )
+            )
+        except Exception as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=f"source_assert_{index}",
+                    step=0,
+                    expression=info.expr_source,
+                    status="TRANSLATION_ERROR",
+                    explanation=f"source assertion translation failed: {exc}",
+                )
+            )
+        else:
+            out.append(
+                Claim(
+                    claim_id=f"source_assert_{index}",
+                    source_line=0,
+                    expr_source=validated.formula,
+                    expr_node=None,
+                    anchor=None,
+                    status="SIMPLE",
+                    explanation=validated.rationale,
+                    simple_expression=validated.expression,
+                    simple_variables=validated.variables,
+                )
+            )
+    return out
+
+
+def _parse_simple_claims(simple_claims: Iterable) -> List[Claim]:
+    """Validate generated structured claims while preserving their order."""
+    out: List[Claim] = []
+    for index, item in enumerate(simple_claims, start=1):
+        expression = _simple_expression_from_item(item)
+        rationale = _simple_value(item, "rationale", "")
+        rationale = rationale if isinstance(rationale, str) else str(rationale)
+        claim_id = f"simple_claim_{index}"
+        if isinstance(item, dict) and set(item).intersection(
+            {"line", "source_line", "target_line", "anchor", "node_id", "node_ids", "constraints", "reachability"}
+        ):
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=item,
+                    status="TRANSLATION_ERROR",
+                    explanation="simple claims cannot contain source anchors, lines, constraints, or reachability data",
+                )
+            )
+            continue
+        if expression is None:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=item,
+                    status="TRANSLATION_ERROR",
+                    explanation="simple claim must contain one structured expression object",
+                )
+            )
+            continue
+        try:
+            validated = validate_simple_claim(expression, rationale=rationale)
+        except SimpleUnsupportedError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=expression,
+                    status="UNSUPPORTED",
+                    explanation=rationale or str(exc),
+                )
+            )
+        except SimpleTranslationError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=expression,
+                    status="TRANSLATION_ERROR",
+                    explanation=rationale or str(exc),
+                )
+            )
+        except SimpleExpressionError as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=expression,
+                    status="TRANSLATION_ERROR",
+                    explanation=rationale or str(exc),
+                )
+            )
+        except Exception as exc:
+            out.append(
+                _simple_claim_from_error(
+                    claim_id=claim_id,
+                    step=0,
+                    expression=expression,
+                    status="TRANSLATION_ERROR",
+                    explanation=rationale or f"simple claim translation failed: {exc}",
+                )
+            )
+        else:
+            out.append(
+                Claim(
+                    claim_id=claim_id,
+                    source_line=0,
+                    expr_source=validated.formula,
+                    expr_node=None,
+                    anchor=None,
+                    status="SIMPLE",
+                    explanation=validated.rationale,
+                    simple_expression=validated.expression,
+                    simple_variables=validated.variables,
+                )
+            )
+    return out
+
+
+def _simple_claim_key(claim: Claim) -> Optional[str]:
+    if claim.simple_expression is None or not z3.is_bool(claim.simple_expression):
+        return None
+    try:
+        return z3.simplify(claim.simple_expression).sexpr()
+    except Exception:
+        return None
+
+
+def _merge_simple_claims(
+    source_claims: Iterable[Claim], generated_claims: Iterable[Claim]
+) -> List[Claim]:
+    """Keep source assertions once and append new generated claims in order."""
+    merged = list(source_claims)
+    source_seen: dict[str, Claim] = {}
+    for claim in merged:
+        key = _simple_claim_key(claim)
+        if key is not None:
+            source_seen.setdefault(key, claim)
+
+    for claim in generated_claims:
+        key = _simple_claim_key(claim)
+        existing = source_seen.get(key) if key is not None else None
+        if existing is not None:
+            if claim.explanation:
+                existing.explanation = claim.explanation
+            continue
+        merged.append(claim)
+    return merged
+
+
 def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
     """Convert each source assert to exactly one deterministic direct claim."""
     out: List[Claim] = []
@@ -459,6 +850,102 @@ def _source_direct_claims(claim_infos: Iterable) -> List[Claim]:
                     explanation=f"Deterministic source assertion: {exc}",
                 )
             )
+    return out
+
+
+def _source_anchored_direct_claims(claims: Iterable[Claim]) -> List[Claim]:
+    """Convert trusted source asserts into anchored SMT target claims."""
+    out: List[Claim] = []
+    for claim in claims:
+        try:
+            validated = source_assert_to_direct(
+                claim.expr_node,
+                rationale="Deterministic source assertion anchored to the AST.",
+            )
+        except DirectUnsupportedError:
+            out.append(
+                Claim(
+                    claim_id=claim.claim_id,
+                    source_line=claim.source_line,
+                    expr_source=claim.expr_source,
+                    expr_node=claim.expr_node,
+                    anchor=claim.anchor,
+                    status="UNSUPPORTED",
+                    anchor_node=claim.anchor_node,
+                    explanation="Deterministic source assertion.",
+                    replay_expr_source=claim.expr_source,
+                )
+            )
+        except DirectFormulaError:
+            out.append(
+                Claim(
+                    claim_id=claim.claim_id,
+                    source_line=claim.source_line,
+                    expr_source=claim.expr_source,
+                    expr_node=claim.expr_node,
+                    anchor=claim.anchor,
+                    status="TRANSLATION_ERROR",
+                    anchor_node=claim.anchor_node,
+                    explanation="Deterministic source assertion.",
+                    replay_expr_source=claim.expr_source,
+                )
+            )
+        except Exception as exc:
+            out.append(
+                Claim(
+                    claim_id=claim.claim_id,
+                    source_line=claim.source_line,
+                    expr_source=claim.expr_source,
+                    expr_node=claim.expr_node,
+                    anchor=claim.anchor,
+                    status="TRANSLATION_ERROR",
+                    anchor_node=claim.anchor_node,
+                    explanation=f"Deterministic source assertion: {exc}",
+                    replay_expr_source=claim.expr_source,
+                )
+            )
+        else:
+            out.append(
+                Claim(
+                    claim_id=claim.claim_id,
+                    source_line=claim.source_line,
+                    expr_source=validated.formula,
+                    expr_node=claim.expr_node,
+                    anchor=claim.anchor,
+                    status="DIRECT",
+                    anchor_node=claim.anchor_node,
+                    explanation=validated.rationale,
+                    direct_expression=validated.expression,
+                    direct_variables=validated.variables,
+                    replay_expr_source=claim.expr_source,
+                )
+            )
+    return out
+
+
+def _direct_claim_key(claim: Claim) -> tuple[str, str] | None:
+    if claim.direct_expression is None or claim.anchor is None:
+        return None
+    return (
+        claim.anchor.as_string(),
+        z3.simplify(claim.direct_expression).sexpr(),
+    )
+
+
+def _merge_anchored_direct_claims(
+    source_claims: Iterable[Claim],
+    generated_claims: Iterable[Claim],
+) -> List[Claim]:
+    """Keep each source assert once while retaining new anchored targets."""
+    out: List[Claim] = []
+    seen: set[tuple[str, str]] = set()
+    for claim in list(source_claims) + list(generated_claims):
+        key = _direct_claim_key(claim)
+        if key is not None:
+            if key in seen:
+                continue
+            seen.add(key)
+        out.append(claim)
     return out
 
 
@@ -686,6 +1173,74 @@ def _canonical_direct_term(value: z3.ExprRef):
     return (decl.name(), *args)
 
 
+def _process_simple_claim(claim: Claim) -> ClaimResult:
+    """Check one simple claim using only the negated translated formula."""
+    anchor = AnchorInfo(node_ids=[], source_lines=[], has_grounding=False)
+    base = {
+        "claim_id": claim.claim_id,
+        "claim_text": claim.expr_source,
+        "anchor": anchor,
+        "step": claim.step,
+        "explanation": claim.explanation,
+    }
+
+    if claim.status == "UNSUPPORTED":
+        return ClaimResult(
+            **base,
+            status=StatusEnum.UNSUPPORTED,
+            reason="structured claim uses a feature outside the supported QF-LIA subset",
+        )
+    if claim.status == "TRANSLATION_ERROR":
+        return ClaimResult(
+            **base,
+            status=StatusEnum.TRANSLATION_ERROR,
+            reason="structured claim could not be translated to QF-LIA SMT-LIB2",
+        )
+    if claim.simple_expression is None or not z3.is_bool(claim.simple_expression):
+        return ClaimResult(
+            **base,
+            status=StatusEnum.TRANSLATION_ERROR,
+            reason="simple claim has no validated Boolean expression",
+        )
+
+    try:
+        obligation = build_simple_obligation(claim.simple_expression)
+    except Exception as exc:
+        return ClaimResult(
+            **base,
+            status=StatusEnum.TRANSLATION_ERROR,
+            reason=f"simple validity obligation could not be built: {exc}",
+        )
+
+    kind, elapsed, model = run_simple_validity(obligation)
+    stats = {"valid_ms": (elapsed or 0) * 1000}
+    if kind == "unsat":
+        return ClaimResult(
+            **base,
+            status=StatusEnum.VERIFIED,
+            z3_stats=stats,
+            reason="the negated simple claim is unsatisfiable",
+        )
+    if kind == "unknown":
+        return ClaimResult(
+            **base,
+            status=StatusEnum.UNKNOWN_TIMEOUT,
+            z3_stats=stats,
+            reason="Z3 returned unknown for the negated simple claim",
+        )
+
+    assert model is not None
+    # Deliberately do not call replay_counterexample here.  The simple
+    # baseline has no source target location or trusted program state.
+    return ClaimResult(
+        **base,
+        status=StatusEnum.COUNTEREXAMPLE,
+        counterexample=_counterexample_from_model(model, claim),
+        z3_stats=stats,
+        reason="Z3 found an integer model satisfying the negated simple claim",
+    )
+
+
 def _process_claim(
     claim: Claim,
     executor: TrustedSymbolicExecutor,
@@ -838,6 +1393,218 @@ def _process_claim(
         anchor=anchor_info,
         z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
         reason="claim holds on every complete path to its exact target node",
+    )
+
+
+def _process_anchored_direct_claim(
+    claim: Claim,
+    *,
+    executor: TrustedSymbolicExecutor,
+    reachabilities: List[Reachability],
+    constraints: z3.BoolRef,
+    context_kind: str,
+    context_elapsed: Optional[float],
+    context_error: str,
+    baseline: str,
+    source: str,
+    do_replay: bool,
+) -> ClaimResult:
+    """Check an SMT target after binding it to an AST-derived target state."""
+    anchor_info = AnchorInfo(
+        node_ids=[claim.anchor.as_string()] if claim.anchor else [],
+        source_lines=[claim.source_line] if claim.source_line > 0 else [],
+        has_grounding=claim.anchor is not None,
+    )
+
+    if claim.status == "UNSUPPORTED":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNSUPPORTED,
+            anchor=anchor_info,
+            reason="anchored SMT-LIB2 formula is outside the supported QF-LIA or AST subset",
+            explanation=claim.explanation,
+        )
+    if claim.status == "TRANSLATION_ERROR":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor_info,
+            reason="anchored SMT-LIB2 formula could not be parsed or validated",
+            explanation=claim.explanation,
+        )
+    if claim.direct_expression is None or claim.anchor is None:
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor_info,
+            reason="anchored target has no validated formula or exact AST anchor",
+            explanation=claim.explanation,
+        )
+
+    if context_kind == "error":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor_info,
+            z3_stats={"context_ms": (context_elapsed or 0) * 1000},
+            reason=(
+                "joint anchored constraints could not be translated or validated"
+                + (f": {context_error}" if context_error else "")
+            ),
+            explanation=claim.explanation,
+        )
+    if context_kind == "unsat":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.TRANSLATION_ERROR,
+            anchor=anchor_info,
+            z3_stats={"context_ms": (context_elapsed or 0) * 1000},
+            reason="joint anchored constraints are inconsistent; target entailment would be vacuous",
+            explanation=claim.explanation,
+        )
+    if context_kind == "unknown":
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNKNOWN_TIMEOUT,
+            anchor=anchor_info,
+            z3_stats={"context_ms": (context_elapsed or 0) * 1000},
+            reason="Z3 returned unknown while checking anchored constraint consistency",
+            explanation=claim.explanation,
+        )
+
+    if not reachabilities:
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNKNOWN_TIMEOUT,
+            anchor=anchor_info,
+            reason="no bounded path to the exact anchored target was enumerated",
+            explanation=claim.explanation,
+        )
+
+    reach_ms = 0.0
+    valid_ms = 0.0
+    reachable_paths = 0
+    for reachability in reachabilities:
+        try:
+            obligation = build_anchored_direct_obligations(
+                claim,
+                reachability,
+                constraints,
+            )
+        except Exception as exc:
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.TRANSLATION_ERROR,
+                anchor=anchor_info,
+                reason=f"anchored target could not be bound to target state: {exc}",
+                explanation=claim.explanation,
+            )
+
+        r_kind, r_t, _ = run_reachability(obligation)
+        if r_t is not None:
+            reach_ms += r_t * 1000
+        if r_kind == "unsat":
+            continue
+        if r_kind == "unknown":
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.UNKNOWN_TIMEOUT,
+                anchor=anchor_info,
+                z3_stats={"reach_ms": reach_ms},
+                reason="Z3 returned unknown on anchored target reachability",
+                explanation=claim.explanation,
+            )
+
+        reachable_paths += 1
+        v_kind, v_t, v_model = run_validity(obligation)
+        if v_t is not None:
+            valid_ms += v_t * 1000
+        if v_kind == "unknown":
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.UNKNOWN_TIMEOUT,
+                anchor=anchor_info,
+                z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+                reason="Z3 returned unknown on anchored target validity",
+                explanation=claim.explanation,
+            )
+        if v_kind == "sat":
+            assert v_model is not None
+            ce_info = _counterexample_from_model(v_model, claim)
+            replay_v: Optional[bool] = None
+            replay_out: Optional[str] = None
+            if do_replay and claim.replay_expr_source and ce_info.z3_model:
+                replay = _replay_with_model(source, ce_info.z3_model, claim)
+                replay_v = replay.success
+                replay_out = replay.output_repr
+                ce_info.replay_verdict = replay_v
+                ce_info.replay_output = replay_out
+                ce_info.replay_diff = replay.error
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.COUNTEREXAMPLE,
+                anchor=anchor_info,
+                counterexample=ce_info,
+                z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+                reason=(
+                    "Z3 found a violating model at the exact AST target"
+                    + ("; replay confirmed the source assertion violation" if replay_v is True else "")
+                    + ("; replay did not confirm the source assertion violation" if replay_v is False else "")
+                ),
+                explanation=claim.explanation,
+            )
+
+    if reachable_paths == 0:
+        if any(not reachability.complete for reachability in reachabilities):
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.UNKNOWN_TIMEOUT,
+                anchor=anchor_info,
+                z3_stats={"reach_ms": reach_ms},
+                reason="anchored target paths are unreachable, but control-flow coverage is incomplete",
+                explanation=claim.explanation,
+            )
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNREACHABLE,
+            anchor=anchor_info,
+            z3_stats={"reach_ms": reach_ms},
+            reason="all bounded paths to the exact AST target are unreachable",
+            explanation=claim.explanation,
+        )
+
+    if not all(reachability.complete for reachability in reachabilities):
+        return ClaimResult(
+            claim_id=claim.claim_id,
+            claim_text=claim.expr_source,
+            status=StatusEnum.UNKNOWN_TIMEOUT,
+            anchor=anchor_info,
+            z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+            reason="all modeled anchored paths satisfy the target, but loop/control-flow coverage is incomplete",
+            explanation=claim.explanation,
+        )
+
+    return ClaimResult(
+        claim_id=claim.claim_id,
+        claim_text=claim.expr_source,
+        status=StatusEnum.VERIFIED,
+        anchor=anchor_info,
+        z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+        reason="target holds on every complete AST-derived path to its exact anchor",
+        explanation=claim.explanation,
     )
 
 
@@ -1041,7 +1808,7 @@ def _replay_with_model(source: str, model_bindings: Dict[str, int], claim: Claim
         fn.name,
         inputs,
         target_line=claim.source_line,
-        claim_expression=claim.expr_source,
+        claim_expression=claim.replay_expr_source or claim.expr_source,
         timeout=2.0,
     )
 

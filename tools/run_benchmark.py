@@ -16,10 +16,10 @@ from typing import List
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from astverifier.classify import ProgramResult
 from astverifier.llm import (
-    DirectLLMResult,
-    LLMResult,
-    generate_cot_and_claims,
-    generate_direct_formalization,
+    AnchoredLLMResult,
+    SimpleLLMResult,
+    generate_anchored_formalization,
+    generate_simple_claims,
 )
 from astverifier.pipeline import run_pipeline
 
@@ -255,8 +255,8 @@ def _run_one(
     baseline: str,
     *,
     use_llm: bool = False,
-    llm_result: LLMResult | None = None,
-    direct_llm_result: DirectLLMResult | None = None,
+    llm_result: AnchoredLLMResult | None = None,
+    simple_llm_result: SimpleLLMResult | None = None,
     llm_error_message: str | None = None,
 ) -> ProgramResult:
     source = source_path.read_text(encoding="utf-8")
@@ -276,14 +276,18 @@ def _run_one(
             source_path=str(source_path),
             baseline=baseline,
             do_replay=True,
-            suggested_claims=llm_result.claims if llm_result is not None else [],
+            anchored_constraints=(
+                llm_result.constraints if llm_result is not None else []
+            ),
+            anchored_specifications=(
+                llm_result.specifications if llm_result is not None else []
+            ),
             tokens_in=llm_result.tokens_in if llm_result is not None else 0,
             tokens_out=llm_result.tokens_out if llm_result is not None else 0,
-            cot_trace=llm_result.cot_trace if llm_result is not None else "",
             llm_error_message=llm_error_message,
         )
     if baseline == "UNANCHORED" and (
-        direct_llm_result is not None or llm_error_message is not None
+        simple_llm_result is not None or llm_error_message is not None
     ):
         return run_pipeline(
             source,
@@ -291,14 +295,11 @@ def _run_one(
             source_path=str(source_path),
             baseline=baseline,
             do_replay=True,
-            direct_constraints=(
-                direct_llm_result.constraints if direct_llm_result is not None else []
+            simple_claims=(
+                simple_llm_result.claims if simple_llm_result is not None else []
             ),
-            direct_specifications=(
-                direct_llm_result.specifications if direct_llm_result is not None else []
-            ),
-            tokens_in=direct_llm_result.tokens_in if direct_llm_result is not None else 0,
-            tokens_out=direct_llm_result.tokens_out if direct_llm_result is not None else 0,
+            tokens_in=simple_llm_result.tokens_in if simple_llm_result is not None else 0,
+            tokens_out=simple_llm_result.tokens_out if simple_llm_result is not None else 0,
             llm_error_message=llm_error_message,
         )
     return run_pipeline(
@@ -334,13 +335,13 @@ def main(argv: List[str]) -> int:
     t0 = time.perf_counter()
 
     for src_path in all_sources:
-        anchored_generated: LLMResult | None = None
-        direct_generated: DirectLLMResult | None = None
+        anchored_generated: AnchoredLLMResult | None = None
+        simple_generated: SimpleLLMResult | None = None
         anchored_error: str | None = None
-        direct_error: str | None = None
+        simple_error: str | None = None
         if use_llm:
             try:
-                anchored_generated = generate_cot_and_claims(
+                anchored_generated = generate_anchored_formalization(
                     src_path.read_text(encoding="utf-8"),
                     model=model,
                 )
@@ -348,13 +349,13 @@ def main(argv: List[str]) -> int:
                 anchored_error = str(exc)
                 print(f"  [anchored llm error] {src_path.name}: {anchored_error}")
             try:
-                direct_generated = generate_direct_formalization(
+                simple_generated = generate_simple_claims(
                     src_path.read_text(encoding="utf-8"),
                     model=model,
                 )
             except Exception as exc:
-                direct_error = str(exc)
-                print(f"  [direct llm error] {src_path.name}: {direct_error}")
+                simple_error = str(exc)
+                print(f"  [simple llm error] {src_path.name}: {simple_error}")
         for baseline in BASELINES:
             t1 = time.perf_counter()
             try:
@@ -363,9 +364,9 @@ def main(argv: List[str]) -> int:
                     baseline,
                     use_llm=False,
                     llm_result=anchored_generated,
-                    direct_llm_result=direct_generated,
+                    simple_llm_result=simple_generated,
                     llm_error_message=(
-                        anchored_error if baseline == "AST_ANCHORED" else direct_error
+                        anchored_error if baseline == "AST_ANCHORED" else simple_error
                     ),
                 )
             except Exception as e:

@@ -1,0 +1,841 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "baseline": "UNANCHORED",
+  "do_replay": false,
+  "scope": {
+    "svcomp_core": 18,
+    "cruxeval_python": 21,
+    "planned_programs": 39,
+    "completed_programs": 39,
+    "subset_accepted_programs": 2,
+    "subset_rejected_programs": 37,
+    "actual_gemini_calls": 2
+  },
+  "programs": [
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_108",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'type' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_134",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_146",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type List not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_197",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "floor division and modulo require a nonzero constant divisor"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_210",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_22",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type List not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_297",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_412",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_431",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_470",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type Dict not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_497",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_506",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_509",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "only bare-name function calls allowed (no methods)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_51",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 4.14,
+      "tokens_in": 360,
+      "tokens_out": 4,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_535",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "for-loop only over range(...)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_582",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type List not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_660",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type List not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_67",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type List not in the supported subset"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_785",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "constant of type str not allowed (strings/lists/dicts violate QF-LIA)"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_791",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "function 'str' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']"
+    },
+    {
+      "dataset": "cruxeval",
+      "program_id": "cruxeval__sample_85",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "expression type Dict not in the supported subset"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__bin-suffix-5",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: expected an indented block after 'while' statement on line 3"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__const",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: invalid syntax"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__eq1",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: invalid syntax"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__eq2",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 1,
+      "n_unsupported": 0,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 7.83,
+      "tokens_in": 367,
+      "tokens_out": 99,
+      "statuses": [
+        "COUNTEREXAMPLE"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": false,
+      "subset_rejection_reason": null
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__even",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: expected an indented block after 'while' statement on line 3"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__linear-inequality-inv-a",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unmatched ')'"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__linear-inequality-inv-b",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unmatched ')'"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__linear-inequality-inv-c",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unmatched ')'"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__mod4",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: expected an indented block after 'while' statement on line 3"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__odd",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: expected an indented block after 'while' statement on line 3"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__deep-nested",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: invalid syntax"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "standalone expressions not allowed"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1b",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 1,
+      "n_translation_error": 0,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "UNSUPPORTED"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "standalone expressions not allowed"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_2",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_3",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_4",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_5",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+    },
+    {
+      "dataset": "svcomp",
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_6",
+      "n_claims": 1,
+      "n_verified": 0,
+      "n_counterexample": 0,
+      "n_unsupported": 0,
+      "n_translation_error": 1,
+      "n_unknown_timeout": 0,
+      "elapsed_seconds": 0.0,
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "statuses": [
+        "TRANSLATION_ERROR"
+      ],
+      "anchors_empty": true,
+      "replay_disabled": true,
+      "rejected_by_subset": true,
+      "subset_rejection_reason": "SyntaxError: unindent does not match any outer indentation level"
+    }
+  ],
+  "subset_rejection_reasons": {
+    "SyntaxError: expected an indented block after 'while' statement on line 3": 4,
+    "SyntaxError: invalid syntax": 3,
+    "SyntaxError: unindent does not match any outer indentation level": 5,
+    "SyntaxError: unmatched ')'": 3,
+    "constant of type str not allowed (strings/lists/dicts violate QF-LIA)": 4,
+    "expression type Dict not in the supported subset": 2,
+    "expression type List not in the supported subset": 5,
+    "floor division and modulo require a nonzero constant divisor": 1,
+    "for-loop only over range(...)": 1,
+    "function 'list' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']": 4,
+    "function 'str' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']": 1,
+    "function 'type' not in builtin whitelist ['abs', 'len', 'max', 'min', 'range']": 1,
+    "only bare-name function calls allowed (no methods)": 1,
+    "standalone expressions not allowed": 2
+  },
+  "aggregate_all": {
+    "fdr": null,
+    "accuracy": null,
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "token_avg_in": 18.641025641025642,
+    "token_avg_out": 2.641025641025641,
+    "cost_avg_usd": 0.00013282051282051283,
+    "hr": 0.9743589743589743,
+    "crvr": null,
+    "n_programs": 39,
+    "n_claims": 39
+  },
+  "aggregate_svcomp_with_ground_truth": {
+    "fdr": null,
+    "accuracy": 0.0,
+    "precision": null,
+    "recall": 0.0,
+    "f1": 0.0,
+    "token_avg_in": 20.38888888888889,
+    "token_avg_out": 5.5,
+    "cost_avg_usd": 0.00018444444444444443,
+    "hr": 0.9444444444444444,
+    "crvr": null,
+    "n_programs": 18,
+    "n_claims": 18
+  },
+  "dataset_run_wall_elapsed_seconds": 12.0
+}

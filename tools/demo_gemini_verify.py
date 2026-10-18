@@ -4,12 +4,11 @@ demo_gemini_verify.py - End-to-end Demonstration of Formal Verification using Ge
 Workflow:
 1. Takes Python source code.
 2. Sends to Google Gemini API using the selected baseline's own prompt.
-   - AST_ANCHORED returns a CoT trace and line-anchored Python claims.
-   - UNANCHORED returns joint SMT-LIB2 constraints, target specifications,
-     and brief rationales.
-3. AST_ANCHORED binds claims to syntax NodeIds (rejecting hallucinations).
+   - AST_ANCHORED returns joint SMT-LIB2 constraints and line-anchored targets.
+   - UNANCHORED returns a structured QF-LIA claim list without line anchors.
+3. AST_ANCHORED binds targets to syntax NodeIds (rejecting hallucinations).
 4. Z3 checks the selected baseline's formal obligation.
-5. AST_ANCHORED may replay counterexamples on CPython; direct results do not.
+   5. AST_ANCHORED may replay counterexamples on CPython; simple results do not.
 6. Prints detailed trace, verdicts, and token consumption statistics.
 """
 from __future__ import annotations
@@ -77,9 +76,9 @@ def main() -> int:
     print(source.strip())
     print("=" * 70)
     if args.baseline == "AST_ANCHORED":
-        call_label = "Chain-of-Thought & anchored claims"
+        call_label = "SatLM-style SMT-LIB2 formalization with AST anchors"
     else:
-        call_label = "SatLM-style Direct Formalization constraints + specifications"
+        call_label = "structured QF-LIA simple claim list"
     print(f"[*] Calling Gemini ({args.model}) for {call_label}...")
 
     try:
@@ -98,19 +97,20 @@ def main() -> int:
 
     print("\n" + "=" * 70)
     if args.baseline == "AST_ANCHORED":
-        print(" [CoT] GEMINI CHAIN-OF-THOUGHT REASONING TRACE:")
-        print("=" * 70)
-        print(res.cot_trace or "(No CoT trace returned)")
-    else:
-        print(" [SatLM-style Direct Formalization] SMT-LIB2 context + targets")
+        print(" [SatLM-style AST-Anchored Formalization] SMT-LIB2 context + targets")
         print("=" * 70)
         print("Joint context constraints:")
         for formula in res.direct_constraints:
             print(f"  - {formula}")
-        print("The direct baseline uses brief per-formula rationales; no CoT is requested.")
+        print("Target formulas are shown with their AST anchors below.")
+    else:
+        print(" [Simple Claim List] structured claims translated to SMT-LIB2")
+        print("=" * 70)
+        print("No joint context is used; each claim is checked with only its negation.")
+        print("The simple baseline uses brief per-claim rationales; no CoT is requested.")
 
     print("\n" + "=" * 70)
-    label = "AST-Anchored + Z3" if args.baseline == "AST_ANCHORED" else "SatLM-style Direct Formalization + Z3"
+    label = "SatLM-style AST-Anchored + Z3" if args.baseline == "AST_ANCHORED" else "Simple Claim List + Z3"
     print(f" [SMT] FORMAL VERIFICATION RESULTS ({label}):")
     print("=" * 70)
     print(f"Total claims evaluated: {res.n_claims}")
@@ -128,7 +128,7 @@ def main() -> int:
         if args.baseline == "AST_ANCHORED":
             anchor_label = cr.anchor.node_ids[0] if cr.anchor.node_ids else "None (Hallucinated)"
         else:
-            anchor_label = "None (direct baseline)"
+            anchor_label = "None (simple baseline)"
         print(f"    Anchor: {anchor_label}")
         print(f"    Reason: {cr.reason}")
         if cr.explanation:

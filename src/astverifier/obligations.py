@@ -4,9 +4,11 @@ obligations.py - Z3 obligations for anchored and direct baselines.
 For each anchored claim c, generate two Z3 solvers:
   (1) Reachability : is the path reachable under ANY pre-conditions?
   (2) Validity     : under the path constraint, is the claim ALWAYS true?
-The Validity solver is only run if Reachability is SAT.  The direct baseline
-uses a separate declarative entailment obligation: jointly assumed constraints
-are conjoined with the negation of one target specification.
+The Validity solver is only run if Reachability is SAT.  The anchored SMT
+formalization path uses a separate declarative entailment obligation: jointly
+assumed constraints are conjoined with the negation of one target
+specification.  The simple unanchored path uses ``SimpleObligation`` below and
+has no context at all.
 """
 from __future__ import annotations
 
@@ -49,6 +51,14 @@ class DirectContext:
 
     constraints: z3.BoolRef
     solver: z3.Solver
+
+
+@dataclass
+class SimpleObligation:
+    """One simple claim validity query containing only ``Not(formula)``."""
+
+    formula: z3.BoolRef
+    validity_solver: z3.Solver
 
 
 def _claim_to_z3(
@@ -116,6 +126,82 @@ def build_obligations(
     return TwoQueryObligations(claim, reach_solv, valid_solv)
 
 
+def build_anchored_direct_obligations(
+    claim: Claim,
+    reachability: Reachability,
+    constraints: z3.BoolRef,
+) -> TwoQueryObligations:
+    """Build anchored reachability/validity queries for an SMT target.
+
+    This is the hybrid protocol used by the improved AST baseline.  The AST
+    supplies the target path and reached state; SatLM-style constraints supply
+    additional declarative relations; and the target formula is substituted
+    into the reached state before checking its negation.
+    """
+    if claim.direct_expression is None:
+        raise TypeError("anchored direct claim has no validated formula")
+    if not z3.is_bool(constraints):
+        raise TypeError("anchored direct obligations require Boolean constraints")
+
+    # Ground every context symbol that is available in the AST-derived target
+    # state.  This keeps the SatLM relations connected to the trusted state
+    # instead of leaving an independent ``x`` beside ``_state_*_x``.  Symbols
+    # that describe a different program phase may remain declarative/free; the
+    # target itself is still required to bind every one of its variables below.
+    context_replacements = []
+    for declaration in _integer_constants(constraints):
+        state_value = reachability.state.get(declaration)
+        if state_value is None:
+            continue
+        if not z3.is_int(state_value):
+            continue
+        context_replacements.append((z3.Int(declaration), state_value))
+    grounded_constraints = z3.simplify(
+        z3.substitute(constraints, *context_replacements)
+        if context_replacements
+        else constraints
+    )
+
+    replacements = []
+    for name in claim.direct_variables:
+        state_value = reachability.state.get(name)
+        if state_value is None:
+            raise ValueError(
+                f"variable {name!r} is not available at the anchored target state"
+            )
+        if not z3.is_int(state_value):
+            raise ValueError(
+                f"anchored direct variable {name!r} does not have Int state"
+            )
+        replacements.append((z3.Int(name), state_value))
+
+    target = z3.simplify(
+        z3.substitute(claim.direct_expression, *replacements)
+        if replacements
+        else claim.direct_expression
+    )
+    if not z3.is_bool(target):
+        raise TypeError("anchored direct target must remain Boolean after binding")
+
+    reach_solv = z3.Solver()
+    reach_solv.set("timeout", Z3_TIMEOUT_MS)
+    reach_solv.add(reachability.relation, grounded_constraints)
+
+    valid_solv = z3.Solver()
+    valid_solv.set("timeout", Z3_TIMEOUT_MS)
+    valid_solv.add(reachability.relation, grounded_constraints, z3.Not(target))
+    return TwoQueryObligations(claim, reach_solv, valid_solv)
+
+
+def _integer_constants(formula: z3.BoolRef) -> set[str]:
+    """Return names of uninterpreted Int constants occurring in ``formula``."""
+    names: set[str] = set()
+    for node in z3.z3util.get_vars(formula):
+        if z3.is_int(node):
+            names.add(str(node.decl().name()))
+    return names
+
+
 def build_unanchored_obligations(claim: Claim) -> TwoQueryObligations:
     """Legacy helper for the former free-predicate compatibility path.
 
@@ -176,6 +262,28 @@ def build_direct_obligation(
     )
 
 
+def build_simple_obligation(formula: z3.BoolRef) -> SimpleObligation:
+    """Build the simple baseline query ``Not(formula)``.
+
+    No context, source state, path condition, or reachability relation is
+    added.  This deliberately makes the simple baseline a validity check over
+    one translated claim at a time.
+    """
+    if not z3.is_bool(formula):
+        raise TypeError("simple obligation requires a Boolean formula")
+    solver = z3.Solver()
+    solver.set("timeout", Z3_TIMEOUT_MS)
+    solver.add(z3.Not(formula))
+    return SimpleObligation(formula=formula, validity_solver=solver)
+
+
+def run_simple_validity(
+    obligation: SimpleObligation,
+) -> Tuple[str, Optional[float], Optional[z3.ModelRef]]:
+    """Run the one-query simple-baseline validity check."""
+    return run_validity(obligation)
+
+
 def run_reachability(
     obligation: TwoQueryObligations,
 ) -> Tuple[str, Optional[float], Optional[z3.ModelRef]]:
@@ -221,13 +329,17 @@ def run_context(
 __all__ = [
     "TwoQueryObligations",
     "build_obligations",
+    "build_anchored_direct_obligations",
     "build_unanchored_obligations",
     "DirectObligation",
     "DirectContext",
+    "SimpleObligation",
     "build_direct_context",
     "build_direct_obligation",
+    "build_simple_obligation",
     "run_reachability",
     "run_validity",
     "run_context",
+    "run_simple_validity",
     "Z3_TIMEOUT_MS",
 ]

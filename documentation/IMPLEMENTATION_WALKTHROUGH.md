@@ -1,4 +1,4 @@
-# Implementation Walkthrough — AST-Anchored CoT Verification Prototype
+# Implementation Walkthrough — AST-Anchored SatLM Verification Prototype
 
 > Đồ án chuyên ngành: *"Kiểm Chứng Chương Trình Dựa trên Chuỗi Lý Luận: Xác Minh Logic Thông qua Dấu Vết Ngôn Ngữ Tự Nhiên"*
 > GVHD: TS. Lê Xuân Bách
@@ -19,12 +19,11 @@ Framework đặt mục tiêu kiểm chứng chương trình Python theo hướng
   vacuous verification), rồi truy vấn validity, cuối cùng replay counterexample
    trên CPython thật để kiểm tra soundness.
 
-`UNANCHORED` giữ tên tương thích nhưng hiện là **Baseline A — SatLM-style
-Direct Formalization**: LLM trả về một context gồm các constraint SMT-LIB2
-được giả định chung và các target specification, cùng khai báo biến Int.
-Baseline này không có AST anchoring, program state hay reachability; mỗi target
-được kiểm tra bằng truy vấn $constraints \land \neg target$. Ta đo được 4
-metric: FDR, token consumption, Hallucination Rate, CRVR.
+`UNANCHORED` giữ tên tương thích nhưng hiện là **Baseline A — Simple Claim
+List**: LLM trả về một JSON claim-list gồm các biểu thức cấu trúc trong
+QF-LIA. Baseline này không có AST anchoring, program state hay reachability;
+mỗi claim được dịch sang SMT-LIB2 và kiểm tra bằng truy vấn $\neg claim$. Ta
+đo được 4 metric: FDR, token consumption, Hallucination Rate, CRVR.
 
 ### Audit boundary
 
@@ -32,9 +31,8 @@ metric: FDR, token consumption, Hallucination Rate, CRVR.
 statement, biểu thức parse được và mọi tên biến thuộc scope của function.
 Mỗi claim dùng các path bounded dẫn tới chính `NodeId` đó. `UNANCHORED`
 không tạo `NodeId`, transition, target state hay reachability query. Mỗi
-`assert` trong source được chuyển đúng một lần thành SMT-LIB2 target; LLM sinh
-context constraints và target specifications độc lập với claim pool AST, còn
-location bị loại bỏ.
+`assert` trong source được chuyển đúng một lần thành SMT-LIB2 claim; LLM sinh
+các claim JSON độc lập với claim pool AST, còn location bị loại bỏ.
 
 Loop unrolling và control effects chưa đủ để chứng minh toàn bộ execution
 space. Vì vậy coverage không đầy đủ được trả về là `UNKNOWN_TIMEOUT`, và
@@ -57,8 +55,9 @@ prototype/
 │       ├── classify.py                 # Phase 1: Pydantic schemas
 │       ├── executor.py                 # Phase 2: Trusted symbolic executor
 │       ├── binding.py                  # Phase 2: Anchor binding gate α(c)
-│       ├── obligations.py              # Two-query + direct not-C Z3
-│       ├── direct.py                   # SMT-LIB2 direct validator
+│       ├── obligations.py              # Two-query + simple not-C Z3
+│       ├── direct.py                   # anchored SMT-LIB2 validator
+│       ├── simple.py                   # structured QF-LIA claim validator
 │       ├── replay.py                   # Phase 3: CPython subprocess replay
 │       ├── pipeline.py                 # Phase 4: end-to-end orchestrator
 │       └── metrics.py                  # Phase 4: 4-metric aggregation
@@ -68,12 +67,9 @@ prototype/
 │   ├── run_benchmark.py                # Phase 4 runner
 │   └── compare_baselines.py            # Phase 4 report generator
 ├── results/
-│   ├── AST_ANCHORED/*.json             # 94 verdict anchors
-│   ├── UNANCHORED/*.json               # 94 verdict unanchored
-│   ├── _cruxeval_py/*.py               # 21 translated CRUXEval samples
-│   ├── summary.md                      # báo cáo Markdown cuối
-│   ├── ground_truth.json               # ground-truth labels
-│   └── _run.log                        # log thực nghiệm
+│   ├── AST_ANCHORED/                   # empty; metrics are not regenerated
+│   ├── UNANCHORED/                     # empty; metrics are not regenerated
+│   └── ...                             # experiment output directories are empty
 ├── tests/                              # regression tests for audit fixes
 ├── README.md                           # hướng dẫn sử dụng
 └── .gitignore                          # loại bỏ cache, log nặng
@@ -212,11 +208,14 @@ thật với inputs từ z3 model.
 
 ```
 1. Subset gate          → rejected_by_subset = True
-2. AST_ANCHORED: assign_ids + trusted transitions + exact anchor gate.
+2. AST_ANCHORED: generate SatLM-style SMT-LIB2 context/targets, then assign_ids
+   + trusted transitions + exact anchor gate.
 3. AST_ANCHORED: enumerate target-specific paths and build target state relation.
-4. For each anchored path: reachability, then validity, then target-aware replay.
-5. UNANCHORED: convert source asserts and validate independent SMT-LIB2
-   specifications; skip node IDs, executor, target state and reachability.
+4. For each anchored path: reachability, then validity; replay source assertions
+   when a Python expression is available.
+5. UNANCHORED: generate/validate an independent structured claim list; translate
+   each claim to SMT-LIB2 and check only `NOT(claim)`, skipping node IDs,
+   executor, target state and reachability.
 6. Roll-up counts into `ProgramResult`.
 ```
 
@@ -228,26 +227,24 @@ thật với inputs từ z3 model.
   `--use-llm`, AST_ANCHORED and UNANCHORED are charged from separate calls)
 - `cost_avg_usd` = `(in × $0.005 + out × $0.015) / 1000`
 - `hr` = (UNSUPPORTED + TRANSLATION_ERROR) / total_claims
-- `crvr` = REPRODUCED / total replayed_COUNTEREXAMPLE (n/a for direct models)
+- `crvr` = REPRODUCED / total replayed_COUNTEREXAMPLE (n/a for simple models)
 - `fdr` (nếu có ground truth) = FP / (TP + FP)
 
-### 6.3 Direct Formalization contract
+### 6.3 Simple claim-list contract
 
-`llm.py` keeps the original anchored response schema and prompt unchanged. A
-separate SatLM-style response contains `constraints` and `specifications`; each
-entry contains:
+`llm.py` uses an independent `SimpleClaimList` response schema for
+`UNANCHORED`. Each entry contains only a structured Boolean `expression` and an
+optional short `rationale`; it has no line, anchor, constraint, NodeId or
+reachability field. The expression validator in `simple.py` accepts Int and
+Bool leaves plus QF-LIA Boolean/arithmetic operators, and rejects quantifiers,
+nonlinear multiplication, real/array/bit-vector terms and variable divisors.
 
-- `formula`: one SMT-LIB2 Boolean term;
-- `variables`: declared Int symbols;
-- `rationale`: a brief explanation, not a Chain-of-Thought trace.
-
-`direct.py` parses the formula with Z3 and rejects malformed terms,
-quantifiers, nonlinear multiplication, variable divisors, non-Int symbols, and
-operators outside the QF-LIA whitelist. The pipeline conjoins all valid
-constraints, checks that the context is consistent, and then
-`build_direct_obligation` adds `constraints AND not(target)`. Direct
-counterexamples retain the Z3 integer model, empty anchor fields, and
-`replay_verdict = None`.
+The pipeline converts source assertions deterministically, removes only
+duplicates of those source assertions, assigns 1-based steps, renders each
+claim as SMT-LIB2 and constructs `build_simple_obligation` with only
+`NOT(claim)`. Simple counterexamples retain the Z3 integer model, empty anchor
+fields, and `replay_verdict = None`. The anchored path continues to use the
+separate SMT-LIB2 validator and AST reachability protocol.
 
 ### 6.4 `tools/run_benchmark.py`
 
@@ -255,8 +252,8 @@ counterexamples retain the Z3 integer model, empty anchor fields, and
 - Lấy 21 sample CRUXEval QF-LIA (int/bool/None args only, không nested fn).
 - Với mỗi program, `AST_ANCHORED` và `UNANCHORED` nhận hai lời gọi Gemini
   độc lập khi `--use-llm` bật; token usage được ghi riêng. Mặc định source
-  assertions được chuyển deterministic thành direct SMT-LIB2 targets; với LLM,
-  context constraints và target specifications được lưu riêng.
+  assertions được chuyển deterministic thành simple SMT-LIB2 claims; với LLM,
+  anchored formalization và simple claim-list được lưu riêng cho từng baseline.
 
 ### 6.4 `tools/compare_baselines.py`
 
@@ -424,39 +421,12 @@ hiện tính claim-level matrix từ mọi `claim_result` và sinh diễn giải
 
 ---
 
-## 9. Kết quả persisted của lần refresh deterministic
+## 9. Metrics và artifacts
 
-```
-188 runs completed (0 errors)
-```
-
-Toàn bộ 188 chương trình (94 mỗi baseline) chạy không lỗi:
-
-- 73 SV-COMP loop benchmarks (đã dịch từ `.c` → `.py`)
-- 21 CRUXEval samples (int/bool/None args only)
-
-**Subset pass rate của persisted run**: 12/94 = 12.8% (cả hai baseline).
-Phần lớn SV-COMP file bị subset reject do translator xuất ra syntax lỗi.
-Đây là kết quả deterministic hiện tại; chạy lại `run_benchmark.py` sẽ tạo
-output mới với thời gian Z3 khác nhau.
-
-**Verdict matrix của persisted run** (claim-level trên 17 claims có
-ground-truth):
-
-
-| Baseline     | TP  | FP  | FN  | TN  | FDR   |
-| ------------ | --- | --- | --- | --- | ----- |
-| AST_ANCHORED | 0   | 0   | 16  | 1   | n/a   |
-| UNANCHORED   | 0   | 0   | 16  | 1   | n/a   |
-
-
-**Counterexample Replay (CRVR) của persisted run**: AST_ANCHORED có 8
-counterexamples, 2 reproduce thành công trên CPython subprocess → CRVR =
-2/8 = 0.250. Direct Formalization không replay counterexamples nên CRVR là
-n/a.
-
-**Hallucination Rate của persisted run**: 0.0. Đây không phải bằng chứng rằng
-mọi claim historical đều grounded.
+Metrics và experiment outputs cũ đã được dọn khỏi working tree trong thay đổi
+này. Các thư mục `results/` được giữ rỗng; dataset, ground truth và proposal
+được giữ nguyên. Không chạy lại benchmark hoặc sinh lại `summary.md` để tránh
+trộn kết quả của hai contract khác nhau.
 
 ---
 
@@ -478,5 +448,5 @@ mọi claim historical đều grounded.
 
 ## 11. Tài liệu liên quan
 
-- `prototype/results/summary.md` — báo cáo Markdown đối chứng
-- `prototype/results/_run.log` — log thực nghiệm
+- `tools/compare_baselines.py` — generator báo cáo Markdown tùy chọn
+- `results/` — thư mục artifacts được giữ rỗng trong task này

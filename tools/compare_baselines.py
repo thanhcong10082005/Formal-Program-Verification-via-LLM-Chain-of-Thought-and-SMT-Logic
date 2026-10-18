@@ -199,11 +199,11 @@ def main() -> int:
 
     # --- Build Markdown ----------------------------------------------------
     md: List[str] = []
-    md.append("# Báo cáo thực nghiệm: AST-Anchored vs SatLM-style Direct Formalization\n")
+    md.append("# Báo cáo thực nghiệm: AST-Anchored vs Simple Claim List\n")
     md.append("Framework kiểm tra các chương trình đã qua subset gate với **hai baseline được sinh độc lập**.")
     md.append("Các bảng trạng thái và FDR bên dưới là **claim-level**; dữ liệu persisted chỉ phản ánh lần chạy đã được lưu.\n")
-    md.append("- `AST_ANCHORED`: exact anchor binding, target-node reachability và target-state validity.")
-    md.append("- `UNANCHORED`: Baseline A, SatLM-style Direct Formalization bằng SMT-LIB2; LLM sinh joint constraints và target specifications, không dùng NodeId, program state, executor hoặc reachability. Mỗi target được kiểm tra bằng `constraints AND NOT(target)`.\n")
+    md.append("- `AST_ANCHORED`: SatLM-style SMT-LIB2 constraints/targets plus exact anchor binding, target-node reachability và target-state validity; source-assert targets can additionally be replayed.")
+    md.append("- `UNANCHORED`: Baseline A, structured QF-LIA claim list; LLM sinh các biểu thức JSON không có NodeId, source location, program state, executor hoặc reachability. Mỗi claim được dịch sang SMT-LIB2 và kiểm tra bằng `NOT(claim)`.\n")
 
     md.append("## 1. So sánh đối chứng — Bảng chính\n")
     md.append("| Metric | Công thức | AST_ANCHORED | UNANCHORED | Chênh lệch |")
@@ -240,7 +240,7 @@ def main() -> int:
     md.append(f"| Avg Cost (USD) | $C_{{usd}}$ | {a_cost:.6f} | {u_cost:.6f} | {a_cost - u_cost:+.6f} |")
     # Hallucination
     md.append(f"| Hallucination Rate (HR) | $H = \\frac{{N_{{UNSUP}} + N_{{TE}}}}{{N_{{claims}}}}$ | **{a_metrics.hr:.3f}** | {u_metrics.hr:.3f} | {a_metrics.hr - u_metrics.hr:+.3f} |")
-    # CRVR is not applicable to direct counterexamples because they have no
+    # CRVR is not applicable to simple counterexamples because they have no
     # target location and therefore no replay verdict.
     a_crvr = f"{a_metrics.crvr:.3f}" if a_metrics.crvr is not None else "n/a"
     u_crvr = f"{u_metrics.crvr:.3f}" if u_metrics.crvr is not None else "n/a"
@@ -261,8 +261,8 @@ def main() -> int:
 
     # --- Verdict matrix ---------------------------------------------------
     md.append("## 2. Verdict Matrix (against SV-COMP ground truth)\n")
-    md.append("Chỉ các claims thuộc programs trong ground-truth được tính. Tổng cộng:")
-    md.append(f"`{a_total}` claims.\n")
+    md.append("Chỉ các claims thuộc programs trong ground-truth được tính. Số claims khớp ground truth có thể khác vì hai baseline sinh claim pools độc lập:")
+    md.append(f"`{a_total}` AST claims và `{u_total}` simple claims.\n")
     md.append("| Baseline | TP | FP | FN | TN | FDR |")
     md.append("|----------|---:|---:|---:|---:|----:|")
     a_fdr_str = f"{a_fdr:.3f}" if a_fdr is not None else "n/a"
@@ -330,10 +330,10 @@ def main() -> int:
 
     # --- Notes -----------------------------------------------------------
     md.append("## 7. Ghi chú thực nghiệm\n")
-    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one anchored Python-claim call and one SatLM-style direct SMT-LIB2 call per source. Token totals are recorded separately and are not copied between baselines.")
+    md.append("1. **Independent generation**: `run_benchmark.py` is deterministic by default; `--use-llm` makes one SatLM-style AST-anchored call and one structured simple-claim call per source. Token totals are recorded separately and are not copied between baselines.")
     md.append("2. **Claim-level accounting**: multi-claim programs contribute every `claim_result` to status counts and FDR; rejected programs are reported separately.")
     md.append("3. **Soundness boundary**: bounded loop/control-flow modeling is reported as `UNKNOWN_TIMEOUT` when path coverage is incomplete; `VERIFIED` is reserved for complete bounded paths.")
-    md.append("4. **Replay boundary**: only AST_ANCHORED counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the target claim as false. Direct counterexamples have no replay verdict.")
+    md.append("4. **Replay boundary**: only AST_ANCHORED source-assert counterexamples are replayed; reproduction requires CPython to reach the target line and evaluate the assertion as false. Simple structured claims have no replay verdict.")
     md.append("5. **Subset boundary**: nonlinear multiplication and variable-divisor floor division/modulo are rejected; constant-coefficient arithmetic remains eligible.")
     md.append("6. **Ground truth labels**: based on the curated SV-COMP labels in `ground_truth.json`; they are not a proof of the symbolic approximation.")
     md.append("")
@@ -349,7 +349,8 @@ def main() -> int:
     md.append("│   ├── executor.py     # Trusted symbolic executor")
     md.append("│   ├── binding.py      # Anchor binding gate α(c)")
     md.append("│   ├── obligations.py  # Two-query Z3 protocol")
-    md.append("│   ├── direct.py       # Direct SMT-LIB2 validator")
+    md.append("│   ├── direct.py       # Anchored SMT-LIB2 validator")
+    md.append("│   ├── simple.py       # Structured QF-LIA claim validator")
     md.append("│   ├── replay.py       # CPython subprocess counterexample replay")
     md.append("│   ├── pipeline.py     # End-to-end orchestrator")
     md.append("│   └── metrics.py      # FDR / Tokens / HR / CRVR aggregation")

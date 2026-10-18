@@ -25,13 +25,13 @@ def load_mbpp():
         "te": 0,
         "ast_tok_in": 0,
         "ast_tok_out": 0,
-        "direct_tok_in": 0,
-        "direct_tok_out": 0,
+        "simple_tok_in": 0,
+        "simple_tok_out": 0,
     }
     for x in d:
         a, u = x["anchored"], x["unanchored"]
         ast_gen = x.get("ast_generation", {})
-        direct_gen = x.get("direct_generation", {})
+        simple_gen = x.get("simple_generation", {})
         tasks.append({
             "id": x["task_id"],
             "name": x["name"],
@@ -41,16 +41,16 @@ def load_mbpp():
                            u["n_unsupported"] + u["n_translation_error"]],
             "ast_tok_in": ast_gen.get("tokens_in", x.get("tokens_in", 0)),
             "ast_tok_out": ast_gen.get("tokens_out", x.get("tokens_out", 0)),
-            "direct_tok_in": direct_gen.get("tokens_in", 0),
-            "direct_tok_out": direct_gen.get("tokens_out", 0),
+            "simple_tok_in": simple_gen.get("tokens_in", 0),
+            "simple_tok_out": simple_gen.get("tokens_out", 0),
         })
         tot["v"] += a["n_verified"]; tot["ce"] += a["n_counterexample"]
         tot["ur"] += a["n_unreachable"]
         tot["unsup"] += a["n_unsupported"] + a["n_translation_error"]
         tot["ast_tok_in"] += tasks[-1]["ast_tok_in"]
         tot["ast_tok_out"] += tasks[-1]["ast_tok_out"]
-        tot["direct_tok_in"] += tasks[-1]["direct_tok_in"]
-        tot["direct_tok_out"] += tasks[-1]["direct_tok_out"]
+        tot["simple_tok_in"] += tasks[-1]["simple_tok_in"]
+        tot["simple_tok_out"] += tasks[-1]["simple_tok_out"]
     return tasks, tot
 
 
@@ -91,8 +91,8 @@ def main():
             "hallucRate": halluc,
             "astTokIn": mbpp_tot["ast_tok_in"],
             "astTokOut": mbpp_tot["ast_tok_out"],
-            "directTokIn": mbpp_tot["direct_tok_in"],
-            "directTokOut": mbpp_tot["direct_tok_out"],
+            "simpleTokIn": mbpp_tot["simple_tok_in"],
+            "simpleTokOut": mbpp_tot["simple_tok_out"],
         },
         "complex": complex_cases,
     }
@@ -132,8 +132,8 @@ th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;lett
 .tin{background:var(--acc)}.tout{background:#2f3a5e}
 .tokbar .cap{font-size:10.5px;color:var(--mut);margin-top:5px;text-align:center}
 </style></head><body>
-<h1>AST-Anchored vs SatLM-style Direct Formalization Dashboard</h1>
-<div class="lead">AST_ANCHORED uses anchored Python claims; UNANCHORED is Baseline A SatLM-style Direct Formalization with independent SMT-LIB2 constraints and target specifications, and no replay.</div>
+<h1>AST-Anchored vs Simple Claim List Dashboard</h1>
+<div class="lead">AST_ANCHORED uses SatLM-style SMT-LIB2 constraints and line-anchored targets with trusted AST reachability/state; UNANCHORED is Baseline A's structured QF-LIA claim list with no anchor or replay.</div>
 
 <h2>MBPP Experiment — 10 tasks</h2>
 <div class="cards">
@@ -144,8 +144,8 @@ th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;lett
 <div class="card"><div class="n" style="color:var(--acc)">100%</div><div class="l">Anchor accuracy</div></div>
 <div class="card"><div class="n">__TOKIN__</div><div class="l">AST tokens in</div></div>
 <div class="card"><div class="n">__TOKOUT__</div><div class="l">AST tokens out</div></div>
-<div class="card"><div class="n">__DIRECTTOKIN__</div><div class="l">Direct tokens in</div></div>
-<div class="card"><div class="n">__DIRECTTOKOUT__</div><div class="l">Direct tokens out</div></div>
+<div class="card"><div class="n">__SIMPLETOKIN__</div><div class="l">Simple tokens in</div></div>
+<div class="card"><div class="n">__SIMPLETOKOUT__</div><div class="l">Simple tokens out</div></div>
 </div>
 <div class="legend">
 <span><span class="dot seg-v"></span>VERIFIED</span>
@@ -167,7 +167,7 @@ __MBPP_ROWS__
 <span style="margin-left:12px">Top row = AST_ANCHORED · Bottom = UNANCHORED</span>
 </div>
 <div id="complex"></div>
-<div class="note"><b>Direct baseline</b>: UNANCHORED checks each target using the joint SMT-LIB2 context and its negation, so its counterexamples have no target location or replay verdict. <b>Grounding</b>: AST_ANCHORED retains exact NodeId binding and target-state replay.</div>
+<div class="note"><b>Simple baseline</b>: UNANCHORED translates each structured claim to SMT-LIB2 and checks only its negation, so its counterexamples have no target location or replay verdict. <b>Grounding</b>: AST_ANCHORED retains exact NodeId binding and target-state reachability; only source assertions have a Python replay expression.</div>
 <script>
 const C=__DATA__;
 // complex grouped bars
@@ -199,7 +199,7 @@ document.getElementById('complex').innerHTML = C.complex.map(c=>{
     for k, v in [("__TASKS__", len(mbpp)), ("__CLAIMS__", n_claims),
                  ("__VER__", pct(mbpp_tot["v"], n_claims)), ("__CE__", mbpp_tot["ce"]),
                  ("__TOKIN__", f"{mbpp_tot['ast_tok_in']:,}"), ("__TOKOUT__", f"{mbpp_tot['ast_tok_out']:,}"),
-                 ("__DIRECTTOKIN__", f"{mbpp_tot['direct_tok_in']:,}"), ("__DIRECTTOKOUT__", f"{mbpp_tot['direct_tok_out']:,}"),
+                 ("__SIMPLETOKIN__", f"{mbpp_tot['simple_tok_in']:,}"), ("__SIMPLETOKOUT__", f"{mbpp_tot['simple_tok_out']:,}"),
                  ("__MBPP_ROWS__", "\n".join(rows)), ("__DATA__", json.dumps(data))]:
         out = out.replace(k, str(v))
 

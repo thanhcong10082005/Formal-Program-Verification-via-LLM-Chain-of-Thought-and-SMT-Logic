@@ -23,10 +23,18 @@ class Claim:
     status: str  # "ANCHORED", "DIRECT", "UNSUPPORTED", or "TRANSLATION_ERROR"
     anchor_node: Optional[ast.AST] = None
     explanation: str = ""
-    # Direct Formalization claims carry a validated Z3 Boolean term instead of
-    # a Python expression tied to a source node.
+    # Anchored SMT formalization claims carry a validated Z3 Boolean term in
+    # addition to the source anchor.
     direct_expression: Optional[Any] = None
     direct_variables: tuple[str, ...] = ()
+    # Anchored SatLM targets may be SMT-LIB2 terms while source assertions
+    # still retain their trusted Python expression for optional replay.
+    replay_expr_source: Optional[str] = None
+    # Structured simple-baseline claims use the same internal claim carrier,
+    # but never carry an anchor or replay expression.
+    simple_expression: Optional[Any] = None
+    simple_variables: tuple[str, ...] = ()
+    step: int = 0
 
 
 def extract_asserts(
@@ -173,6 +181,97 @@ def bind_llm_claims(
     return out
 
 
+def bind_anchored_direct_claims(
+    tree: ast.Module,
+    ids: dict[ast.AST, NodeId],
+    specifications: Iterable,
+) -> List[Claim]:
+    """Validate and bind SatLM-style SMT targets to exact AST statements.
+
+    The formula remains a declarative Z3 term, but its target line must resolve
+    to exactly one concrete statement.  Variable visibility is checked against
+    the trusted AST state before that statement so a generated formula cannot
+    silently introduce an ungrounded local symbol.
+    """
+    from .direct import DirectFormulaError, DirectUnsupportedError, validate_direct_formula
+
+    out: List[Claim] = []
+    nodes_by_line: dict[int, list[tuple[ast.AST, NodeId]]] = {}
+    for node, nid in ids.items():
+        nodes_by_line.setdefault(nid.lineno, []).append((node, nid))
+
+    parent = _parent_map(tree)
+    for index, spec in enumerate(specifications, start=1):
+        if isinstance(spec, dict):
+            line = spec.get("line", 0)
+            formula = spec.get("formula", "")
+            variables = spec.get("variables", [])
+            rationale = spec.get("rationale", "")
+        else:
+            line = getattr(spec, "line", 0)
+            formula = getattr(spec, "formula", "")
+            variables = getattr(spec, "variables", [])
+            rationale = getattr(spec, "rationale", "")
+
+        claim_id = f"anchored_spec_{index}_L{line}"
+        claim_text = formula if isinstance(formula, str) else repr(formula)
+        rationale_text = rationale if isinstance(rationale, str) else str(rationale)
+        candidates = nodes_by_line.get(line, []) if isinstance(line, int) and line > 0 else []
+        anchor_node: Optional[ast.AST] = None
+        anchor: Optional[NodeId] = None
+        if len(candidates) == 1 and not isinstance(candidates[0][0], ast.FunctionDef):
+            anchor_node, anchor = candidates[0]
+
+        status = "DIRECT"
+        direct_expression = None
+        direct_variables: tuple[str, ...] = ()
+        try:
+            validated = validate_direct_formula(
+                formula,
+                variables,
+                rationale=rationale_text,
+            )
+            direct_expression = validated.expression
+            direct_variables = validated.variables
+        except DirectUnsupportedError:
+            status = "UNSUPPORTED"
+        except DirectFormulaError:
+            status = "TRANSLATION_ERROR"
+        except Exception:
+            status = "TRANSLATION_ERROR"
+
+        if status == "DIRECT" and anchor_node is None:
+            status = "UNSUPPORTED"
+            rationale_text = (
+                rationale_text + "; " if rationale_text else ""
+            ) + "source line does not identify exactly one AST statement"
+        elif status == "DIRECT":
+            function = _enclosing_function(anchor_node, parent)
+            visible = _names_initialized_before(function, anchor_node)
+            unknown = sorted(set(direct_variables) - visible)
+            if unknown:
+                status = "UNSUPPORTED"
+                rationale_text = (
+                    rationale_text + "; " if rationale_text else ""
+                ) + f"variables not initialized before target: {', '.join(unknown)}"
+
+        out.append(
+            Claim(
+                claim_id=claim_id,
+                source_line=line if isinstance(line, int) else 0,
+                expr_source=claim_text,
+                expr_node=None,
+                anchor=anchor if status == "DIRECT" else None,
+                status=status,
+                anchor_node=anchor_node if status == "DIRECT" else None,
+                explanation=rationale_text,
+                direct_expression=direct_expression if status == "DIRECT" else None,
+                direct_variables=direct_variables if status == "DIRECT" else (),
+            )
+        )
+    return out
+
+
 def parse_unanchored_claims(suggested_claims: Iterable) -> List[Claim]:
     """Legacy parser retained for old callers; not part of Baseline A."""
     out: List[Claim] = []
@@ -305,5 +404,6 @@ __all__ = [
     "claims_without_anchors",
     "parse_unanchored_asserts",
     "bind_llm_claims",
+    "bind_anchored_direct_claims",
     "parse_unanchored_claims",
 ]

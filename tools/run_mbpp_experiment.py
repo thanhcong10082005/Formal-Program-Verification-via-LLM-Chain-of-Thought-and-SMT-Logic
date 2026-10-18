@@ -18,9 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from astverifier.llm import (
     _get_api_key,
-    generate_cot_and_claims,
-    generate_direct_formalization,
-    SuggestedClaim,
+    generate_anchored_formalization,
+    generate_simple_claims,
 )
 from astverifier.pipeline import run_pipeline
 
@@ -89,7 +88,7 @@ MBPP_TASKS = [
     },
 ]
 
-CACHE_VERSION = 3
+CACHE_VERSION = 4
 
 
 def run_experiment_on_program(
@@ -104,52 +103,52 @@ def run_experiment_on_program(
 
     print(f"\n[+] Processing Task {task_id}: {name}...")
 
-    cot_trace = ""
-    suggested_claims = []
+    anchored_constraints = []
+    anchored_specifications = []
     tokens_in = 0
     tokens_out = 0
 
     # 1. Check only caches written with the independent-generation schema.
-    # Older files paired one Python-claim response with both baselines and are
-    # stale after the Direct Formalization semantic change.
+    # Older files paired a legacy Python-claim response with both baselines and
+    # are stale after the anchored SatLM-style schema change.
     if cache_file.exists():
         try:
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
             if cached_data.get("generation_version") == CACHE_VERSION:
-                print("    [Cache Hit] Reusing independent AST/direct generations.")
+                print("    [Cache Hit] Reusing independent AST/simple generations.")
                 return cached_data
         except Exception:
             pass
 
-    # AST_ANCHORED and SatLM-style Direct Formalization are separate Gemini requests.
+    # AST_ANCHORED and the simple claim-list baseline are separate Gemini requests.
     t0 = time.perf_counter()
-    anchored_llm = generate_cot_and_claims(
+    anchored_llm = generate_anchored_formalization(
         code,
         api_key=api_key,
         model="gemini-3.5-flash",
     )
     anchored_elapsed = time.perf_counter() - t0
-    cot_trace = anchored_llm.cot_trace
-    suggested_claims = anchored_llm.claims
+    anchored_constraints = anchored_llm.constraints
+    anchored_specifications = anchored_llm.specifications
     print(
         f"    AST_ANCHORED Gemini completed in {anchored_elapsed:.2f}s "
         f"(In: {anchored_llm.tokens_in}, Out: {anchored_llm.tokens_out} tokens; "
-        f"{len(suggested_claims)} claims)"
+        f"{len(anchored_constraints)} constraints, "
+        f"{len(anchored_specifications)} anchored specifications)"
     )
     time.sleep(13)
 
     t0 = time.perf_counter()
-    direct_llm = generate_direct_formalization(
+    simple_llm = generate_simple_claims(
         code,
         api_key=api_key,
         model="gemini-3.5-flash",
     )
-    direct_elapsed = time.perf_counter() - t0
+    simple_elapsed = time.perf_counter() - t0
     print(
-        f"    UNANCHORED Direct Formalization completed in {direct_elapsed:.2f}s "
-        f"(In: {direct_llm.tokens_in}, Out: {direct_llm.tokens_out} tokens; "
-        f"{len(direct_llm.constraints)} constraints, "
-        f"{len(direct_llm.specifications)} specifications)"
+        f"    UNANCHORED simple claims completed in {simple_elapsed:.2f}s "
+        f"(In: {simple_llm.tokens_in}, Out: {simple_llm.tokens_out} tokens; "
+        f"{len(simple_llm.claims)} claims)"
     )
 
     anchored_prog = run_pipeline(
@@ -158,10 +157,10 @@ def run_experiment_on_program(
         source_path=f"mbpp_{task_id}",
         baseline="AST_ANCHORED",
         do_replay=True,
-        suggested_claims=suggested_claims,
+        anchored_constraints=anchored_constraints,
+        anchored_specifications=anchored_specifications,
         tokens_in=anchored_llm.tokens_in,
         tokens_out=anchored_llm.tokens_out,
-        cot_trace=cot_trace,
     )
     unanchored_prog = run_pipeline(
         code,
@@ -169,10 +168,9 @@ def run_experiment_on_program(
         source_path=f"mbpp_{task_id}",
         baseline="UNANCHORED",
         do_replay=True,
-        direct_constraints=direct_llm.constraints,
-        direct_specifications=direct_llm.specifications,
-        tokens_in=direct_llm.tokens_in,
-        tokens_out=direct_llm.tokens_out,
+        simple_claims=simple_llm.claims,
+        tokens_in=simple_llm.tokens_in,
+        tokens_out=simple_llm.tokens_out,
     )
 
     print(f"    AST_ANCHORED: V={anchored_prog.n_verified}, CE={anchored_prog.n_counterexample}, UN={anchored_prog.n_unreachable}, UNSUP={anchored_prog.n_unsupported}")
@@ -186,17 +184,16 @@ def run_experiment_on_program(
         "code": code,
         "ast_generation": {
             "model": anchored_llm.model_name,
-            "cot_trace": cot_trace,
             "tokens_in": anchored_llm.tokens_in,
             "tokens_out": anchored_llm.tokens_out,
-            "claim_count": len(suggested_claims),
+            "constraint_count": len(anchored_constraints),
+            "specification_count": len(anchored_specifications),
         },
-        "direct_generation": {
-            "model": direct_llm.model_name,
-            "tokens_in": direct_llm.tokens_in,
-            "tokens_out": direct_llm.tokens_out,
-            "constraint_count": len(direct_llm.constraints),
-            "specification_count": len(direct_llm.specifications),
+        "simple_generation": {
+            "model": simple_llm.model_name,
+            "tokens_in": simple_llm.tokens_in,
+            "tokens_out": simple_llm.tokens_out,
+            "claim_count": len(simple_llm.claims),
         },
         "anchored": anchored_prog.model_dump(),
         "unanchored": unanchored_prog.model_dump(),
