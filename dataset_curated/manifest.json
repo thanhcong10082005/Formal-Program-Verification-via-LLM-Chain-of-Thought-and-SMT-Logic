@@ -1,0 +1,460 @@
+{
+  "total": 39,
+  "by_source": {
+    "sv-comp": 29,
+    "synthesized": 10
+  },
+  "by_category": {
+    "loop-invariants": 7,
+    "loop-simple": 8,
+    "loops-crafted-1": 14,
+    "other": 10
+  },
+  "by_difficulty": {
+    "easy": 33,
+    "medium": 6
+  },
+  "by_parseability": {
+    "c_style": 14,
+    "pure_python": 25
+  },
+  "by_expected_verdict": {
+    "true": 39
+  },
+  "exclude_reasons": {
+    "broken_heavy_c": 6,
+    "broken": 36,
+    "unbalanced_braces": 2
+  },
+  "programs": [
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__bin-suffix-5",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\bin-suffix-5.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__bin-suffix-5.py",
+      "category": "loop-invariants",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__const",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\const.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__const.py",
+      "category": "loop-invariants",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__eq1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__eq1.py",
+      "category": "loop-invariants",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__eq2",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\eq2.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__eq2.py",
+      "category": "loop-invariants",
+      "loc": 6,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__even",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\even.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__even.py",
+      "category": "loop-invariants",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__mod4",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\mod4.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__mod4.py",
+      "category": "loop-invariants",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-invariants__odd",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-invariants\\odd.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-invariants__odd.py",
+      "category": "loop-invariants",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__deep-nested",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\deep-nested.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__deep-nested.py",
+      "category": "loop-simple",
+      "loc": 18,
+      "difficulty": "medium",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_1.py",
+      "category": "loop-simple",
+      "loc": 8,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_1b",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_1b.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_1b.py",
+      "category": "loop-simple",
+      "loc": 8,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_2",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_2.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_2.py",
+      "category": "loop-simple",
+      "loc": 12,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_3",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_3.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_3.py",
+      "category": "loop-simple",
+      "loc": 16,
+      "difficulty": "medium",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_4",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_4.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_4.py",
+      "category": "loop-simple",
+      "loc": 20,
+      "difficulty": "medium",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_5",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_5.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_5.py",
+      "category": "loop-simple",
+      "loc": 24,
+      "difficulty": "medium",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loop-simple__nested_6",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loop-simple\\nested_6.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loop-simple__nested_6.py",
+      "category": "loop-simple",
+      "loc": 28,
+      "difficulty": "medium",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__iftelse",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\iftelse.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__iftelse.py",
+      "category": "loops-crafted-1",
+      "loc": 13,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__loopv1.py",
+      "category": "loops-crafted-1",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__loopv3",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\loopv3.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__loopv3.py",
+      "category": "loops-crafted-1",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_12.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_12.py",
+      "category": "loops-crafted-1",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_9",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\mono-crafted_9.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__mono-crafted_9.py",
+      "category": "loops-crafted-1",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono3_1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__Mono3_1.py",
+      "category": "loops-crafted-1",
+      "loc": 10,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono4_1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\Mono4_1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__Mono4_1.py",
+      "category": "loops-crafted-1",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-1",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested3-1.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__nested3-1.py",
+      "category": "loops-crafted-1",
+      "loc": 15,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-1_abstracted",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested3-1_abstracted.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__nested3-1_abstracted.py",
+      "category": "loops-crafted-1",
+      "loc": 14,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-2",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\nested3-2.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__nested3-2.py",
+      "category": "loops-crafted-1",
+      "loc": 15,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__net_reset",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\net_reset.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__net_reset.py",
+      "category": "loops-crafted-1",
+      "loc": 32,
+      "difficulty": "medium",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__sumt2",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\sumt2.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__sumt2.py",
+      "category": "loops-crafted-1",
+      "loc": 13,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__theatreSquare",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\theatreSquare.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__theatreSquare.py",
+      "category": "loops-crafted-1",
+      "loc": 11,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "sv-benchmarks-loops-py__loops-crafted-1__watermelon",
+      "source": "sv-comp",
+      "original_path": "e:\\HK261\\DACN\\Dataset\\sv-benchmarks-loops-py\\loops-crafted-1\\watermelon.py",
+      "curated_path": "programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__watermelon.py",
+      "category": "loops-crafted-1",
+      "loc": 6,
+      "difficulty": "easy",
+      "parseability": "c_style",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__buggy_gauss_overflow",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__buggy_gauss_overflow.py",
+      "curated_path": "programs\\synthesized\\syn__buggy_gauss_overflow.py",
+      "category": "other",
+      "loc": 8,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__buggy_sum01",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__buggy_sum01.py",
+      "curated_path": "programs\\synthesized\\syn__buggy_sum01.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__countdown",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__countdown.py",
+      "curated_path": "programs\\synthesized\\syn__countdown.py",
+      "category": "other",
+      "loc": 6,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__euclid_gcd",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__euclid_gcd.py",
+      "curated_path": "programs\\synthesized\\syn__euclid_gcd.py",
+      "category": "other",
+      "loc": 8,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__factorial",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__factorial.py",
+      "curated_path": "programs\\synthesized\\syn__factorial.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__linear_search",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__linear_search.py",
+      "curated_path": "programs\\synthesized\\syn__linear_search.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__power",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__power.py",
+      "curated_path": "programs\\synthesized\\syn__power.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__sum01",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__sum01.py",
+      "curated_path": "programs\\synthesized\\syn__sum01.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__sum02_gauss",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__sum02_gauss.py",
+      "curated_path": "programs\\synthesized\\syn__sum02_gauss.py",
+      "category": "other",
+      "loc": 7,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    },
+    {
+      "program_id": "syn__sum_even",
+      "source": "synthesized",
+      "original_path": "e:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__sum_even.py",
+      "curated_path": "programs\\synthesized\\syn__sum_even.py",
+      "category": "other",
+      "loc": 9,
+      "difficulty": "easy",
+      "parseability": "pure_python",
+      "expected_verdict": "true"
+    }
+  ]
+}

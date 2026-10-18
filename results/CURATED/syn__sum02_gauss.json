@@ -1,0 +1,21 @@
+{
+  "program_id": "syn__sum02_gauss",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__sum02_gauss.py",
+  "source_text": "def f(n):\n    \"\"\"Sum of 0..n. Gauss formula.\"\"\"\n    s = 0\n    for i in range(n + 1):\n        s = s + i\n    assert s == n * (n + 1) // 2\n    return s\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00016159997903741896,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "standalone expressions not allowed"
+}

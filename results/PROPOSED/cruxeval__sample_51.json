@@ -26,7 +26,7 @@
       "counterexample": {
         "z3_model": {
           "num": -2147483649,
-          "_state_8689333070506160952_num": -2147483649
+          "_state_6072502902144741042_num": -2147483649
         },
         "replay_verdict": true,
         "replay_output": "-2147483650",
@@ -41,14 +41,14 @@
         "feedback_resolution": "llm_error"
       },
       "z3_stats": {
-        "reach_ms": 2.377100012381561,
-        "valid_ms": 2.2224000131245703
+        "reach_ms": 2.9850999999325722,
+        "valid_ms": 1.944200019352138
       },
       "reason": "Z3 found a violating model at the claim's target path; replay confirmed the target violation",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 11.710404899989953,
+  "elapsed_seconds": 2.7935633000161033,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

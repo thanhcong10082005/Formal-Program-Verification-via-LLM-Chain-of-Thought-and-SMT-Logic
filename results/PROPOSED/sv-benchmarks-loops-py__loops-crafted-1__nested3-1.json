@@ -25,7 +25,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.4436000055866316,
+        "reach_ms": 1.956299995072186,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -46,7 +46,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3322000013431534,
+        "reach_ms": 1.548600004753098,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -67,7 +67,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.5361999976448715,
+        "reach_ms": 1.389399985782802,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -88,7 +88,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.2777000083588064,
+        "reach_ms": 1.453699980629608,
         "valid_ms": 0.0
       },
       "reason": "claim holds on every complete path to its exact target node",
@@ -109,7 +109,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.291700013098307,
+        "reach_ms": 1.6506999963894486,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -130,7 +130,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.2714000040432438,
+        "reach_ms": 1.42090002191253,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -151,7 +151,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3662999990629032,
+        "reach_ms": 1.495400007115677,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -172,7 +172,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.2773999915225431,
+        "reach_ms": 1.435400015907362,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -193,14 +193,14 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.296699992963113,
+        "reach_ms": 1.5465999895241112,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 1.5511338999931468,
+  "elapsed_seconds": 1.6167975999996997,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

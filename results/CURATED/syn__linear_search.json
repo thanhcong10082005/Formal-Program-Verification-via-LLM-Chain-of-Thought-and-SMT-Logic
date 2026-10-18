@@ -1,0 +1,21 @@
+{
+  "program_id": "syn__linear_search",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__linear_search.py",
+  "source_text": "def f(arr, target):\n    \"\"\"Linear search. Returns -1 if not found, index otherwise.\"\"\"\n    i = 0\n    n = len(arr)\n    while i < n:\n        if arr[i] == target:\n            return i\n        i = i + 1\n    return -1\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.0002440999960526824,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "standalone expressions not allowed"
+}

@@ -1,0 +1,43 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__Mono3_1",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__Mono3_1.py",
+  "source_text": "def f(x, y):\n    x = 0\n    y = 0\n    while x < 1000000:\n        if (x<500000):\n            y += 1\n        else:\n            y -= 1\n        x += 1\n    assert y!=0\n",
+  "n_claims": 1,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 1,
+  "claim_results": [
+    {
+      "claim_id": "assert_L10_#7",
+      "claim_text": "y != 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C4#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.5029000060167164,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 1.7242027000174858,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

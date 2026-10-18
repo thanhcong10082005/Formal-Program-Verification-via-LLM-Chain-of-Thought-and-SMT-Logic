@@ -1,0 +1,133 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-2",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__nested3-2.py",
+  "source_text": "def f(w, x, y, z):\n    x = 0\n    y = 0\n    z = 0\n    w = 0\n    while x < 268435455:\n        while y < 268435455:\n            while z <268435455:\n                z += 1\n            assert ( not (z % 4)) != 0\n            y += 1\n        assert ( not (y % 2)) != 0\n        x += 1\n    assert ( not (x % 2)) != 0\n    return\n",
+  "n_claims": 3,
+  "n_verified": 0,
+  "n_counterexample": 3,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [
+    {
+      "claim_id": "assert_L14_#9",
+      "claim_text": "(not x % 2) != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L14:C4#0"
+        ],
+        "source_lines": [
+          14
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "_state_5425670209057357626_y": 1,
+          "_state_5425670209057357626_z": 1,
+          "_state_5425670209057357626_x": 1,
+          "_state_5425670209057357626_w": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "None",
+        "replay_diff": "target line was not reached",
+        "replay_iteration_count": 0,
+        "replay_failing_state": null,
+        "feedback_iterations": null,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": null
+      },
+      "z3_stats": {
+        "reach_ms": 1.443499990273267,
+        "valid_ms": 1.7029000155162066
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
+      "explanation": ""
+    },
+    {
+      "claim_id": "assert_L12_#25",
+      "claim_text": "(not y % 2) != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L12:C8#0"
+        ],
+        "source_lines": [
+          12
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "_state_2968239034907794310_y": 1,
+          "_state_2968239034907794310_w": 0,
+          "_state_2968239034907794310_z": 1,
+          "_state_2968239034907794310_x": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "None",
+        "replay_diff": "target line was not reached",
+        "replay_iteration_count": 0,
+        "replay_failing_state": null,
+        "feedback_iterations": null,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": null
+      },
+      "z3_stats": {
+        "reach_ms": 1.3604999985545874,
+        "valid_ms": 1.4879000082146376
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
+      "explanation": ""
+    },
+    {
+      "claim_id": "assert_L10_#37",
+      "claim_text": "(not z % 4) != 0",
+      "status": "COUNTEREXAMPLE",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C12#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": {
+        "z3_model": {
+          "_state_5587420673715645958_z": 1,
+          "_state_5587420673715645958_y": 0,
+          "_state_5587420673715645958_x": 0,
+          "_state_5587420673715645958_w": 0
+        },
+        "replay_verdict": false,
+        "replay_output": "None",
+        "replay_diff": "target line was not reached",
+        "replay_iteration_count": 0,
+        "replay_failing_state": null,
+        "feedback_iterations": null,
+        "feedback_refined_claim_text": null,
+        "feedback_refined_claim_line": null,
+        "feedback_resolution": null
+      },
+      "z3_stats": {
+        "reach_ms": 1.5234000165946782,
+        "valid_ms": 1.4652000099886209
+      },
+      "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 2.009786600014195,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

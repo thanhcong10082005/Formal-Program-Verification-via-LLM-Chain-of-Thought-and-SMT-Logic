@@ -25,7 +25,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.5088000072864816,
+        "reach_ms": 1.2969000090379268,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -46,7 +46,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 7.592000009026378,
+        "reach_ms": 1.2409999908413738,
         "valid_ms": 0.0
       },
       "reason": "claim holds on every complete path to its exact target node",
@@ -67,7 +67,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 2.644199994392693,
+        "reach_ms": 1.2509000080171973,
         "valid_ms": 0.0
       },
       "reason": "claim holds on every complete path to its exact target node",
@@ -88,8 +88,8 @@
       },
       "counterexample": {
         "z3_model": {
-          "_state_3853673111639424252_x": 1,
-          "_state_3853673111639424252_y": 500000
+          "_state_4975864020955748841_y": 500000,
+          "_state_4975864020955748841_x": 1
         },
         "replay_verdict": false,
         "replay_output": "None",
@@ -102,8 +102,8 @@
         "feedback_resolution": null
       },
       "z3_stats": {
-        "reach_ms": 2.598999999463558,
-        "valid_ms": 1.8539000011514872
+        "reach_ms": 1.2624000082723796,
+        "valid_ms": 1.6765999898780137
       },
       "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
       "explanation": ""
@@ -123,8 +123,8 @@
       },
       "counterexample": {
         "z3_model": {
-          "_state_3853673111639424252_x": 1,
-          "_state_3853673111639424252_y": 500000
+          "_state_4975864020955748841_y": 500000,
+          "_state_4975864020955748841_x": 1
         },
         "replay_verdict": false,
         "replay_output": "None",
@@ -137,8 +137,8 @@
         "feedback_resolution": null
       },
       "z3_stats": {
-        "reach_ms": 1.3572000025305897,
-        "valid_ms": 1.3417000009212643
+        "reach_ms": 1.3599999947473407,
+        "valid_ms": 1.4928999880794436
       },
       "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
       "explanation": ""
@@ -158,14 +158,14 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.433299999916926,
+        "reach_ms": 1.2255999899934977,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 1.8181741000007605,
+  "elapsed_seconds": 1.7170784999907482,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

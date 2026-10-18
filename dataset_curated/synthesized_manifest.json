@@ -1,0 +1,106 @@
+{
+  "source": "synthesized",
+  "description": "Hand-crafted programs with known ground truth (from literature: SV-COMP, Fittracks, classic verification examples)",
+  "programs": [
+    {
+      "program_id": "syn__sum01",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "easy",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Sum of arithmetic series 0+1+...+(n-1)",
+      "curated_path": "programs/synthesized/syn__sum01.py"
+    },
+    {
+      "program_id": "syn__sum02_gauss",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "easy",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Gauss summation",
+      "curated_path": "programs/synthesized/syn__sum02_gauss.py"
+    },
+    {
+      "program_id": "syn__sum_even",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "easy",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Sum of even arithmetic series",
+      "curated_path": "programs/synthesized/syn__sum_even.py"
+    },
+    {
+      "program_id": "syn__factorial",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "easy",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Factorial (trivial property: p >= 1)",
+      "curated_path": "programs/synthesized/syn__factorial.py"
+    },
+    {
+      "program_id": "syn__power",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "medium",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Integer power",
+      "curated_path": "programs/synthesized/syn__power.py"
+    },
+    {
+      "program_id": "syn__countdown",
+      "source": "synthesized",
+      "category": "termination",
+      "difficulty": "easy",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Countdown termination",
+      "curated_path": "programs/synthesized/syn__countdown.py"
+    },
+    {
+      "program_id": "syn__euclid_gcd",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "medium",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Euclidean GCD (termination + result >= 0)",
+      "curated_path": "programs/synthesized/syn__euclid_gcd.py"
+    },
+    {
+      "program_id": "syn__linear_search",
+      "source": "synthesized",
+      "category": "search",
+      "difficulty": "medium",
+      "expected_verdict": "true",
+      "parseability": "pure_python",
+      "description": "Linear search (no assertion - correctness by return value)",
+      "curated_path": "programs/synthesized/syn__linear_search.py"
+    },
+    {
+      "program_id": "syn__buggy_sum01",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "easy",
+      "expected_verdict": "false",
+      "parseability": "pure_python",
+      "description": "Off-by-one bug (counterexample exists)",
+      "curated_path": "programs/synthesized/syn__buggy_sum01.py"
+    },
+    {
+      "program_id": "syn__buggy_gauss_overflow",
+      "source": "synthesized",
+      "category": "arithmetic",
+      "difficulty": "medium",
+      "expected_verdict": "false",
+      "parseability": "pure_python",
+      "description": "Overflow bug (in 32-bit int)",
+      "curated_path": "programs/synthesized/syn__buggy_gauss_overflow.py"
+    }
+  ]
+}

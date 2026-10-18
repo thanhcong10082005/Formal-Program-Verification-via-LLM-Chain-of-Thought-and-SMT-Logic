@@ -1,0 +1,85 @@
+{
+  "program_id": "sv-benchmarks-loops-py__loops-crafted-1__nested3-1",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\sv-comp\\sv-benchmarks-loops-py__loops-crafted-1__nested3-1.py",
+  "source_text": "def f(w, x, y, z):\n    x = 0\n    y = 0\n    z = 0\n    w = 0\n    while x < 268435455:\n        while y < 268435455:\n            while z <268435455:\n                z += 1\n            assert (z % 4) != 0\n            y += 1\n        assert (y % 2) != 0\n        x += 1\n    assert (x % 2) != 0\n    return\n",
+  "n_claims": 3,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 3,
+  "claim_results": [
+    {
+      "claim_id": "assert_L14_#9",
+      "claim_text": "x % 2 != 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L14:C4#0"
+        ],
+        "source_lines": [
+          14
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.3986999983899295,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "assert_L12_#25",
+      "claim_text": "y % 2 != 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L12:C8#0"
+        ],
+        "source_lines": [
+          12
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 2.082399994833395,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    },
+    {
+      "claim_id": "assert_L10_#37",
+      "claim_text": "z % 4 != 0",
+      "status": "UNKNOWN_TIMEOUT",
+      "anchor": {
+        "node_ids": [
+          "f@Assert:L10:C12#0"
+        ],
+        "source_lines": [
+          10
+        ],
+        "has_grounding": true
+      },
+      "counterexample": null,
+      "z3_stats": {
+        "reach_ms": 1.3756999978795648,
+        "valid_ms": 0.0
+      },
+      "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
+      "explanation": ""
+    }
+  ],
+  "elapsed_seconds": 1.7196656999876723,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": false,
+  "subset_rejection_reason": null
+}

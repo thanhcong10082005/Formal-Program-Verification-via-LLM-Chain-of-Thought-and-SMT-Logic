@@ -10,7 +10,7 @@
   "n_translation_error": 0,
   "n_unknown_timeout": 0,
   "claim_results": [],
-  "elapsed_seconds": 0.00013849999231752008,
+  "elapsed_seconds": 0.00013459997717291117,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",

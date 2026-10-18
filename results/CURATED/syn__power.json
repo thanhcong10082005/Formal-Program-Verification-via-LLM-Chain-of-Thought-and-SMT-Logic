@@ -1,0 +1,21 @@
+{
+  "program_id": "syn__power",
+  "source_path": "E:\\HK261\\DACN\\prototype\\dataset_curated\\programs\\synthesized\\syn__power.py",
+  "source_text": "def f(b, n):\n    \"\"\"b^n. Property: result == b**n for b,n >= 0.\"\"\"\n    p = 1\n    i = 0\n    while i < n:\n        p = p * b\n        i = i + 1\n    assert p == b ** n\n    return p\n",
+  "n_claims": 0,
+  "n_verified": 0,
+  "n_counterexample": 0,
+  "n_unreachable": 0,
+  "n_unsupported": 0,
+  "n_translation_error": 0,
+  "n_unknown_timeout": 0,
+  "claim_results": [],
+  "elapsed_seconds": 0.00025340000865980983,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "cot_trace": "",
+  "baseline": "AST_ANCHORED",
+  "direct_constraints": [],
+  "rejected_by_subset": true,
+  "subset_rejection_reason": "standalone expressions not allowed"
+}

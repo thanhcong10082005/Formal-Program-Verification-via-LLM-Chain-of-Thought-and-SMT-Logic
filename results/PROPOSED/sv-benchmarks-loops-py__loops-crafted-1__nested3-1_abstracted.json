@@ -25,7 +25,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3227000017650425,
+        "reach_ms": 1.3210999895818532,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -46,7 +46,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.5655000024707988,
+        "reach_ms": 1.2457999982871115,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -67,7 +67,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.2947999930474907,
+        "reach_ms": 1.2496999988798052,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -88,10 +88,10 @@
       },
       "counterexample": {
         "z3_model": {
-          "_state_2053478151813924701_w": 0,
-          "_state_2053478151813924701_z": 0,
-          "_state_2053478151813924701_x": 0,
-          "_state_2053478151813924701_y": 0
+          "_state_6978984915404682944_z": 0,
+          "_state_6978984915404682944_y": 0,
+          "_state_6978984915404682944_w": 0,
+          "_state_6978984915404682944_x": 0
         },
         "replay_verdict": false,
         "replay_output": "None",
@@ -104,8 +104,8 @@
         "feedback_resolution": null
       },
       "z3_stats": {
-        "reach_ms": 1.2832999927923083,
-        "valid_ms": 1.305900004808791
+        "reach_ms": 1.3519999920390546,
+        "valid_ms": 1.7428999999538064
       },
       "reason": "Z3 found a violating model at the claim's target path; replay did not confirm the target violation",
       "explanation": ""
@@ -125,7 +125,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3644999999087304,
+        "reach_ms": 1.8599999893922359,
         "valid_ms": 0.0
       },
       "reason": "claim holds on every complete path to its exact target node",
@@ -146,7 +146,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3222999987192452,
+        "reach_ms": 1.3264000008348376,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
@@ -167,7 +167,7 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.527700005681254,
+        "reach_ms": 1.2638000189326704,
         "valid_ms": 0.0
       },
       "reason": "claim holds on every complete path to its exact target node",
@@ -188,14 +188,14 @@
       },
       "counterexample": null,
       "z3_stats": {
-        "reach_ms": 1.3949999993201345,
+        "reach_ms": 1.2661000073421746,
         "valid_ms": 0.0
       },
       "reason": "all modeled paths satisfy the claim, but loop/control-flow coverage is incomplete",
       "explanation": ""
     }
   ],
-  "elapsed_seconds": 1.6063872000086121,
+  "elapsed_seconds": 1.6916013000009116,
   "total_tokens_in": 0,
   "total_tokens_out": 0,
   "cot_trace": "",
