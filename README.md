@@ -546,6 +546,33 @@ Proposed sinh **6.5 claim/chương trình**, D sinh **1.2**. F1 ở mức claim-
 và program-level cho ra số khác nhau. Báo cáo cuối **phải trình bày cả hai**;
 nếu không, con số nào được chọn cũng sẽ bị chất vấn.
 
+**Điều 4 — Vòng retrospective làm thay đổi verdict, nên phải báo 2 cấu hình.**
+
+Smoke test trên `dataset_temp_200` (cùng 20 mẫu, seed=7):
+
+| Chế độ | Kết quả | Thời gian |
+|--------|---------|-----------|
+| `--no-feedback` | 13 COUNTEREXAMPLE / 7 VERIFIED | ~22 s |
+| **có feedback** (mặc định) | **5 COUNTEREXAMPLE / 15 VERIFIED** | ~99 s |
+
+Vòng retrospective đã **sửa được 10/20 verdict** từ `COUNTEREXAMPLE` thành
+`VERIFIED`. Điều này có hệ quả hai chiều:
+
+| Mặc độ đo | Ảnh hưởng |
+|-----------|-----------|
+| Accuracy / F1 | Tăng rõ rệt (claim sai được sửa rồi verify) |
+| **FDR** | **Cần đo cẩn thận** — nếu claim sửa thành đúng *sai* thì FDR tăng |
+| CRVR | Giảm (nhiều CE đã chuyển thành V nên mẫu số co lại) |
+
+→ Báo cáo cuối **phải có 2 cấu hình** (có/không feedback), và **AB-4**
+(bỏ retrospective) phải đo trên **cùng một tập claim**.
+
+> **Lưu ý kỹ thuật:** log feedback cho thấy Gemini đôi khi trả JSON không
+> parse được (`core/feedback.py::_parse_feedback_json`). Cơ chế fail-safe đã
+> hoạt động đúng — pipeline không crash, giữ nguyên `COUNTEREXAMPLE` — nhưng
+> nếu tỷ lệ parse lỗi cao thì feedback kém hiệu quả hơn kỳ vọng. Cần **đo
+> tỷ lệ này** trong phase Baseline.
+
 ### 10.3. Rủi ro đã biết (nêu thẳng trong báo cáo)
 
 | Rủi ro | Mức | Xử lý trong phase Baseline |
@@ -555,6 +582,9 @@ nếu không, con số nào được chọn cũng sẽ bị chất vấn.
 | **Chưa có baseline không dùng LLM** | 🟡 | Baseline J (fuzzing) & L (symbolic thuần) — "sanity floor", chạy offline 0 token |
 | **Ground truth của bộ curated không nhất quán** | 🟡 | Dùng `dataset_temp_200` có oracle; đồng bộ với bộ chính của Tâm |
 | **14 baseline × 200 mẫu vượt quota Gemini** | 🟡 | 6 baseline cốt lõi chạy đầy đủ, 8 cái chạy tập con 50 mẫu |
+| **Feedback loop đổi 1/2 số verdict** → có thể tăng F1 nhưng tăng cả FDR | 🔴 | Báo 2 cấu hình có/không feedback; đo FDR + CRVR + self-correct rate cùng nhau |
+| **`executor.py` báo `COUNTEREXAMPLE` khi coverage không đầy đủ** (2/20 mẫu smoke) | 🟡 | Phải là `UNKNOWN_TIMEOUT`; kiểm tra cờ `complete` trong `executor.py` |
+| **`metrics.aggregate` trả `hr = 0.0` khi không có cổng neo** | 🟡 | Phải là `None` (nguyên tắc N/A ≠ 0) — sửa khi cài Baseline |
 
 ---
 
