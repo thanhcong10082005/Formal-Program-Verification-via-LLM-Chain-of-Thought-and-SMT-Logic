@@ -45,12 +45,9 @@ Thumbs.db
 *.log
 logs/
 
-# --- Large / generated result files ----------------------------------------
-# Giữ lại cấu trúc thư mục nhưng ignore nội dung nặng để repo nhẹ.
-prototype/results/_run.log
-prototype/results/_cruxeval_py/
-prototype/results/AST_ANCHORED/*.json
-prototype/results/UNANCHORED/*.json
+# --- Generated result files -----------------------------------------------
+# Kết quả benchmark sẽ ghi ra đầy đụ; không commit.
+results/
 
 # --- Generated dataset translations -----------------------------------------
 # Dataset gốc nằm ở ../Dataset/ (không commit trong prototype repo này).
