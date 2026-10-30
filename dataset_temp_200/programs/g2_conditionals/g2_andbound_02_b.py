@@ -1,0 +1,12 @@
+# g2_andbound_02_b
+# group: g2_conditionals | family: and_bound
+# expected_verdict: COUNTEREXAMPLE | bug_type: claim_missing_branch
+# note: the claim ignores the out-of-range branch
+
+def f(n: int) -> int:
+    if n > 0 and n < 20:
+        x = 1
+    else:
+        x = 0
+    assert x == 1
+    return x

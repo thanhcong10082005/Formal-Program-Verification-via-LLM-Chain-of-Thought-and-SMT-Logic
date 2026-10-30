@@ -1,0 +1,13 @@
+# g3_countdown_02
+# group: g3_loops | family: countdown
+# expected_verdict: VERIFIED | bug_type: none
+# note: the countdown reaches zero
+
+def f(n: int) -> int:
+    i = n
+    s = 0
+    while i > 0:
+        i = i - 1
+        s = s + 1
+    assert i == 0
+    return s

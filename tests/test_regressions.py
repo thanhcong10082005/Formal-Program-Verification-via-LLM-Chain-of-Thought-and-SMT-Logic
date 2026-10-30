@@ -1,20 +1,31 @@
-import sys
+"""Regression tests for the Core Proposed Method.
+
+These tests pin down the behaviour that the Baseline phase relies on:
+the anchor gate, the two-query Z3 protocol, the subset gate, the replay
+mechanism and the metric definitions.
+"""
+
+from __future__ import annotations
 
 import pytest
 
-sys.path.insert(0, "src")
-
-from astverifier.executor import TrustedSymbolicExecutor
-from astverifier.binding import extract_asserts
-from astverifier.classify import AnchorInfo, ClaimResult, ProgramResult, StatusEnum
-from astverifier.metrics import aggregate
-from astverifier.nodes import assign_ids
-from astverifier.pipeline import run_pipeline
-from astverifier.replay import replay_counterexample
-from astverifier.subset import check_and_normalize
+from astverifier.core.binding import extract_asserts
+from astverifier.core.executor import TrustedSymbolicExecutor
+from astverifier.core.pipeline import run_pipeline
+from astverifier.shared.anchors import assign_ids
+from astverifier.shared.metrics import aggregate
+from astverifier.shared.replay import replay_counterexample
+from astverifier.shared.schemas import (
+    AnchorInfo,
+    ClaimResult,
+    ProgramResult,
+    StatusEnum,
+)
+from astverifier.shared.subset import check_and_normalize
 
 
 def test_anchor_requires_exact_line_and_scope():
+    """A claim is only anchored when it names exactly one real statement."""
     source = "def f(n):\n    x = n + 1\n    return x\n"
 
     missing_line = run_pipeline(
@@ -34,183 +45,8 @@ def test_anchor_requires_exact_line_and_scope():
     assert out_of_scope.claim_results[0].status.value == "UNSUPPORTED"
 
 
-def test_unanchored_is_direct_formalization_without_program_state():
-    source = "def f(n):\n    x = n + 1\n    assert x >= n\n"
-
-    anchored = run_pipeline(source, baseline="AST_ANCHORED", do_replay=False)
-    unanchored = run_pipeline(source, baseline="UNANCHORED", do_replay=False)
-
-    assert anchored.claim_results[0].status.value == "VERIFIED"
-    assert unanchored.claim_results[0].status.value == "COUNTEREXAMPLE"
-    assert unanchored.claim_results[0].anchor.node_ids == []
-    assert unanchored.claim_results[0].anchor.source_lines == []
-
-
-def test_direct_formalization_checks_joint_context_and_target():
-    source = "def f(n):\n    x = n + 1\n    assert x >= n\n"
-    result = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_constraints=[
-            {
-                "formula": "(= x (+ n 1))",
-                "variables": ["x", "n"],
-                "rationale": "The assignment relates the output state to the input.",
-            }
-        ],
-        direct_specifications=[
-            {
-                "formula": "(>= x n)",
-                "variables": ["x", "n"],
-                "rationale": "The source assertion follows from the assignment relation.",
-            }
-        ],
-        do_replay=True,
-    )
-
-    assert result.n_claims == 1
-    assert result.claim_results[0].claim_id == "source_assert_1"
-    assert result.claim_results[0].claim_text == "(>= x n)"
-    assert result.claim_results[0].status.value == "VERIFIED"
-    assert result.claim_results[0].explanation.startswith("The source assertion")
-    assert result.direct_constraints == ["(= x (+ n 1))"]
-    assert result.claim_results[0].anchor.node_ids == []
-    assert result.claim_results[0].anchor.source_lines == []
-    assert result.claim_results[0].counterexample is None
-
-
-def test_source_assertions_are_not_duplicated_by_matching_direct_specs():
-    result = run_pipeline(
-        "def f(n):\n    assert n >= 0\n",
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {
-                "formula": "(>= n 0)",
-                "variables": ["n"],
-                "rationale": "The independently generated form repeats the source assertion.",
-            }
-        ],
-        do_replay=False,
-    )
-
-    assert result.n_claims == 1
-    assert result.claim_results[0].claim_id == "source_assert_1"
-    assert result.claim_results[0].explanation.startswith("The independently generated")
-
-
-def test_direct_counterexample_model_satisfies_joint_context():
-    result = run_pipeline(
-        "def f(n):\n    pass\n",
-        baseline="UNANCHORED",
-        direct_constraints=[
-            {"formula": "(= x (- 1))", "variables": ["x"]}
-        ],
-        direct_specifications=[
-            {"formula": "(>= x 0)", "variables": ["x"]}
-        ],
-        do_replay=True,
-    )
-
-    claim = result.claim_results[0]
-    assert claim.status.value == "COUNTEREXAMPLE"
-    assert claim.counterexample.z3_model["x"] == -1
-    assert claim.counterexample.replay_verdict is None
-
-
-def test_inconsistent_direct_context_is_not_vacuously_verified():
-    result = run_pipeline(
-        "def f(n):\n    pass\n",
-        baseline="UNANCHORED",
-        direct_constraints=[
-            {"formula": "(>= x 0)", "variables": ["x"]},
-            {"formula": "(< x 0)", "variables": ["x"]},
-        ],
-        direct_specifications=[
-            {"formula": "(= x x)", "variables": ["x"]}
-        ],
-        do_replay=False,
-    )
-
-    assert result.n_translation_error == 1
-    assert result.claim_results[0].status.value == "TRANSLATION_ERROR"
-    assert "inconsistent" in result.claim_results[0].reason
-
-
-def test_direct_formula_validation_rejects_nonlinear_and_malformed_specs():
-    source = "def f(n):\n    pass\n"
-    nonlinear = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {"formula": "(= (* x x) 0)", "variables": ["x"]}
-        ],
-        do_replay=False,
-    )
-    malformed = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {"formula": "(>= x 0", "variables": ["x"]}
-        ],
-        do_replay=False,
-    )
-
-    assert nonlinear.claim_results[0].status.value == "UNSUPPORTED"
-    assert malformed.claim_results[0].status.value == "TRANSLATION_ERROR"
-
-
-def test_direct_formula_validation_rejects_quantifiers_and_variable_divisors():
-    source = "def f(n):\n    pass\n"
-    quantifier = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {"formula": "(forall ((x Int)) (>= x 0))", "variables": []}
-        ],
-        do_replay=False,
-    )
-    variable_divisor = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {"formula": "(>= (div x d) 0)", "variables": ["x", "d"]}
-        ],
-        do_replay=False,
-    )
-
-    assert quantifier.claim_results[0].status.value == "UNSUPPORTED"
-    assert variable_divisor.claim_results[0].status.value == "UNSUPPORTED"
-
-
-def test_unanchored_rejects_legacy_python_claim_inputs():
-    with pytest.raises(ValueError, match="legacy Python claims"):
-        run_pipeline(
-            "def f(n):\n    pass\n",
-            baseline="UNANCHORED",
-            suggested_claims=[{"line": 2, "expression": "n >= 0"}],
-            do_replay=False,
-        )
-
-
-def test_direct_llm_failure_is_translation_error(monkeypatch):
-    def fail(*args, **kwargs):
-        raise RuntimeError("simulated direct call failure")
-
-    monkeypatch.setattr("astverifier.pipeline.generate_direct_formalization", fail)
-    result = run_pipeline(
-        "def f(n):\n    pass\n",
-        baseline="UNANCHORED",
-        use_llm=True,
-        gemini_api_key="test-key",
-        do_replay=False,
-    )
-
-    assert result.n_translation_error == 1
-    assert result.claim_results[0].status.value == "TRANSLATION_ERROR"
-    assert "simulated direct call failure" in result.claim_results[0].claim_text
-
-
 def test_claim_after_dead_loop_uses_skip_path():
+    """A loop with a false guard is skipped, so the claim is reachable."""
     source = (
         "def f(y, z):\n"
         "    while 0:\n"
@@ -224,6 +60,7 @@ def test_claim_after_dead_loop_uses_skip_path():
 
 
 def test_incomplete_break_path_is_not_reported_as_unreachable():
+    """Incomplete control-flow coverage yields UNKNOWN_TIMEOUT, not UNREACHABLE."""
     source = (
         "def f(n):\n"
         "    while n > 0:\n"
@@ -237,6 +74,7 @@ def test_incomplete_break_path_is_not_reported_as_unreachable():
 
 
 def test_reachability_relation_contains_target_state_equations():
+    """The reachability relation carries the state, not just the path condition."""
     source = "def f(n):\n    x = n + 1\n    assert x >= n\n"
     subset = check_and_normalize(source)
     ids = assign_ids(subset.tree)
@@ -251,33 +89,34 @@ def test_reachability_relation_contains_target_state_equations():
 
 
 def test_subset_rejects_nonlinear_and_variable_division():
+    """The QF-LIA gate rejects nonlinear terms and variable divisors."""
     assert not check_and_normalize("def f(n):\n    x = n * n\n").accepted
     assert not check_and_normalize("def f(n, d):\n    x = n // d\n").accepted
     assert check_and_normalize("def f(n):\n    x = n // 2\n").accepted
 
 
+def test_subset_rejects_strings_lists_and_imports():
+    """Strings, lists and imports are outside the supported subset."""
+    assert not check_and_normalize("def f(n):\n    x = 'a'\n").accepted
+    assert not check_and_normalize("def f(n):\n    x = [1, 2]\n").accepted
+    assert not check_and_normalize("import os\n").accepted
+
+
 def test_llm_claims_are_checked_against_the_arithmetic_subset():
+    """An LLM claim outside the subset is rejected, not silently verified."""
     source = "def f(n):\n    x = n + 1\n    return x\n"
-    anchored = run_pipeline(
+    result = run_pipeline(
         source,
         baseline="AST_ANCHORED",
         suggested_claims=[{"line": 2, "expression": "n * n >= 0"}],
         do_replay=False,
     )
-    direct = run_pipeline(
-        source,
-        baseline="UNANCHORED",
-        direct_specifications=[
-            {"formula": "(>= (* n n) 0)", "variables": ["n"]}
-        ],
-        do_replay=False,
-    )
 
-    assert anchored.claim_results[0].status.value == "UNSUPPORTED"
-    assert direct.claim_results[0].status.value == "UNSUPPORTED"
+    assert result.claim_results[0].status.value == "UNSUPPORTED"
 
 
 def test_replay_requires_target_line_and_false_claim():
+    """Replay only succeeds when the target line is reached and the claim is false."""
     source = "def f(n):\n    assert n >= 0\n    return n\n"
     reproduced = replay_counterexample(
         source,
@@ -300,6 +139,7 @@ def test_replay_requires_target_line_and_false_claim():
 
 
 def test_verdict_metrics_use_verified_as_the_positive_class():
+    """VERIFIED is the positive class; every other verdict is a negative."""
     anchor = AnchorInfo(node_ids=[], source_lines=[], has_grounding=False)
     result = ProgramResult(
         program_id="p",
@@ -307,9 +147,24 @@ def test_verdict_metrics_use_verified_as_the_positive_class():
         baseline="AST_ANCHORED",
         n_claims=3,
         claim_results=[
-            ClaimResult(claim_id="v", claim_text="x >= 0", status=StatusEnum.VERIFIED, anchor=anchor),
-            ClaimResult(claim_id="f", claim_text="x >= 0", status=StatusEnum.COUNTEREXAMPLE, anchor=anchor),
-            ClaimResult(claim_id="u", claim_text="x >= 0", status=StatusEnum.UNKNOWN_TIMEOUT, anchor=anchor),
+            ClaimResult(
+                claim_id="v",
+                claim_text="x >= 0",
+                status=StatusEnum.VERIFIED,
+                anchor=anchor,
+            ),
+            ClaimResult(
+                claim_id="f",
+                claim_text="x >= 0",
+                status=StatusEnum.COUNTEREXAMPLE,
+                anchor=anchor,
+            ),
+            ClaimResult(
+                claim_id="u",
+                claim_text="x >= 0",
+                status=StatusEnum.UNKNOWN_TIMEOUT,
+                anchor=anchor,
+            ),
         ],
     )
     metrics = aggregate([result], {"p": "VERIFIED"})
@@ -319,3 +174,25 @@ def test_verdict_metrics_use_verified_as_the_positive_class():
     assert metrics.recall == 1 / 3
     assert metrics.f1 == 0.5
     assert metrics.crvr is None
+
+
+def test_unknown_baseline_is_rejected():
+    """The Core Proposed Method only implements the anchored protocol."""
+    with pytest.raises(ValueError, match="unknown baseline"):
+        run_pipeline(
+            "def f(n):\n    assert n >= 0\n",
+            baseline="UNANCHORED",
+            do_replay=False,
+        )
+
+
+def test_use_llm_and_injected_claims_are_mutually_exclusive():
+    """Passing both claim sources is a usage error."""
+    with pytest.raises(ValueError, match="not both"):
+        run_pipeline(
+            "def f(n):\n    assert n >= 0\n",
+            baseline="AST_ANCHORED",
+            use_llm=True,
+            suggested_claims=[{"line": 2, "expression": "n >= 0"}],
+            do_replay=False,
+        )

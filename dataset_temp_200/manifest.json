@@ -1,0 +1,3439 @@
+{
+  "version": "1.0",
+  "generated_by": "tools/build_temp200.py",
+  "subset": "QF-LIA (int/bool, linear arithmetic, if/while/for over range)",
+  "labeling": "execution oracle (no LLM in the labeling loop)",
+  "n_programs": 200,
+  "counts_by_verdict": {
+    "VERIFIED": 85,
+    "COUNTEREXAMPLE": 100,
+    "UNREACHABLE": 15
+  },
+  "counts_by_group": {
+    "g1_arithmetic": 40,
+    "g2_conditionals": 40,
+    "g3_loops": 50,
+    "g4_nested": 40,
+    "g5_bugs": 30
+  },
+  "counts_by_bug_type": {
+    "claim_ignores_effect": 14,
+    "claim_inverted": 10,
+    "claim_missing_branch": 10,
+    "claim_missing_constant": 4,
+    "claim_off_by_one": 29,
+    "claim_sign_error": 4,
+    "claim_strict_bound": 6,
+    "claim_wrong_bound": 2,
+    "claim_wrong_coefficient": 2,
+    "claim_wrong_value": 4,
+    "impl_bad_init": 5,
+    "impl_off_by_one": 5,
+    "impl_wrong_update": 5,
+    "none": 85,
+    "unreachable_after_return": 8,
+    "unreachable_branch": 7
+  },
+  "programs": [
+    {
+      "program_id": "g1_addconst_01",
+      "path": "programs/g1_arithmetic/g1_addconst_01.py",
+      "group": "g1_arithmetic",
+      "family": "add_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 3",
+      "note": "postcondition of x = n + 3",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_addconst_01_b",
+      "path": "programs/g1_arithmetic/g1_addconst_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "add_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 3 + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_addconst_02",
+      "path": "programs/g1_arithmetic/g1_addconst_02.py",
+      "group": "g1_arithmetic",
+      "family": "add_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 7",
+      "note": "postcondition of x = n + 7",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_addconst_02_b",
+      "path": "programs/g1_arithmetic/g1_addconst_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "add_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 7 + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_mulconst_01",
+      "path": "programs/g1_arithmetic/g1_mulconst_01.py",
+      "group": "g1_arithmetic",
+      "family": "mul_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == 2 * n",
+      "note": "postcondition of x = 2 * n",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_mulconst_01_b",
+      "path": "programs/g1_arithmetic/g1_mulconst_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "mul_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_coefficient",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == 2 * n + 2",
+      "note": "the claim forgets the factor",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_mulconst_02",
+      "path": "programs/g1_arithmetic/g1_mulconst_02.py",
+      "group": "g1_arithmetic",
+      "family": "mul_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == 5 * n",
+      "note": "postcondition of x = 5 * n",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_mulconst_02_b",
+      "path": "programs/g1_arithmetic/g1_mulconst_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "mul_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_coefficient",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == 5 * n + 5",
+      "note": "the claim forgets the factor",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_subconst_01",
+      "path": "programs/g1_arithmetic/g1_subconst_01.py",
+      "group": "g1_arithmetic",
+      "family": "sub_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n - 1",
+      "note": "postcondition of x = n - 1",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_subconst_01_b",
+      "path": "programs/g1_arithmetic/g1_subconst_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "sub_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_sign_error",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 1",
+      "note": "sign error in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_subconst_02",
+      "path": "programs/g1_arithmetic/g1_subconst_02.py",
+      "group": "g1_arithmetic",
+      "family": "sub_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n - 4",
+      "note": "postcondition of x = n - 4",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_subconst_02_b",
+      "path": "programs/g1_arithmetic/g1_subconst_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "sub_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_sign_error",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x == n + 4",
+      "note": "sign error in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_twostep_01",
+      "path": "programs/g1_arithmetic/g1_twostep_01.py",
+      "group": "g1_arithmetic",
+      "family": "two_step",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 3 - 1",
+      "note": "postcondition of a two-step update",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_twostep_01_b",
+      "path": "programs/g1_arithmetic/g1_twostep_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "two_step",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 3 - 1 - 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_twostep_02",
+      "path": "programs/g1_arithmetic/g1_twostep_02.py",
+      "group": "g1_arithmetic",
+      "family": "two_step",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 5 - 2",
+      "note": "postcondition of a two-step update",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_twostep_02_b",
+      "path": "programs/g1_arithmetic/g1_twostep_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "two_step",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 5 - 2 - 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_accum_01",
+      "path": "programs/g1_arithmetic/g1_accum_01.py",
+      "group": "g1_arithmetic",
+      "family": "accumulate",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n + 2",
+      "note": "postcondition after accumulation",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_accum_01_b",
+      "path": "programs/g1_arithmetic/g1_accum_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "accumulate",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_constant",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n",
+      "note": "the claim forgets the added constant",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_accum_02",
+      "path": "programs/g1_arithmetic/g1_accum_02.py",
+      "group": "g1_arithmetic",
+      "family": "accumulate",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n + 6",
+      "note": "postcondition after accumulation",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_accum_02_b",
+      "path": "programs/g1_arithmetic/g1_accum_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "accumulate",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_constant",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n",
+      "note": "the claim forgets the added constant",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_negate_01",
+      "path": "programs/g1_arithmetic/g1_negate_01.py",
+      "group": "g1_arithmetic",
+      "family": "negate",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == 4 - n",
+      "note": "postcondition of a negated input",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_negate_01_b",
+      "path": "programs/g1_arithmetic/g1_negate_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "negate",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_sign_error",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 4",
+      "note": "sign error in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_negate_02",
+      "path": "programs/g1_arithmetic/g1_negate_02.py",
+      "group": "g1_arithmetic",
+      "family": "negate",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == 6 - n",
+      "note": "postcondition of a negated input",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_negate_02_b",
+      "path": "programs/g1_arithmetic/g1_negate_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "negate",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_sign_error",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 6",
+      "note": "sign error in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_modulo_01",
+      "path": "programs/g1_arithmetic/g1_modulo_01.py",
+      "group": "g1_arithmetic",
+      "family": "modulo",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "a modulo with a positive divisor is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_modulo_01_b",
+      "path": "programs/g1_arithmetic/g1_modulo_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "modulo",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero remainder",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_modulo_02",
+      "path": "programs/g1_arithmetic/g1_modulo_02.py",
+      "group": "g1_arithmetic",
+      "family": "modulo",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "a modulo with a positive divisor is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_modulo_02_b",
+      "path": "programs/g1_arithmetic/g1_modulo_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "modulo",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero remainder",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_floordiv_01",
+      "path": "programs/g1_arithmetic/g1_floordiv_01.py",
+      "group": "g1_arithmetic",
+      "family": "floor_div",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "the floor quotient of a non-negative value is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_floordiv_01_b",
+      "path": "programs/g1_arithmetic/g1_floordiv_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "floor_div",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero quotient",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_floordiv_02",
+      "path": "programs/g1_arithmetic/g1_floordiv_02.py",
+      "group": "g1_arithmetic",
+      "family": "floor_div",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "the floor quotient of a non-negative value is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_floordiv_02_b",
+      "path": "programs/g1_arithmetic/g1_floordiv_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "floor_div",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero quotient",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_abs_01",
+      "path": "programs/g1_arithmetic/g1_abs_01.py",
+      "group": "g1_arithmetic",
+      "family": "absolute",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "an absolute value is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_abs_01_b",
+      "path": "programs/g1_arithmetic/g1_abs_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "absolute",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero case",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_abs_02",
+      "path": "programs/g1_arithmetic/g1_abs_02.py",
+      "group": "g1_arithmetic",
+      "family": "absolute",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "an absolute value is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_abs_02_b",
+      "path": "programs/g1_arithmetic/g1_abs_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "absolute",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_strict_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x > 0",
+      "note": "the claim excludes the zero case",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_minmax_01",
+      "path": "programs/g1_arithmetic/g1_minmax_01.py",
+      "group": "g1_arithmetic",
+      "family": "min_max",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x <= 4",
+      "note": "min(n, c) never exceeds c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_minmax_01_b",
+      "path": "programs/g1_arithmetic/g1_minmax_01_b.py",
+      "group": "g1_arithmetic",
+      "family": "min_max",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 4",
+      "note": "the claim is inverted for min",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_minmax_02",
+      "path": "programs/g1_arithmetic/g1_minmax_02.py",
+      "group": "g1_arithmetic",
+      "family": "min_max",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x <= 6",
+      "note": "min(n, c) never exceeds c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g1_minmax_02_b",
+      "path": "programs/g1_arithmetic/g1_minmax_02_b.py",
+      "group": "g1_arithmetic",
+      "family": "min_max",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 6",
+      "note": "the claim is inverted for min",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_max2_01",
+      "path": "programs/g2_conditionals/g2_max2_01.py",
+      "group": "g2_conditionals",
+      "family": "max2",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 5",
+      "note": "max(n, c) is at least c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_max2_01_b",
+      "path": "programs/g2_conditionals/g2_max2_01_b.py",
+      "group": "g2_conditionals",
+      "family": "max2",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 5",
+      "note": "the claim is inverted for max",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_max2_02",
+      "path": "programs/g2_conditionals/g2_max2_02.py",
+      "group": "g2_conditionals",
+      "family": "max2",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 7",
+      "note": "max(n, c) is at least c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_max2_02_b",
+      "path": "programs/g2_conditionals/g2_max2_02_b.py",
+      "group": "g2_conditionals",
+      "family": "max2",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 7",
+      "note": "the claim is inverted for max",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_min2_01",
+      "path": "programs/g2_conditionals/g2_min2_01.py",
+      "group": "g2_conditionals",
+      "family": "min2",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 5",
+      "note": "min(n, c) is at most c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_min2_01_b",
+      "path": "programs/g2_conditionals/g2_min2_01_b.py",
+      "group": "g2_conditionals",
+      "family": "min2",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 5",
+      "note": "the claim is inverted for min",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_min2_02",
+      "path": "programs/g2_conditionals/g2_min2_02.py",
+      "group": "g2_conditionals",
+      "family": "min2",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 7",
+      "note": "min(n, c) is at most c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_min2_02_b",
+      "path": "programs/g2_conditionals/g2_min2_02_b.py",
+      "group": "g2_conditionals",
+      "family": "min2",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 7",
+      "note": "the claim is inverted for min",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_sign_01",
+      "path": "programs/g2_conditionals/g2_sign_01.py",
+      "group": "g2_conditionals",
+      "family": "sign",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= -1",
+      "note": "the signum is at least -1",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_sign_01_b",
+      "path": "programs/g2_conditionals/g2_sign_01_b.py",
+      "group": "g2_conditionals",
+      "family": "sign",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= 0",
+      "note": "the claim ignores the negative branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_sign_02",
+      "path": "programs/g2_conditionals/g2_sign_02.py",
+      "group": "g2_conditionals",
+      "family": "sign",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= -1",
+      "note": "the signum is at least -1",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_sign_02_b",
+      "path": "programs/g2_conditionals/g2_sign_02_b.py",
+      "group": "g2_conditionals",
+      "family": "sign",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= 0",
+      "note": "the claim ignores the negative branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_clamp_01",
+      "path": "programs/g2_conditionals/g2_clamp_01.py",
+      "group": "g2_conditionals",
+      "family": "clamp",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= 0",
+      "note": "the clamp lower bound is 0",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_clamp_01_b",
+      "path": "programs/g2_conditionals/g2_clamp_01_b.py",
+      "group": "g2_conditionals",
+      "family": "clamp",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x <= 0",
+      "note": "the claim uses the wrong clamp bound",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_clamp_02",
+      "path": "programs/g2_conditionals/g2_clamp_02.py",
+      "group": "g2_conditionals",
+      "family": "clamp",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x >= 2",
+      "note": "the clamp lower bound is 2",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_clamp_02_b",
+      "path": "programs/g2_conditionals/g2_clamp_02_b.py",
+      "group": "g2_conditionals",
+      "family": "clamp",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_bound",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x <= 2",
+      "note": "the claim uses the wrong clamp bound",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_parity_01",
+      "path": "programs/g2_conditionals/g2_parity_01.py",
+      "group": "g2_conditionals",
+      "family": "parity",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the parity flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_parity_01_b",
+      "path": "programs/g2_conditionals/g2_parity_01_b.py",
+      "group": "g2_conditionals",
+      "family": "parity",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the odd branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_parity_02",
+      "path": "programs/g2_conditionals/g2_parity_02.py",
+      "group": "g2_conditionals",
+      "family": "parity",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the parity flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_parity_02_b",
+      "path": "programs/g2_conditionals/g2_parity_02_b.py",
+      "group": "g2_conditionals",
+      "family": "parity",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the odd branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_threshold_01",
+      "path": "programs/g2_conditionals/g2_threshold_01.py",
+      "group": "g2_conditionals",
+      "family": "threshold",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the threshold flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_threshold_01_b",
+      "path": "programs/g2_conditionals/g2_threshold_01_b.py",
+      "group": "g2_conditionals",
+      "family": "threshold",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 0",
+      "note": "the claim is inverted for the threshold flag",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_threshold_02",
+      "path": "programs/g2_conditionals/g2_threshold_02.py",
+      "group": "g2_conditionals",
+      "family": "threshold",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the threshold flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_threshold_02_b",
+      "path": "programs/g2_conditionals/g2_threshold_02_b.py",
+      "group": "g2_conditionals",
+      "family": "threshold",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x <= 0",
+      "note": "the claim is inverted for the threshold flag",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_nested_01",
+      "path": "programs/g2_conditionals/g2_nested_01.py",
+      "group": "g2_conditionals",
+      "family": "nested_if",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "x >= 0",
+      "note": "the nested classification yields a non-negative label",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_nested_01_b",
+      "path": "programs/g2_conditionals/g2_nested_01_b.py",
+      "group": "g2_conditionals",
+      "family": "nested_if",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "x <= 0",
+      "note": "the claim is inverted for the nested classification",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_nested_02",
+      "path": "programs/g2_conditionals/g2_nested_02.py",
+      "group": "g2_conditionals",
+      "family": "nested_if",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "x >= 0",
+      "note": "the nested classification yields a non-negative label",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_nested_02_b",
+      "path": "programs/g2_conditionals/g2_nested_02_b.py",
+      "group": "g2_conditionals",
+      "family": "nested_if",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_inverted",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "x <= 0",
+      "note": "the claim is inverted for the nested classification",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_andbound_01",
+      "path": "programs/g2_conditionals/g2_andbound_01.py",
+      "group": "g2_conditionals",
+      "family": "and_bound",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the range flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_andbound_01_b",
+      "path": "programs/g2_conditionals/g2_andbound_01_b.py",
+      "group": "g2_conditionals",
+      "family": "and_bound",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the out-of-range branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_andbound_02",
+      "path": "programs/g2_conditionals/g2_andbound_02.py",
+      "group": "g2_conditionals",
+      "family": "and_bound",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the range flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_andbound_02_b",
+      "path": "programs/g2_conditionals/g2_andbound_02_b.py",
+      "group": "g2_conditionals",
+      "family": "and_bound",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the out-of-range branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_orbound_01",
+      "path": "programs/g2_conditionals/g2_orbound_01.py",
+      "group": "g2_conditionals",
+      "family": "or_bound",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the outside-range flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_orbound_01_b",
+      "path": "programs/g2_conditionals/g2_orbound_01_b.py",
+      "group": "g2_conditionals",
+      "family": "or_bound",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the inside-range branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_orbound_02",
+      "path": "programs/g2_conditionals/g2_orbound_02.py",
+      "group": "g2_conditionals",
+      "family": "or_bound",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x >= 0",
+      "note": "the outside-range flag is a bit",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_orbound_02_b",
+      "path": "programs/g2_conditionals/g2_orbound_02_b.py",
+      "group": "g2_conditionals",
+      "family": "or_bound",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 11,
+      "claim_expression": "x == 1",
+      "note": "the claim ignores the inside-range branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_ternary_01",
+      "path": "programs/g2_conditionals/g2_ternary_01.py",
+      "group": "g2_conditionals",
+      "family": "ternary",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= -1",
+      "note": "the conditional expression is bounded below",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_ternary_01_b",
+      "path": "programs/g2_conditionals/g2_ternary_01_b.py",
+      "group": "g2_conditionals",
+      "family": "ternary",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "the claim ignores the negative branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_ternary_02",
+      "path": "programs/g2_conditionals/g2_ternary_02.py",
+      "group": "g2_conditionals",
+      "family": "ternary",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= -1",
+      "note": "the conditional expression is bounded below",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g2_ternary_02_b",
+      "path": "programs/g2_conditionals/g2_ternary_02_b.py",
+      "group": "g2_conditionals",
+      "family": "ternary",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 8,
+      "claim_expression": "x >= 0",
+      "note": "the claim ignores the negative branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_01",
+      "path": "programs/g3_loops/g3_count_01.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the counter equals the number of iterations",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_01_b",
+      "path": "programs/g3_loops/g3_count_01_b.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_02",
+      "path": "programs/g3_loops/g3_count_02.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the counter equals the number of iterations",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_02_b",
+      "path": "programs/g3_loops/g3_count_02_b.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_03",
+      "path": "programs/g3_loops/g3_count_03.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the counter equals the number of iterations",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_count_03_b",
+      "path": "programs/g3_loops/g3_count_03_b.py",
+      "group": "g3_loops",
+      "family": "count_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_01",
+      "path": "programs/g3_loops/g3_addconst_01.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 2 * n",
+      "note": "the accumulator grows by a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_01_b",
+      "path": "programs/g3_loops/g3_addconst_01_b.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 2 * n + 2",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_02",
+      "path": "programs/g3_loops/g3_addconst_02.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 3 * n",
+      "note": "the accumulator grows by a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_02_b",
+      "path": "programs/g3_loops/g3_addconst_02_b.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 3 * n + 3",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_03",
+      "path": "programs/g3_loops/g3_addconst_03.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 4 * n",
+      "note": "the accumulator grows by a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_addconst_03_b",
+      "path": "programs/g3_loops/g3_addconst_03_b.py",
+      "group": "g3_loops",
+      "family": "add_const_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == 4 * n + 4",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_01",
+      "path": "programs/g3_loops/g3_countdown_01.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the countdown reaches zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_01_b",
+      "path": "programs/g3_loops/g3_countdown_01_b.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_02",
+      "path": "programs/g3_loops/g3_countdown_02.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the countdown reaches zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_02_b",
+      "path": "programs/g3_loops/g3_countdown_02_b.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_03",
+      "path": "programs/g3_loops/g3_countdown_03.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the countdown reaches zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown_03_b",
+      "path": "programs/g3_loops/g3_countdown_03_b.py",
+      "group": "g3_loops",
+      "family": "countdown",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_01",
+      "path": "programs/g3_loops/g3_forloop_01.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 2 * n",
+      "note": "a for-loop accumulates a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_01_b",
+      "path": "programs/g3_loops/g3_forloop_01_b.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 2 * n - 2",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_02",
+      "path": "programs/g3_loops/g3_forloop_02.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 3 * n",
+      "note": "a for-loop accumulates a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_02_b",
+      "path": "programs/g3_loops/g3_forloop_02_b.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 3 * n - 3",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_03",
+      "path": "programs/g3_loops/g3_forloop_03.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 4 * n",
+      "note": "a for-loop accumulates a constant per iteration",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_forloop_03_b",
+      "path": "programs/g3_loops/g3_forloop_03_b.py",
+      "group": "g3_loops",
+      "family": "for_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "s == 4 * n - 4",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_01",
+      "path": "programs/g3_loops/g3_countdown2_01.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i <= 0",
+      "note": "the countdown by two ends at or below zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_01_b",
+      "path": "programs/g3_loops/g3_countdown2_01_b.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the claim ignores the odd leftover",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_02",
+      "path": "programs/g3_loops/g3_countdown2_02.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i <= 0",
+      "note": "the countdown by two ends at or below zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_02_b",
+      "path": "programs/g3_loops/g3_countdown2_02_b.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the claim ignores the odd leftover",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_03",
+      "path": "programs/g3_loops/g3_countdown2_03.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i <= 0",
+      "note": "the countdown by two ends at or below zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_countdown2_03_b",
+      "path": "programs/g3_loops/g3_countdown2_03_b.py",
+      "group": "g3_loops",
+      "family": "countdown_by_two",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "i == 0",
+      "note": "the claim ignores the odd leftover",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_strip_01",
+      "path": "programs/g3_loops/g3_strip_01.py",
+      "group": "g3_loops",
+      "family": "strip_factor",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x >= 0",
+      "note": "the reduced value stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_strip_01_b",
+      "path": "programs/g3_loops/g3_strip_01_b.py",
+      "group": "g3_loops",
+      "family": "strip_factor",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n",
+      "note": "the claim ignores the reduction",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_strip_02",
+      "path": "programs/g3_loops/g3_strip_02.py",
+      "group": "g3_loops",
+      "family": "strip_factor",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x >= 0",
+      "note": "the reduced value stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_strip_02_b",
+      "path": "programs/g3_loops/g3_strip_02_b.py",
+      "group": "g3_loops",
+      "family": "strip_factor",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 10,
+      "claim_expression": "x == n",
+      "note": "the claim ignores the reduction",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_multiples_01",
+      "path": "programs/g3_loops/g3_multiples_01.py",
+      "group": "g3_loops",
+      "family": "count_multiples",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "s == n // 3",
+      "note": "the loop counts the multiples of c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_multiples_01_b",
+      "path": "programs/g3_loops/g3_multiples_01_b.py",
+      "group": "g3_loops",
+      "family": "count_multiples",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "s == n",
+      "note": "the claim ignores the filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_multiples_02",
+      "path": "programs/g3_loops/g3_multiples_02.py",
+      "group": "g3_loops",
+      "family": "count_multiples",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "s == n // 4",
+      "note": "the loop counts the multiples of c",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_multiples_02_b",
+      "path": "programs/g3_loops/g3_multiples_02_b.py",
+      "group": "g3_loops",
+      "family": "count_multiples",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "s == n",
+      "note": "the claim ignores the filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_break_01",
+      "path": "programs/g3_loops/g3_break_01.py",
+      "group": "g3_loops",
+      "family": "break_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "s == 2 * n",
+      "note": "the loop body runs exactly n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_break_01_b",
+      "path": "programs/g3_loops/g3_break_01_b.py",
+      "group": "g3_loops",
+      "family": "break_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "s == 2 * n + 2",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_break_02",
+      "path": "programs/g3_loops/g3_break_02.py",
+      "group": "g3_loops",
+      "family": "break_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "s == 2 * n",
+      "note": "the loop body runs exactly n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_break_02_b",
+      "path": "programs/g3_loops/g3_break_02_b.py",
+      "group": "g3_loops",
+      "family": "break_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 14,
+      "claim_expression": "s == 2 * n + 2",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_innerconst_01",
+      "path": "programs/g3_loops/g3_innerconst_01.py",
+      "group": "g3_loops",
+      "family": "inner_const_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the inner loop runs a constant number of times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_innerconst_01_b",
+      "path": "programs/g3_loops/g3_innerconst_01_b.py",
+      "group": "g3_loops",
+      "family": "inner_const_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == n",
+      "note": "the claim ignores the inner loop",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_innerconst_02",
+      "path": "programs/g3_loops/g3_innerconst_02.py",
+      "group": "g3_loops",
+      "family": "inner_const_loop",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the inner loop runs a constant number of times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_innerconst_02_b",
+      "path": "programs/g3_loops/g3_innerconst_02_b.py",
+      "group": "g3_loops",
+      "family": "inner_const_loop",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == n",
+      "note": "the claim ignores the inner loop",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_trailing_01",
+      "path": "programs/g3_loops/g3_trailing_01.py",
+      "group": "g3_loops",
+      "family": "trailing_update",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x == n + 2",
+      "note": "the postcondition after the loop",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_trailing_01_b",
+      "path": "programs/g3_loops/g3_trailing_01_b.py",
+      "group": "g3_loops",
+      "family": "trailing_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x == n + 2 + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_trailing_02",
+      "path": "programs/g3_loops/g3_trailing_02.py",
+      "group": "g3_loops",
+      "family": "trailing_update",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x == n + 4",
+      "note": "the postcondition after the loop",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g3_trailing_02_b",
+      "path": "programs/g3_loops/g3_trailing_02_b.py",
+      "group": "g3_loops",
+      "family": "trailing_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 13,
+      "claim_expression": "x == n + 4 + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerconst_01",
+      "path": "programs/g4_nested/g4_innerconst_01.py",
+      "group": "g4_nested",
+      "family": "inner_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the nested body runs c * n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerconst_01_b",
+      "path": "programs/g4_nested/g4_innerconst_01_b.py",
+      "group": "g4_nested",
+      "family": "inner_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 2 * n + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerconst_02",
+      "path": "programs/g4_nested/g4_innerconst_02.py",
+      "group": "g4_nested",
+      "family": "inner_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the nested body runs c * n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerconst_02_b",
+      "path": "programs/g4_nested/g4_innerconst_02_b.py",
+      "group": "g4_nested",
+      "family": "inner_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 3 * n + 1",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_count_01",
+      "path": "programs/g4_nested/g4_count_01.py",
+      "group": "g4_nested",
+      "family": "triple_count",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 18,
+      "claim_expression": "c2 == 6 * n",
+      "note": "the innermost body runs a * b * n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_count_01_b",
+      "path": "programs/g4_nested/g4_count_01_b.py",
+      "group": "g4_nested",
+      "family": "triple_count",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 18,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the claim forgets one nesting level",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_count_02",
+      "path": "programs/g4_nested/g4_count_02.py",
+      "group": "g4_nested",
+      "family": "triple_count",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 18,
+      "claim_expression": "c2 == 12 * n",
+      "note": "the innermost body runs a * b * n times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_count_02_b",
+      "path": "programs/g4_nested/g4_count_02_b.py",
+      "group": "g4_nested",
+      "family": "triple_count",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 18,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the claim forgets one nesting level",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_filter_01",
+      "path": "programs/g4_nested/g4_filter_01.py",
+      "group": "g4_nested",
+      "family": "nested_filter",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 >= 0",
+      "note": "the filtered counter stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_filter_01_b",
+      "path": "programs/g4_nested/g4_filter_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_filter",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 == n",
+      "note": "the claim ignores the filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_filter_02",
+      "path": "programs/g4_nested/g4_filter_02.py",
+      "group": "g4_nested",
+      "family": "nested_filter",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 >= 0",
+      "note": "the filtered counter stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_filter_02_b",
+      "path": "programs/g4_nested/g4_filter_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_filter",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 == n",
+      "note": "the claim ignores the filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerbreak_01",
+      "path": "programs/g4_nested/g4_innerbreak_01.py",
+      "group": "g4_nested",
+      "family": "inner_break",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 17,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the inner loop breaks after two steps",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerbreak_01_b",
+      "path": "programs/g4_nested/g4_innerbreak_01_b.py",
+      "group": "g4_nested",
+      "family": "inner_break",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 17,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the claim ignores the break",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerbreak_02",
+      "path": "programs/g4_nested/g4_innerbreak_02.py",
+      "group": "g4_nested",
+      "family": "inner_break",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 17,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the inner loop breaks after two steps",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_innerbreak_02_b",
+      "path": "programs/g4_nested/g4_innerbreak_02_b.py",
+      "group": "g4_nested",
+      "family": "inner_break",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 17,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the claim ignores the break",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_twoparam_01",
+      "path": "programs/g4_nested/g4_twoparam_01.py",
+      "group": "g4_nested",
+      "family": "nested_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the nested counter grows by a constant factor",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_twoparam_01_b",
+      "path": "programs/g4_nested/g4_twoparam_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 3 * n - 3",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_twoparam_02",
+      "path": "programs/g4_nested/g4_twoparam_02.py",
+      "group": "g4_nested",
+      "family": "nested_const",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 4 * n",
+      "note": "the nested counter grows by a constant factor",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_twoparam_02_b",
+      "path": "programs/g4_nested/g4_twoparam_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_const",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 4 * n - 4",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_accum_01",
+      "path": "programs/g4_nested/g4_accum_01.py",
+      "group": "g4_nested",
+      "family": "nested_accum",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "x == 2 * n + 2",
+      "note": "the postcondition of a nested accumulation",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_accum_01_b",
+      "path": "programs/g4_nested/g4_accum_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_accum",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_constant",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "x == 2 * n",
+      "note": "the claim forgets the trailing update",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_accum_02",
+      "path": "programs/g4_nested/g4_accum_02.py",
+      "group": "g4_nested",
+      "family": "nested_accum",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "x == 4 * n + 4",
+      "note": "the postcondition of a nested accumulation",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_accum_02_b",
+      "path": "programs/g4_nested/g4_accum_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_accum",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_missing_constant",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "x == 4 * n",
+      "note": "the claim forgets the trailing update",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_minimum_01",
+      "path": "programs/g4_nested/g4_minimum_01.py",
+      "group": "g4_nested",
+      "family": "nested_min",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x >= 0",
+      "note": "the running minimum stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_minimum_01_b",
+      "path": "programs/g4_nested/g4_minimum_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_min",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_value",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x == n",
+      "note": "the claim pins the minimum to the input",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_minimum_02",
+      "path": "programs/g4_nested/g4_minimum_02.py",
+      "group": "g4_nested",
+      "family": "nested_min",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x >= 0",
+      "note": "the running minimum stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_minimum_02_b",
+      "path": "programs/g4_nested/g4_minimum_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_min",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_value",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x == n",
+      "note": "the claim pins the minimum to the input",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_maximum_01",
+      "path": "programs/g4_nested/g4_maximum_01.py",
+      "group": "g4_nested",
+      "family": "nested_max",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x >= 0",
+      "note": "the running maximum stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_maximum_01_b",
+      "path": "programs/g4_nested/g4_maximum_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_max",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_value",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x == 0",
+      "note": "the claim pins the maximum to zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_maximum_02",
+      "path": "programs/g4_nested/g4_maximum_02.py",
+      "group": "g4_nested",
+      "family": "nested_max",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x >= 0",
+      "note": "the running maximum stays non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_maximum_02_b",
+      "path": "programs/g4_nested/g4_maximum_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_max",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_wrong_value",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "x == 0",
+      "note": "the claim pins the maximum to zero",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_step_01",
+      "path": "programs/g4_nested/g4_step_01.py",
+      "group": "g4_nested",
+      "family": "nested_step",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 >= 0",
+      "note": "the parity-filtered counter is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_step_01_b",
+      "path": "programs/g4_nested/g4_step_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_step",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 == 2 * n",
+      "note": "the claim ignores the parity filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_step_02",
+      "path": "programs/g4_nested/g4_step_02.py",
+      "group": "g4_nested",
+      "family": "nested_step",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 >= 0",
+      "note": "the parity-filtered counter is non-negative",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_step_02_b",
+      "path": "programs/g4_nested/g4_step_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_step",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_ignores_effect",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 16,
+      "claim_expression": "c2 == 3 * n",
+      "note": "the claim ignores the parity filter",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_decrease_01",
+      "path": "programs/g4_nested/g4_decrease_01.py",
+      "group": "g4_nested",
+      "family": "nested_decrease",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 4 * n",
+      "note": "the decreasing inner loop runs c times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_decrease_01_b",
+      "path": "programs/g4_nested/g4_decrease_01_b.py",
+      "group": "g4_nested",
+      "family": "nested_decrease",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 4 * n + 4",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_decrease_02",
+      "path": "programs/g4_nested/g4_decrease_02.py",
+      "group": "g4_nested",
+      "family": "nested_decrease",
+      "expected_verdict": "VERIFIED",
+      "bug_type": "none",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 5 * n",
+      "note": "the decreasing inner loop runs c times",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g4_decrease_02_b",
+      "path": "programs/g4_nested/g4_decrease_02_b.py",
+      "group": "g4_nested",
+      "family": "nested_decrease",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "claim_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 15,
+      "claim_expression": "c2 == 5 * n + 5",
+      "note": "off-by-one in the claim",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_offbyone_01",
+      "path": "programs/g5_bugs/g5_bug_offbyone_01.py",
+      "group": "g5_bugs",
+      "family": "bug_off_by_one",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the loop condition runs one iteration too many",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_offbyone_02",
+      "path": "programs/g5_bugs/g5_bug_offbyone_02.py",
+      "group": "g5_bugs",
+      "family": "bug_off_by_one",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the loop condition runs one iteration too many",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_offbyone_03",
+      "path": "programs/g5_bugs/g5_bug_offbyone_03.py",
+      "group": "g5_bugs",
+      "family": "bug_off_by_one",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the loop condition runs one iteration too many",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_offbyone_04",
+      "path": "programs/g5_bugs/g5_bug_offbyone_04.py",
+      "group": "g5_bugs",
+      "family": "bug_off_by_one",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the loop condition runs one iteration too many",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_offbyone_05",
+      "path": "programs/g5_bugs/g5_bug_offbyone_05.py",
+      "group": "g5_bugs",
+      "family": "bug_off_by_one",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_off_by_one",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the loop condition runs one iteration too many",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_wrongupdate_01",
+      "path": "programs/g5_bugs/g5_bug_wrongupdate_01.py",
+      "group": "g5_bugs",
+      "family": "bug_wrong_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_wrong_update",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the induction variable advances by two",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_wrongupdate_02",
+      "path": "programs/g5_bugs/g5_bug_wrongupdate_02.py",
+      "group": "g5_bugs",
+      "family": "bug_wrong_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_wrong_update",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the induction variable advances by two",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_wrongupdate_03",
+      "path": "programs/g5_bugs/g5_bug_wrongupdate_03.py",
+      "group": "g5_bugs",
+      "family": "bug_wrong_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_wrong_update",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the induction variable advances by two",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_wrongupdate_04",
+      "path": "programs/g5_bugs/g5_bug_wrongupdate_04.py",
+      "group": "g5_bugs",
+      "family": "bug_wrong_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_wrong_update",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the induction variable advances by two",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_wrongupdate_05",
+      "path": "programs/g5_bugs/g5_bug_wrongupdate_05.py",
+      "group": "g5_bugs",
+      "family": "bug_wrong_update",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_wrong_update",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the induction variable advances by two",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_badinit_01",
+      "path": "programs/g5_bugs/g5_bug_badinit_01.py",
+      "group": "g5_bugs",
+      "family": "bug_bad_init",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_bad_init",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the accumulator is initialised to one",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_badinit_02",
+      "path": "programs/g5_bugs/g5_bug_badinit_02.py",
+      "group": "g5_bugs",
+      "family": "bug_bad_init",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_bad_init",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the accumulator is initialised to one",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_badinit_03",
+      "path": "programs/g5_bugs/g5_bug_badinit_03.py",
+      "group": "g5_bugs",
+      "family": "bug_bad_init",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_bad_init",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the accumulator is initialised to one",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_badinit_04",
+      "path": "programs/g5_bugs/g5_bug_badinit_04.py",
+      "group": "g5_bugs",
+      "family": "bug_bad_init",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_bad_init",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the accumulator is initialised to one",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_bug_badinit_05",
+      "path": "programs/g5_bugs/g5_bug_badinit_05.py",
+      "group": "g5_bugs",
+      "family": "bug_bad_init",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "bug_type": "impl_bad_init",
+      "precondition": "n >= 0",
+      "params": [
+        "n"
+      ],
+      "assert_line": 12,
+      "claim_expression": "s == n",
+      "note": "the accumulator is initialised to one",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_01",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_01.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 3",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_02",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_02.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 5",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_03",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_03.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 7",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_04",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_04.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 9",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_05",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_05.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 11",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_06",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_06.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 13",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_07",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_07.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 15",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_afterreturn_08",
+      "path": "programs/g5_bugs/g5_unreach_afterreturn_08.py",
+      "group": "g5_bugs",
+      "family": "unreach_after_return",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_after_return",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 17",
+      "note": "the claim sits after the return statement",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_01",
+      "path": "programs/g5_bugs/g5_unreach_branch_01.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 4",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_02",
+      "path": "programs/g5_bugs/g5_unreach_branch_02.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 6",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_03",
+      "path": "programs/g5_bugs/g5_unreach_branch_03.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 8",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_04",
+      "path": "programs/g5_bugs/g5_unreach_branch_04.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 10",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_05",
+      "path": "programs/g5_bugs/g5_unreach_branch_05.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 12",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_06",
+      "path": "programs/g5_bugs/g5_unreach_branch_06.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 14",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    },
+    {
+      "program_id": "g5_unreach_branch_07",
+      "path": "programs/g5_bugs/g5_unreach_branch_07.py",
+      "group": "g5_bugs",
+      "family": "unreach_branch",
+      "expected_verdict": "UNREACHABLE",
+      "bug_type": "unreachable_branch",
+      "precondition": "none",
+      "params": [
+        "n"
+      ],
+      "assert_line": 9,
+      "claim_expression": "x == n + 16",
+      "note": "the claim sits in a contradictory branch",
+      "gt_source": "execution_oracle",
+      "gt_confidence": "high"
+    }
+  ]
+}

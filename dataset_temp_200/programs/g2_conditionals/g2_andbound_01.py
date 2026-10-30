@@ -1,0 +1,12 @@
+# g2_andbound_01
+# group: g2_conditionals | family: and_bound
+# expected_verdict: VERIFIED | bug_type: none
+# note: the range flag is a bit
+
+def f(n: int) -> int:
+    if n > 0 and n < 10:
+        x = 1
+    else:
+        x = 0
+    assert x >= 0
+    return x
