@@ -237,6 +237,7 @@ def test_pipeline_returns_counterexample_with_feedback_fields():
         "verified",
         "still_counter",
         "llm_rejected_ce",
+        "unreachable",
     )
 
 
@@ -303,3 +304,78 @@ def test_pipeline_reports_unreachable_claim():
         use_llm=False,
     )
     assert result.claim_results[0].status == StatusEnum.UNREACHABLE
+
+
+def test_feedback_loop_does_not_verify_unreachable_claim():
+    """An unreachable refined claim must not be accepted as VERIFIED."""
+    import json
+
+    from astverifier.core.feedback import _GeminiAdapter
+
+    class MockUnreachableAdapter(_GeminiAdapter):
+        def __init__(self):
+            super().__init__(object())
+
+        def invoke(self, prompt: str, system: str) -> str:
+            return json.dumps({
+                "refined_cot": "Move claim to dead branch",
+                "refined_claim": {"line": 5, "expression": "res == 100"},
+                "accept_ce": True,
+            })
+
+    source = (
+        "def check_val(x: int) -> int:\n"
+        "    res = 0\n"
+        "    if x > 10:\n"
+        "        if x < 5:\n"
+        "            res = 100\n"
+        "    assert x != 0\n"
+        "    return res\n"
+    )
+    loop = RetrospectiveFeedbackLoop(llm_client=None)
+    loop.client = MockUnreachableAdapter()
+
+    res = run_pipeline(
+        source,
+        program_id="test_unreachable_feedback",
+        enable_feedback=True,
+        feedback_loop=loop,
+        do_replay=True,
+    )
+    # The real bug (assert x != 0 fails for x=0) must remain a COUNTEREXAMPLE
+    assert res.claim_results[0].status == StatusEnum.COUNTEREXAMPLE
+    assert res.claim_results[0].counterexample is not None
+    assert res.claim_results[0].counterexample.feedback_resolution == "max_iter_reached"
+
+
+def test_metrics_hr_is_none_without_grounding():
+    """When a baseline has no anchor gate (no grounding), HR must be None (N/A)."""
+    from astverifier.shared.metrics import aggregate
+    from astverifier.shared.schemas import AnchorInfo, ClaimResult, ProgramResult
+
+    anchor_no_grounding = AnchorInfo(node_ids=[], source_lines=[1], has_grounding=False)
+    result = ProgramResult(
+        program_id="p",
+        source_path="<inline>",
+        source_text="x = 1",
+        n_claims=1,
+        n_verified=1,
+        n_counterexample=0,
+        n_unreachable=0,
+        n_unsupported=0,
+        n_translation_error=0,
+        n_unknown_timeout=0,
+        claim_results=[
+            ClaimResult(
+                claim_id="c1",
+                claim_text="x == 1",
+                status=StatusEnum.VERIFIED,
+                anchor=anchor_no_grounding,
+            )
+        ],
+        elapsed_seconds=0.1,
+        baseline="LLM_JUDGE",
+    )
+    m = aggregate([result], {"p": "VERIFIED"})
+    assert m.hr is None
+

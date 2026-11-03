@@ -294,11 +294,10 @@ class RetrospectiveFeedbackLoop:
                     iteration=it, llm_response_excerpt=raw[:200],
                     refined_claim_text=new_expr, refined_claim_line=new_line,
                     z3_kind=r_kind, replay_verdict=None,
-                    resolution="verified" if r_kind == "unsat" else "unknown_timeout",
+                    resolution="unreachable" if r_kind == "unsat" else "unknown_timeout",
                 ))
-                if r_kind == "unsat":
-                    return refined_claim, rounds, "verified"
-                return current_claim, rounds, "unknown_timeout"
+                current_claim = refined_claim
+                continue
             v_kind, _, v_model = run_validity(obligation)
             new_ce = _model_to_dict(v_model) if v_kind == "sat" else {}
             new_replay = ReplayResult(False, "", -1, "not_run", 0.0)

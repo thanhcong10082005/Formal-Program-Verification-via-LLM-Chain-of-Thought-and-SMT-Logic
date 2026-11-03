@@ -418,6 +418,7 @@ def _process_claim(
                 cot_trace=cot_trace,
                 reach_ms=reach_ms,
                 valid_ms=valid_ms,
+                failing_reachability=reachability,
             )
 
     if reachable_paths == 0:
@@ -480,6 +481,7 @@ def _counterexample_result(
     cot_trace: str,
     reach_ms: float,
     valid_ms: float,
+    failing_reachability: Reachability | None = None,
 ) -> ClaimResult:
     """Build the COUNTEREXAMPLE result, optionally running the feedback loop."""
     counterexample = _counterexample_from_model(model, claim)
@@ -504,6 +506,7 @@ def _counterexample_result(
                 replay=replay,
                 executor=executor,
                 reachabilities=reachabilities,
+                failing_reachability=failing_reachability,
             )
             if refined is not None:
                 return refined
@@ -541,6 +544,7 @@ def _run_feedback_loop(
     replay,
     executor: TrustedSymbolicExecutor,
     reachabilities: list[Reachability],
+    failing_reachability: Reachability | None = None,
 ) -> ClaimResult | None:
     """Run the retrospective feedback loop; return a VERIFIED result if any.
 
@@ -550,6 +554,13 @@ def _run_feedback_loop(
     try:
         func_node = executor._enclosing_function_node(claim.anchor)
         func_name = func_node.name if func_node is not None else "f"
+        target_reach = (
+            failing_reachability
+            if failing_reachability is not None
+            else (reachabilities[0] if reachabilities else None)
+        )
+        if target_reach is None:
+            return None
         refined_claim, rounds, resolution = feedback_loop.run_loop(
             source=source,
             previous_cot=cot_trace or "",
@@ -557,7 +568,7 @@ def _run_feedback_loop(
             z3_counterexample=counterexample.z3_model,
             replay=replay,
             executor=executor,
-            reachability=reachabilities[0],
+            reachability=target_reach,
             func_name=func_name,
         )
         counterexample.feedback_iterations = len(rounds)
@@ -566,20 +577,35 @@ def _run_feedback_loop(
             counterexample.feedback_refined_claim_line = refined_claim.source_line
         counterexample.feedback_resolution = resolution
         if resolution == "verified" and refined_claim is not None:
-            return ClaimResult(
-                claim_id=f"{claim.claim_id}_verified_by_feedback",
-                claim_text=refined_claim.expr_source,
-                status=StatusEnum.VERIFIED,
-                anchor=AnchorInfo(
-                    node_ids=[claim.anchor.as_string()] if claim.anchor else [],
-                    source_lines=[claim.source_line],
-                    has_grounding=claim.anchor is not None,
-                ),
-                reason=(
-                    f"Original claim refined after {len(rounds)} feedback rounds: "
-                    f"now verified."
-                ),
-            )
+            # Soundness gate: the refined claim must hold on every reachable target path
+            all_valid = True
+            for r in reachabilities:
+                ob = build_obligations(refined_claim, r, executor)
+                rk, _, _ = run_reachability(ob)
+                if rk == "unsat":
+                    continue
+                if rk == "unknown":
+                    all_valid = False
+                    break
+                vk, _, _ = run_validity(ob)
+                if vk != "unsat":
+                    all_valid = False
+                    break
+            if all_valid:
+                return ClaimResult(
+                    claim_id=f"{claim.claim_id}_verified_by_feedback",
+                    claim_text=refined_claim.expr_source,
+                    status=StatusEnum.VERIFIED,
+                    anchor=AnchorInfo(
+                        node_ids=[claim.anchor.as_string()] if claim.anchor else [],
+                        source_lines=[claim.source_line],
+                        has_grounding=claim.anchor is not None,
+                    ),
+                    reason=(
+                        f"Original claim refined after {len(rounds)} feedback rounds: "
+                        f"now verified."
+                    ),
+                )
     except Exception as exc:  # noqa: BLE001 - fail-safe by design
         counterexample.feedback_resolution = f"feedback_error: {exc}"
     return None

@@ -26,7 +26,7 @@ class Metrics:
     token_avg_in: float = 0.0
     token_avg_out: float = 0.0
     cost_avg_usd: float = 0.0
-    hr: float = 0.0                    # Hallucination Rate
+    hr: float | None = None            # Hallucination Rate (None if no grounding)
     crvr: float | None = None          # Counterexample Replay Validity Rate
     n_programs: int = 0
     n_claims: int = 0
@@ -53,8 +53,18 @@ def aggregate(
     cost_avg = (sum_in * PRICE_IN_PER_1K + sum_out * PRICE_OUT_PER_1K) / n_total / 1000
 
     # Hallucination Rate: (UNSUPPORTED + TRANSLATION_ERROR) / total claims
-    hr_n = sum(r.n_unsupported + r.n_translation_error for r in results)
-    hr = hr_n / n_claims_total if n_claims_total else 0.0
+    # Grounding is only supported when an anchor gate is present.
+    # When no claims have grounding (e.g. unanchored baseline D), HR = None (N/A != 0).
+    has_any_grounding = any(
+        cr.anchor.has_grounding
+        for r in results
+        for cr in r.claim_results
+    )
+    if not has_any_grounding or not n_claims_total:
+        hr = None if not has_any_grounding else 0.0
+    else:
+        hr_n = sum(r.n_unsupported + r.n_translation_error for r in results)
+        hr = hr_n / n_claims_total
 
     # CRVR is defined only for counterexamples with an actual replay verdict.
     # Direct Formalization deliberately stores ``replay_verdict = None`` for
