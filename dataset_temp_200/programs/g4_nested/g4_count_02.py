@@ -1,6 +1,7 @@
 # g4_count_02
 # group: g4_nested | family: triple_count
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the innermost body runs a * b * n times
 
 def f(n: int) -> int:

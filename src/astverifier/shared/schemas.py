@@ -90,6 +90,7 @@ class ProgramResult(BaseModel):
     total_tokens_out: int = 0
     cot_trace: str = ""
     baseline: str = ""
+    precondition: str | None = None
     direct_constraints: list[str] = []
     """SMT-LIB2 context of the SatLM-style direct baseline.
 

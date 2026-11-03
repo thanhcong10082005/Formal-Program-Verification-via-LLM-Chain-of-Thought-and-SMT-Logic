@@ -1,6 +1,7 @@
 # g1_negate_01
 # group: g1_arithmetic | family: negate
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: postcondition of a negated input
 
 def f(n: int) -> int:

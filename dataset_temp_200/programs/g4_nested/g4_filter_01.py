@@ -1,6 +1,7 @@
 # g4_filter_01
 # group: g4_nested | family: nested_filter
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the filtered counter stays non-negative
 
 def f(n: int) -> int:

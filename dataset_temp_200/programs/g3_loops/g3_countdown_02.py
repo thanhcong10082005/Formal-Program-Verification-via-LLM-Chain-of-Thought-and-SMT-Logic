@@ -1,6 +1,7 @@
 # g3_countdown_02
 # group: g3_loops | family: countdown
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the countdown reaches zero
 
 def f(n: int) -> int:

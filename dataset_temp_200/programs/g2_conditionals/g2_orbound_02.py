@@ -1,6 +1,7 @@
 # g2_orbound_02
 # group: g2_conditionals | family: or_bound
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: the outside-range flag is a bit
 
 def f(n: int) -> int:

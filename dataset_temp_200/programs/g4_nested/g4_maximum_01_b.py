@@ -1,6 +1,7 @@
 # g4_maximum_01_b
 # group: g4_nested | family: nested_max
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_wrong_value
+# precondition: n >= 0
 # note: the claim pins the maximum to zero
 
 def f(n: int) -> int:

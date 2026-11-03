@@ -1,6 +1,7 @@
 # g4_step_01
 # group: g4_nested | family: nested_step
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the parity-filtered counter is non-negative
 
 def f(n: int) -> int:

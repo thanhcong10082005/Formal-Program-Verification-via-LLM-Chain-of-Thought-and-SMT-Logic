@@ -1,6 +1,7 @@
 # g3_addconst_02
 # group: g3_loops | family: add_const_loop
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the accumulator grows by a constant per iteration
 
 def f(n: int) -> int:

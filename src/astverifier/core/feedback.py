@@ -219,6 +219,7 @@ class RetrospectiveFeedbackLoop:
         executor: TrustedSymbolicExecutor,
         reachability: Reachability,
         func_name: str,
+        precondition: str | None = None,
     ) -> tuple[Claim | None, list[FeedbackRound], str]:
         """Run the self-correction loop. Returns (final_claim, rounds, resolution)."""
         rounds: list[FeedbackRound] = []
@@ -279,7 +280,9 @@ class RetrospectiveFeedbackLoop:
                 ))
                 return current_claim, rounds, "llm_error"
             try:
-                obligation = build_obligations(refined_claim, reachability, executor)
+                obligation = build_obligations(
+                    refined_claim, reachability, executor, precondition=precondition
+                )
             except Exception as exc:
                 rounds.append(FeedbackRound(
                     iteration=it, llm_response_excerpt=raw[:200],

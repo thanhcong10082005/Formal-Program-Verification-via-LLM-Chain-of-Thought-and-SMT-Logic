@@ -1,6 +1,7 @@
 # g3_multiples_02_b
 # group: g3_loops | family: count_multiples
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_ignores_effect
+# precondition: n >= 0
 # note: the claim ignores the filter
 
 def f(n: int) -> int:

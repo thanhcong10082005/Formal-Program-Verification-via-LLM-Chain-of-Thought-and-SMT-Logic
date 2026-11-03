@@ -1,6 +1,7 @@
 # g3_countdown2_03_b
 # group: g3_loops | family: countdown_by_two
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_off_by_one
+# precondition: n >= 0
 # note: the claim ignores the odd leftover
 
 def f(n: int) -> int:

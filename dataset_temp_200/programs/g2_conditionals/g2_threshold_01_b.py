@@ -1,6 +1,7 @@
 # g2_threshold_01_b
 # group: g2_conditionals | family: threshold
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_inverted
+# precondition: none
 # note: the claim is inverted for the threshold flag
 
 def f(n: int) -> int:

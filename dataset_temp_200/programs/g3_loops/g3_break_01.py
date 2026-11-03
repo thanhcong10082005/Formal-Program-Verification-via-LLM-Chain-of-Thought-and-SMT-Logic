@@ -1,6 +1,7 @@
 # g3_break_01
 # group: g3_loops | family: break_loop
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the loop body runs exactly n times
 
 def f(n: int) -> int:

@@ -67,6 +67,7 @@ class Spec:
             f"# {self.program_id}",
             f"# group: {self.group} | family: {self.family}",
             f"# expected_verdict: {self.verdict} | bug_type: {self.bug_type}",
+            f"# precondition: {self.precondition}",
             f"# note: {self.note}",
             "",
             f"def f({', '.join(self.params)}: int) -> int:",

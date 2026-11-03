@@ -1,6 +1,7 @@
 # g2_threshold_01
 # group: g2_conditionals | family: threshold
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: the threshold flag is a bit
 
 def f(n: int) -> int:

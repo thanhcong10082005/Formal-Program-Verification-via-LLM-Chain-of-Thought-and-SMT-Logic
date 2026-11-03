@@ -1,6 +1,7 @@
 # g4_decrease_01
 # group: g4_nested | family: nested_decrease
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the decreasing inner loop runs c times
 
 def f(n: int) -> int:

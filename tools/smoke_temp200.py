@@ -54,6 +54,7 @@ def main() -> int:
             source_path=str(path),
             do_replay=True,
             enable_feedback=not args.no_feedback,
+            precondition=entry.get("precondition"),
         )
         if result.claim_results:
             status = result.claim_results[0].status.value

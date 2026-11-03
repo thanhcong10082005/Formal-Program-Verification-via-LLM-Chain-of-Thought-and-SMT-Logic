@@ -1,6 +1,7 @@
 # g2_parity_01
 # group: g2_conditionals | family: parity
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: the parity flag is a bit
 
 def f(n: int) -> int:

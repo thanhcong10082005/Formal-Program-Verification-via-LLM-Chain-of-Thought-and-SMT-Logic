@@ -1,6 +1,7 @@
 # g4_innerbreak_02
 # group: g4_nested | family: inner_break
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the inner loop breaks after two steps
 
 def f(n: int) -> int:

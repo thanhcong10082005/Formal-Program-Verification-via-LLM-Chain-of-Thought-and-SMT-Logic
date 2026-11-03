@@ -1,6 +1,7 @@
 # g2_ternary_02_b
 # group: g2_conditionals | family: ternary
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_missing_branch
+# precondition: none
 # note: the claim ignores the negative branch
 
 def f(n: int) -> int:

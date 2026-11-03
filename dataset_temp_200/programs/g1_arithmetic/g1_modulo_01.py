@@ -1,6 +1,7 @@
 # g1_modulo_01
 # group: g1_arithmetic | family: modulo
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: a modulo with a positive divisor is non-negative
 
 def f(n: int) -> int:

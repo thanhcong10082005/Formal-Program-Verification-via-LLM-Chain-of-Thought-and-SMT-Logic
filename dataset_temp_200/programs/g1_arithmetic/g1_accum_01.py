@@ -1,6 +1,7 @@
 # g1_accum_01
 # group: g1_arithmetic | family: accumulate
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: postcondition after accumulation
 
 def f(n: int) -> int:

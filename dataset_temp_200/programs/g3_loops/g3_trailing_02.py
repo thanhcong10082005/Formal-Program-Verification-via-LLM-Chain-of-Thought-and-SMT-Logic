@@ -1,6 +1,7 @@
 # g3_trailing_02
 # group: g3_loops | family: trailing_update
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the postcondition after the loop
 
 def f(n: int) -> int:

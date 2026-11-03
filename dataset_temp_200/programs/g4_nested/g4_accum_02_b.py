@@ -1,6 +1,7 @@
 # g4_accum_02_b
 # group: g4_nested | family: nested_accum
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_missing_constant
+# precondition: n >= 0
 # note: the claim forgets the trailing update
 
 def f(n: int) -> int:

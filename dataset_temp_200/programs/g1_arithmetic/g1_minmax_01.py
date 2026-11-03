@@ -1,6 +1,7 @@
 # g1_minmax_01
 # group: g1_arithmetic | family: min_max
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: min(n, c) never exceeds c
 
 def f(n: int) -> int:

@@ -379,3 +379,30 @@ def test_metrics_hr_is_none_without_grounding():
     m = aggregate([result], {"p": "VERIFIED"})
     assert m.hr is None
 
+
+def test_pipeline_precondition_filters_counterexamples():
+    """A claim that holds under a precondition is VERIFIED, but COUNTEREXAMPLE without it."""
+    source = (
+        "def f(x: int) -> int:\n"
+        "    assert x >= 0\n"
+        "    return x\n"
+    )
+    # Without precondition, x=-1 is a counterexample:
+    res_no_pre = run_pipeline(source, do_replay=True)
+    assert res_no_pre.claim_results[0].status == StatusEnum.COUNTEREXAMPLE
+
+    # With precondition, it holds for all inputs satisfying the precondition:
+    res_with_pre = run_pipeline(source, precondition="x >= 0", do_replay=True)
+    assert res_with_pre.claim_results[0].status == StatusEnum.VERIFIED
+
+    # With precondition in comment:
+    source_comment = (
+        "# precondition: x >= 0\n"
+        "def f(x: int) -> int:\n"
+        "    assert x >= 0\n"
+        "    return x\n"
+    )
+    res_comment = run_pipeline(source_comment, do_replay=True)
+    assert res_comment.claim_results[0].status == StatusEnum.VERIFIED
+
+

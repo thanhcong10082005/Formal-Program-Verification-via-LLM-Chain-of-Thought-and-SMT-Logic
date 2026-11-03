@@ -1,6 +1,7 @@
 # g4_minimum_01
 # group: g4_nested | family: nested_min
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the running minimum stays non-negative
 
 def f(n: int) -> int:

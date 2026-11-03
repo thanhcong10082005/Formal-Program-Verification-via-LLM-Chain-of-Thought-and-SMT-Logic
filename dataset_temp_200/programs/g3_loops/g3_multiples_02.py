@@ -1,6 +1,7 @@
 # g3_multiples_02
 # group: g3_loops | family: count_multiples
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the loop counts the multiples of c
 
 def f(n: int) -> int:

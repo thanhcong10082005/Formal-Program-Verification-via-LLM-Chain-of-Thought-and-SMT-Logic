@@ -1,6 +1,7 @@
 # g4_innerbreak_02_b
 # group: g4_nested | family: inner_break
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_ignores_effect
+# precondition: n >= 0
 # note: the claim ignores the break
 
 def f(n: int) -> int:

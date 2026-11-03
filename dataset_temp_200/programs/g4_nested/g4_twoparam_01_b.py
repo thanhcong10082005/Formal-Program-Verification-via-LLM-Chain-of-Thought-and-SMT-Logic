@@ -1,6 +1,7 @@
 # g4_twoparam_01_b
 # group: g4_nested | family: nested_const
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_off_by_one
+# precondition: n >= 0
 # note: off-by-one in the claim
 
 def f(n: int) -> int:

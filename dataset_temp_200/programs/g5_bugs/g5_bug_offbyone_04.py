@@ -1,6 +1,7 @@
 # g5_bug_offbyone_04
 # group: g5_bugs | family: bug_off_by_one
 # expected_verdict: COUNTEREXAMPLE | bug_type: impl_off_by_one
+# precondition: n >= 0
 # note: the loop condition runs one iteration too many
 
 def f(n: int) -> int:

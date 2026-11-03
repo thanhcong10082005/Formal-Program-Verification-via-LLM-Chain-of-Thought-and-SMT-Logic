@@ -1,6 +1,7 @@
 # g2_parity_01_b
 # group: g2_conditionals | family: parity
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_missing_branch
+# precondition: none
 # note: the claim ignores the odd branch
 
 def f(n: int) -> int:

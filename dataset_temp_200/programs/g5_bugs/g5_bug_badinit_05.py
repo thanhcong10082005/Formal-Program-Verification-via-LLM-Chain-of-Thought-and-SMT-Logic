@@ -1,6 +1,7 @@
 # g5_bug_badinit_05
 # group: g5_bugs | family: bug_bad_init
 # expected_verdict: COUNTEREXAMPLE | bug_type: impl_bad_init
+# precondition: n >= 0
 # note: the accumulator is initialised to one
 
 def f(n: int) -> int:

@@ -46,7 +46,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 3",
       "note": "postcondition of x = n + 3",
       "gt_source": "execution_oracle",
@@ -63,7 +63,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 3 + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -80,7 +80,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 7",
       "note": "postcondition of x = n + 7",
       "gt_source": "execution_oracle",
@@ -97,7 +97,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 7 + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -114,7 +114,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == 2 * n",
       "note": "postcondition of x = 2 * n",
       "gt_source": "execution_oracle",
@@ -131,7 +131,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == 2 * n + 2",
       "note": "the claim forgets the factor",
       "gt_source": "execution_oracle",
@@ -148,7 +148,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == 5 * n",
       "note": "postcondition of x = 5 * n",
       "gt_source": "execution_oracle",
@@ -165,7 +165,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == 5 * n + 5",
       "note": "the claim forgets the factor",
       "gt_source": "execution_oracle",
@@ -182,7 +182,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n - 1",
       "note": "postcondition of x = n - 1",
       "gt_source": "execution_oracle",
@@ -199,7 +199,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 1",
       "note": "sign error in the claim",
       "gt_source": "execution_oracle",
@@ -216,7 +216,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n - 4",
       "note": "postcondition of x = n - 4",
       "gt_source": "execution_oracle",
@@ -233,7 +233,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x == n + 4",
       "note": "sign error in the claim",
       "gt_source": "execution_oracle",
@@ -250,7 +250,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 3 - 1",
       "note": "postcondition of a two-step update",
       "gt_source": "execution_oracle",
@@ -267,7 +267,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 3 - 1 - 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -284,7 +284,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 5 - 2",
       "note": "postcondition of a two-step update",
       "gt_source": "execution_oracle",
@@ -301,7 +301,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 5 - 2 - 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -318,7 +318,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n + 2",
       "note": "postcondition after accumulation",
       "gt_source": "execution_oracle",
@@ -335,7 +335,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n",
       "note": "the claim forgets the added constant",
       "gt_source": "execution_oracle",
@@ -352,7 +352,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n + 6",
       "note": "postcondition after accumulation",
       "gt_source": "execution_oracle",
@@ -369,7 +369,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n",
       "note": "the claim forgets the added constant",
       "gt_source": "execution_oracle",
@@ -386,7 +386,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == 4 - n",
       "note": "postcondition of a negated input",
       "gt_source": "execution_oracle",
@@ -403,7 +403,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 4",
       "note": "sign error in the claim",
       "gt_source": "execution_oracle",
@@ -420,7 +420,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == 6 - n",
       "note": "postcondition of a negated input",
       "gt_source": "execution_oracle",
@@ -437,7 +437,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 6",
       "note": "sign error in the claim",
       "gt_source": "execution_oracle",
@@ -454,7 +454,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "a modulo with a positive divisor is non-negative",
       "gt_source": "execution_oracle",
@@ -471,7 +471,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero remainder",
       "gt_source": "execution_oracle",
@@ -488,7 +488,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "a modulo with a positive divisor is non-negative",
       "gt_source": "execution_oracle",
@@ -505,7 +505,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero remainder",
       "gt_source": "execution_oracle",
@@ -522,7 +522,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "the floor quotient of a non-negative value is non-negative",
       "gt_source": "execution_oracle",
@@ -539,7 +539,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero quotient",
       "gt_source": "execution_oracle",
@@ -556,7 +556,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "the floor quotient of a non-negative value is non-negative",
       "gt_source": "execution_oracle",
@@ -573,7 +573,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero quotient",
       "gt_source": "execution_oracle",
@@ -590,7 +590,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "an absolute value is non-negative",
       "gt_source": "execution_oracle",
@@ -607,7 +607,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero case",
       "gt_source": "execution_oracle",
@@ -624,7 +624,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "an absolute value is non-negative",
       "gt_source": "execution_oracle",
@@ -641,7 +641,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x > 0",
       "note": "the claim excludes the zero case",
       "gt_source": "execution_oracle",
@@ -658,7 +658,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x <= 4",
       "note": "min(n, c) never exceeds c",
       "gt_source": "execution_oracle",
@@ -675,7 +675,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 4",
       "note": "the claim is inverted for min",
       "gt_source": "execution_oracle",
@@ -692,7 +692,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x <= 6",
       "note": "min(n, c) never exceeds c",
       "gt_source": "execution_oracle",
@@ -709,7 +709,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 6",
       "note": "the claim is inverted for min",
       "gt_source": "execution_oracle",
@@ -726,7 +726,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 5",
       "note": "max(n, c) is at least c",
       "gt_source": "execution_oracle",
@@ -743,7 +743,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 5",
       "note": "the claim is inverted for max",
       "gt_source": "execution_oracle",
@@ -760,7 +760,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 7",
       "note": "max(n, c) is at least c",
       "gt_source": "execution_oracle",
@@ -777,7 +777,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 7",
       "note": "the claim is inverted for max",
       "gt_source": "execution_oracle",
@@ -794,7 +794,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 5",
       "note": "min(n, c) is at most c",
       "gt_source": "execution_oracle",
@@ -811,7 +811,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 5",
       "note": "the claim is inverted for min",
       "gt_source": "execution_oracle",
@@ -828,7 +828,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 7",
       "note": "min(n, c) is at most c",
       "gt_source": "execution_oracle",
@@ -845,7 +845,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 7",
       "note": "the claim is inverted for min",
       "gt_source": "execution_oracle",
@@ -862,7 +862,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= -1",
       "note": "the signum is at least -1",
       "gt_source": "execution_oracle",
@@ -879,7 +879,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= 0",
       "note": "the claim ignores the negative branch",
       "gt_source": "execution_oracle",
@@ -896,7 +896,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= -1",
       "note": "the signum is at least -1",
       "gt_source": "execution_oracle",
@@ -913,7 +913,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= 0",
       "note": "the claim ignores the negative branch",
       "gt_source": "execution_oracle",
@@ -930,7 +930,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= 0",
       "note": "the clamp lower bound is 0",
       "gt_source": "execution_oracle",
@@ -947,7 +947,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x <= 0",
       "note": "the claim uses the wrong clamp bound",
       "gt_source": "execution_oracle",
@@ -964,7 +964,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x >= 2",
       "note": "the clamp lower bound is 2",
       "gt_source": "execution_oracle",
@@ -981,7 +981,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x <= 2",
       "note": "the claim uses the wrong clamp bound",
       "gt_source": "execution_oracle",
@@ -998,7 +998,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the parity flag is a bit",
       "gt_source": "execution_oracle",
@@ -1015,7 +1015,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the odd branch",
       "gt_source": "execution_oracle",
@@ -1032,7 +1032,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the parity flag is a bit",
       "gt_source": "execution_oracle",
@@ -1049,7 +1049,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the odd branch",
       "gt_source": "execution_oracle",
@@ -1066,7 +1066,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the threshold flag is a bit",
       "gt_source": "execution_oracle",
@@ -1083,7 +1083,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 0",
       "note": "the claim is inverted for the threshold flag",
       "gt_source": "execution_oracle",
@@ -1100,7 +1100,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the threshold flag is a bit",
       "gt_source": "execution_oracle",
@@ -1117,7 +1117,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x <= 0",
       "note": "the claim is inverted for the threshold flag",
       "gt_source": "execution_oracle",
@@ -1134,7 +1134,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "x >= 0",
       "note": "the nested classification yields a non-negative label",
       "gt_source": "execution_oracle",
@@ -1151,7 +1151,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "x <= 0",
       "note": "the claim is inverted for the nested classification",
       "gt_source": "execution_oracle",
@@ -1168,7 +1168,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "x >= 0",
       "note": "the nested classification yields a non-negative label",
       "gt_source": "execution_oracle",
@@ -1185,7 +1185,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "x <= 0",
       "note": "the claim is inverted for the nested classification",
       "gt_source": "execution_oracle",
@@ -1202,7 +1202,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the range flag is a bit",
       "gt_source": "execution_oracle",
@@ -1219,7 +1219,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the out-of-range branch",
       "gt_source": "execution_oracle",
@@ -1236,7 +1236,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the range flag is a bit",
       "gt_source": "execution_oracle",
@@ -1253,7 +1253,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the out-of-range branch",
       "gt_source": "execution_oracle",
@@ -1270,7 +1270,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the outside-range flag is a bit",
       "gt_source": "execution_oracle",
@@ -1287,7 +1287,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the inside-range branch",
       "gt_source": "execution_oracle",
@@ -1304,7 +1304,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x >= 0",
       "note": "the outside-range flag is a bit",
       "gt_source": "execution_oracle",
@@ -1321,7 +1321,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 11,
+      "assert_line": 12,
       "claim_expression": "x == 1",
       "note": "the claim ignores the inside-range branch",
       "gt_source": "execution_oracle",
@@ -1338,7 +1338,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= -1",
       "note": "the conditional expression is bounded below",
       "gt_source": "execution_oracle",
@@ -1355,7 +1355,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "the claim ignores the negative branch",
       "gt_source": "execution_oracle",
@@ -1372,7 +1372,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= -1",
       "note": "the conditional expression is bounded below",
       "gt_source": "execution_oracle",
@@ -1389,7 +1389,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 8,
+      "assert_line": 9,
       "claim_expression": "x >= 0",
       "note": "the claim ignores the negative branch",
       "gt_source": "execution_oracle",
@@ -1406,7 +1406,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the counter equals the number of iterations",
       "gt_source": "execution_oracle",
@@ -1423,7 +1423,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1440,7 +1440,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the counter equals the number of iterations",
       "gt_source": "execution_oracle",
@@ -1457,7 +1457,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1474,7 +1474,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the counter equals the number of iterations",
       "gt_source": "execution_oracle",
@@ -1491,7 +1491,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1508,7 +1508,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 2 * n",
       "note": "the accumulator grows by a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1525,7 +1525,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 2 * n + 2",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1542,7 +1542,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 3 * n",
       "note": "the accumulator grows by a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1559,7 +1559,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 3 * n + 3",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1576,7 +1576,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 4 * n",
       "note": "the accumulator grows by a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1593,7 +1593,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == 4 * n + 4",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1610,7 +1610,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the countdown reaches zero",
       "gt_source": "execution_oracle",
@@ -1627,7 +1627,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1644,7 +1644,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the countdown reaches zero",
       "gt_source": "execution_oracle",
@@ -1661,7 +1661,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1678,7 +1678,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the countdown reaches zero",
       "gt_source": "execution_oracle",
@@ -1695,7 +1695,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1712,7 +1712,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 2 * n",
       "note": "a for-loop accumulates a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1729,7 +1729,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 2 * n - 2",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1746,7 +1746,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 3 * n",
       "note": "a for-loop accumulates a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1763,7 +1763,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 3 * n - 3",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1780,7 +1780,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 4 * n",
       "note": "a for-loop accumulates a constant per iteration",
       "gt_source": "execution_oracle",
@@ -1797,7 +1797,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "s == 4 * n - 4",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -1814,7 +1814,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i <= 0",
       "note": "the countdown by two ends at or below zero",
       "gt_source": "execution_oracle",
@@ -1831,7 +1831,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the claim ignores the odd leftover",
       "gt_source": "execution_oracle",
@@ -1848,7 +1848,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i <= 0",
       "note": "the countdown by two ends at or below zero",
       "gt_source": "execution_oracle",
@@ -1865,7 +1865,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the claim ignores the odd leftover",
       "gt_source": "execution_oracle",
@@ -1882,7 +1882,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i <= 0",
       "note": "the countdown by two ends at or below zero",
       "gt_source": "execution_oracle",
@@ -1899,7 +1899,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "i == 0",
       "note": "the claim ignores the odd leftover",
       "gt_source": "execution_oracle",
@@ -1916,7 +1916,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x >= 0",
       "note": "the reduced value stays non-negative",
       "gt_source": "execution_oracle",
@@ -1933,7 +1933,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n",
       "note": "the claim ignores the reduction",
       "gt_source": "execution_oracle",
@@ -1950,7 +1950,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x >= 0",
       "note": "the reduced value stays non-negative",
       "gt_source": "execution_oracle",
@@ -1967,7 +1967,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 10,
+      "assert_line": 11,
       "claim_expression": "x == n",
       "note": "the claim ignores the reduction",
       "gt_source": "execution_oracle",
@@ -1984,7 +1984,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "s == n // 3",
       "note": "the loop counts the multiples of c",
       "gt_source": "execution_oracle",
@@ -2001,7 +2001,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "s == n",
       "note": "the claim ignores the filter",
       "gt_source": "execution_oracle",
@@ -2018,7 +2018,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "s == n // 4",
       "note": "the loop counts the multiples of c",
       "gt_source": "execution_oracle",
@@ -2035,7 +2035,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "s == n",
       "note": "the claim ignores the filter",
       "gt_source": "execution_oracle",
@@ -2052,7 +2052,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "s == 2 * n",
       "note": "the loop body runs exactly n times",
       "gt_source": "execution_oracle",
@@ -2069,7 +2069,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "s == 2 * n + 2",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2086,7 +2086,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "s == 2 * n",
       "note": "the loop body runs exactly n times",
       "gt_source": "execution_oracle",
@@ -2103,7 +2103,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 14,
+      "assert_line": 15,
       "claim_expression": "s == 2 * n + 2",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2120,7 +2120,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 2 * n",
       "note": "the inner loop runs a constant number of times",
       "gt_source": "execution_oracle",
@@ -2137,7 +2137,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == n",
       "note": "the claim ignores the inner loop",
       "gt_source": "execution_oracle",
@@ -2154,7 +2154,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 3 * n",
       "note": "the inner loop runs a constant number of times",
       "gt_source": "execution_oracle",
@@ -2171,7 +2171,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == n",
       "note": "the claim ignores the inner loop",
       "gt_source": "execution_oracle",
@@ -2188,7 +2188,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x == n + 2",
       "note": "the postcondition after the loop",
       "gt_source": "execution_oracle",
@@ -2205,7 +2205,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x == n + 2 + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2222,7 +2222,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x == n + 4",
       "note": "the postcondition after the loop",
       "gt_source": "execution_oracle",
@@ -2239,7 +2239,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 13,
+      "assert_line": 14,
       "claim_expression": "x == n + 4 + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2256,7 +2256,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 2 * n",
       "note": "the nested body runs c * n times",
       "gt_source": "execution_oracle",
@@ -2273,7 +2273,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 2 * n + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2290,7 +2290,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 3 * n",
       "note": "the nested body runs c * n times",
       "gt_source": "execution_oracle",
@@ -2307,7 +2307,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 3 * n + 1",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2324,7 +2324,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 18,
+      "assert_line": 19,
       "claim_expression": "c2 == 6 * n",
       "note": "the innermost body runs a * b * n times",
       "gt_source": "execution_oracle",
@@ -2341,7 +2341,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 18,
+      "assert_line": 19,
       "claim_expression": "c2 == 2 * n",
       "note": "the claim forgets one nesting level",
       "gt_source": "execution_oracle",
@@ -2358,7 +2358,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 18,
+      "assert_line": 19,
       "claim_expression": "c2 == 12 * n",
       "note": "the innermost body runs a * b * n times",
       "gt_source": "execution_oracle",
@@ -2375,7 +2375,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 18,
+      "assert_line": 19,
       "claim_expression": "c2 == 3 * n",
       "note": "the claim forgets one nesting level",
       "gt_source": "execution_oracle",
@@ -2392,7 +2392,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 >= 0",
       "note": "the filtered counter stays non-negative",
       "gt_source": "execution_oracle",
@@ -2409,7 +2409,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 == n",
       "note": "the claim ignores the filter",
       "gt_source": "execution_oracle",
@@ -2426,7 +2426,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 >= 0",
       "note": "the filtered counter stays non-negative",
       "gt_source": "execution_oracle",
@@ -2443,7 +2443,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 == n",
       "note": "the claim ignores the filter",
       "gt_source": "execution_oracle",
@@ -2460,7 +2460,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 17,
+      "assert_line": 18,
       "claim_expression": "c2 == 2 * n",
       "note": "the inner loop breaks after two steps",
       "gt_source": "execution_oracle",
@@ -2477,7 +2477,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 17,
+      "assert_line": 18,
       "claim_expression": "c2 == 3 * n",
       "note": "the claim ignores the break",
       "gt_source": "execution_oracle",
@@ -2494,7 +2494,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 17,
+      "assert_line": 18,
       "claim_expression": "c2 == 2 * n",
       "note": "the inner loop breaks after two steps",
       "gt_source": "execution_oracle",
@@ -2511,7 +2511,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 17,
+      "assert_line": 18,
       "claim_expression": "c2 == 3 * n",
       "note": "the claim ignores the break",
       "gt_source": "execution_oracle",
@@ -2528,7 +2528,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 3 * n",
       "note": "the nested counter grows by a constant factor",
       "gt_source": "execution_oracle",
@@ -2545,7 +2545,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 3 * n - 3",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2562,7 +2562,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 4 * n",
       "note": "the nested counter grows by a constant factor",
       "gt_source": "execution_oracle",
@@ -2579,7 +2579,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 4 * n - 4",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2596,7 +2596,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "x == 2 * n + 2",
       "note": "the postcondition of a nested accumulation",
       "gt_source": "execution_oracle",
@@ -2613,7 +2613,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "x == 2 * n",
       "note": "the claim forgets the trailing update",
       "gt_source": "execution_oracle",
@@ -2630,7 +2630,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "x == 4 * n + 4",
       "note": "the postcondition of a nested accumulation",
       "gt_source": "execution_oracle",
@@ -2647,7 +2647,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "x == 4 * n",
       "note": "the claim forgets the trailing update",
       "gt_source": "execution_oracle",
@@ -2664,7 +2664,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x >= 0",
       "note": "the running minimum stays non-negative",
       "gt_source": "execution_oracle",
@@ -2681,7 +2681,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x == n",
       "note": "the claim pins the minimum to the input",
       "gt_source": "execution_oracle",
@@ -2698,7 +2698,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x >= 0",
       "note": "the running minimum stays non-negative",
       "gt_source": "execution_oracle",
@@ -2715,7 +2715,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x == n",
       "note": "the claim pins the minimum to the input",
       "gt_source": "execution_oracle",
@@ -2732,7 +2732,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x >= 0",
       "note": "the running maximum stays non-negative",
       "gt_source": "execution_oracle",
@@ -2749,7 +2749,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x == 0",
       "note": "the claim pins the maximum to zero",
       "gt_source": "execution_oracle",
@@ -2766,7 +2766,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x >= 0",
       "note": "the running maximum stays non-negative",
       "gt_source": "execution_oracle",
@@ -2783,7 +2783,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "x == 0",
       "note": "the claim pins the maximum to zero",
       "gt_source": "execution_oracle",
@@ -2800,7 +2800,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 >= 0",
       "note": "the parity-filtered counter is non-negative",
       "gt_source": "execution_oracle",
@@ -2817,7 +2817,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 == 2 * n",
       "note": "the claim ignores the parity filter",
       "gt_source": "execution_oracle",
@@ -2834,7 +2834,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 >= 0",
       "note": "the parity-filtered counter is non-negative",
       "gt_source": "execution_oracle",
@@ -2851,7 +2851,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 16,
+      "assert_line": 17,
       "claim_expression": "c2 == 3 * n",
       "note": "the claim ignores the parity filter",
       "gt_source": "execution_oracle",
@@ -2868,7 +2868,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 4 * n",
       "note": "the decreasing inner loop runs c times",
       "gt_source": "execution_oracle",
@@ -2885,7 +2885,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 4 * n + 4",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2902,7 +2902,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 5 * n",
       "note": "the decreasing inner loop runs c times",
       "gt_source": "execution_oracle",
@@ -2919,7 +2919,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 15,
+      "assert_line": 16,
       "claim_expression": "c2 == 5 * n + 5",
       "note": "off-by-one in the claim",
       "gt_source": "execution_oracle",
@@ -2936,7 +2936,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the loop condition runs one iteration too many",
       "gt_source": "execution_oracle",
@@ -2953,7 +2953,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the loop condition runs one iteration too many",
       "gt_source": "execution_oracle",
@@ -2970,7 +2970,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the loop condition runs one iteration too many",
       "gt_source": "execution_oracle",
@@ -2987,7 +2987,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the loop condition runs one iteration too many",
       "gt_source": "execution_oracle",
@@ -3004,7 +3004,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the loop condition runs one iteration too many",
       "gt_source": "execution_oracle",
@@ -3021,7 +3021,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the induction variable advances by two",
       "gt_source": "execution_oracle",
@@ -3038,7 +3038,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the induction variable advances by two",
       "gt_source": "execution_oracle",
@@ -3055,7 +3055,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the induction variable advances by two",
       "gt_source": "execution_oracle",
@@ -3072,7 +3072,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the induction variable advances by two",
       "gt_source": "execution_oracle",
@@ -3089,7 +3089,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the induction variable advances by two",
       "gt_source": "execution_oracle",
@@ -3106,7 +3106,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the accumulator is initialised to one",
       "gt_source": "execution_oracle",
@@ -3123,7 +3123,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the accumulator is initialised to one",
       "gt_source": "execution_oracle",
@@ -3140,7 +3140,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the accumulator is initialised to one",
       "gt_source": "execution_oracle",
@@ -3157,7 +3157,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the accumulator is initialised to one",
       "gt_source": "execution_oracle",
@@ -3174,7 +3174,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 12,
+      "assert_line": 13,
       "claim_expression": "s == n",
       "note": "the accumulator is initialised to one",
       "gt_source": "execution_oracle",
@@ -3191,7 +3191,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 3",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3208,7 +3208,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 5",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3225,7 +3225,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 7",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3242,7 +3242,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 9",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3259,7 +3259,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 11",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3276,7 +3276,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 13",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3293,7 +3293,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 15",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3310,7 +3310,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 17",
       "note": "the claim sits after the return statement",
       "gt_source": "execution_oracle",
@@ -3327,7 +3327,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 4",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3344,7 +3344,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 6",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3361,7 +3361,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 8",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3378,7 +3378,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 10",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3395,7 +3395,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 12",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3412,7 +3412,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 14",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",
@@ -3429,7 +3429,7 @@
       "params": [
         "n"
       ],
-      "assert_line": 9,
+      "assert_line": 10,
       "claim_expression": "x == n + 16",
       "note": "the claim sits in a contradictory branch",
       "gt_source": "execution_oracle",

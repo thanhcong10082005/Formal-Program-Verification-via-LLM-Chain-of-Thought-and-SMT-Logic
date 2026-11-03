@@ -1,6 +1,7 @@
 # g3_trailing_02_b
 # group: g3_loops | family: trailing_update
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_off_by_one
+# precondition: n >= 0
 # note: off-by-one in the claim
 
 def f(n: int) -> int:

@@ -1,6 +1,7 @@
 # g3_innerconst_01
 # group: g3_loops | family: inner_const_loop
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the inner loop runs a constant number of times
 
 def f(n: int) -> int:

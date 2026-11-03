@@ -1,6 +1,7 @@
 # g2_andbound_01
 # group: g2_conditionals | family: and_bound
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: the range flag is a bit
 
 def f(n: int) -> int:

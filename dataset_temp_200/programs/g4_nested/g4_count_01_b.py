@@ -1,6 +1,7 @@
 # g4_count_01_b
 # group: g4_nested | family: triple_count
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_ignores_effect
+# precondition: n >= 0
 # note: the claim forgets one nesting level
 
 def f(n: int) -> int:

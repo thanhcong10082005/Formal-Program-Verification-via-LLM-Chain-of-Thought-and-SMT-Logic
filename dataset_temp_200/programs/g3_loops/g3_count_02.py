@@ -1,6 +1,7 @@
 # g3_count_02
 # group: g3_loops | family: count_loop
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the counter equals the number of iterations
 
 def f(n: int) -> int:

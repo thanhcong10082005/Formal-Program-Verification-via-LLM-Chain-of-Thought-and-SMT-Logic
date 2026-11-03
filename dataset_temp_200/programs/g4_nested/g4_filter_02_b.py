@@ -1,6 +1,7 @@
 # g4_filter_02_b
 # group: g4_nested | family: nested_filter
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_ignores_effect
+# precondition: n >= 0
 # note: the claim ignores the filter
 
 def f(n: int) -> int:

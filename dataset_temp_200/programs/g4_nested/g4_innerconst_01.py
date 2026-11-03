@@ -1,6 +1,7 @@
 # g4_innerconst_01
 # group: g4_nested | family: inner_const
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the nested body runs c * n times
 
 def f(n: int) -> int:

@@ -77,6 +77,7 @@ def run_pipeline(
     enable_invariants: bool = True,
     feedback_loop=None,
     invariant_generator=None,
+    precondition: str | None = None,
 ) -> ProgramResult:
     """Run the Core Proposed Method on a single source.
 
@@ -125,6 +126,15 @@ def run_pipeline(
             "pass either use_llm=True or injected LLM data, not both"
         )
 
+    if precondition is None:
+        import re
+
+        m = re.search(r"#\s*precondition:\s*([^\n|]+)", source)
+        if m:
+            found_pre = m.group(1).strip()
+            if found_pre and found_pre.lower() != "none":
+                precondition = found_pre
+
     # --- 1. Subset gate ----------------------------------------------------
     sub = check_and_normalize(source)
     if not sub.accepted:
@@ -138,6 +148,7 @@ def run_pipeline(
             tokens_out=tokens_out,
             cot_trace=cot_trace,
             elapsed=time.perf_counter() - start,
+            precondition=precondition,
         )
 
     # --- 2. Claim extraction & Chain-of-Thought ----------------------------
@@ -179,6 +190,7 @@ def run_pipeline(
             tokens_out=tokens_out,
             cot_trace=cot_trace,
             elapsed=time.perf_counter() - start,
+            precondition=precondition,
         )
 
     # --- 4. Anchor binding -------------------------------------------------
@@ -216,6 +228,7 @@ def run_pipeline(
                 feedback_loop=feedback_loop,
                 invariant_generator=invariant_generator,
                 cot_trace=cot_trace,
+                precondition=precondition,
             )
         )
 
@@ -252,6 +265,7 @@ def run_pipeline(
         tokens_in=tokens_in,
         tokens_out=tokens_out,
         cot_trace=cot_trace,
+        precondition=precondition,
     )
 
 
@@ -332,6 +346,7 @@ def _process_claim(
     feedback_loop=None,
     invariant_generator=None,
     cot_trace: str = "",
+    precondition: str | None = None,
 ) -> ClaimResult:
     """Run the target-specific reachability and validity queries for a claim."""
     reachability_list = list(reachabilities or [])
@@ -366,7 +381,9 @@ def _process_claim(
 
     for reachability in reachability_list:
         try:
-            obligation = build_obligations(claim, reachability, executor)
+            obligation = build_obligations(
+                claim, reachability, executor, precondition=precondition
+            )
         except Exception as exc:
             return ClaimResult(
                 claim_id=claim.claim_id,
@@ -419,6 +436,7 @@ def _process_claim(
                 reach_ms=reach_ms,
                 valid_ms=valid_ms,
                 failing_reachability=reachability,
+                precondition=precondition,
             )
 
     if reachable_paths == 0:
@@ -482,6 +500,7 @@ def _counterexample_result(
     reach_ms: float,
     valid_ms: float,
     failing_reachability: Reachability | None = None,
+    precondition: str | None = None,
 ) -> ClaimResult:
     """Build the COUNTEREXAMPLE result, optionally running the feedback loop."""
     counterexample = _counterexample_from_model(model, claim)
@@ -507,9 +526,26 @@ def _counterexample_result(
                 executor=executor,
                 reachabilities=reachabilities,
                 failing_reachability=failing_reachability,
+                precondition=precondition,
             )
             if refined is not None:
                 return refined
+
+        # If replay did not confirm the violation and coverage is incomplete,
+        # do not report COUNTEREXAMPLE — it is an unrolling artifact.
+        if not replay_verdict and any(not item.complete for item in reachabilities):
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.UNKNOWN_TIMEOUT,
+                anchor=anchor_info,
+                counterexample=counterexample,
+                z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+                reason=(
+                    "Z3 reported a model, but CPython replay did not confirm "
+                    "the violation and control-flow coverage is incomplete"
+                ),
+            )
 
     return ClaimResult(
         claim_id=claim.claim_id,
@@ -545,6 +581,7 @@ def _run_feedback_loop(
     executor: TrustedSymbolicExecutor,
     reachabilities: list[Reachability],
     failing_reachability: Reachability | None = None,
+    precondition: str | None = None,
 ) -> ClaimResult | None:
     """Run the retrospective feedback loop; return a VERIFIED result if any.
 
@@ -570,6 +607,7 @@ def _run_feedback_loop(
             executor=executor,
             reachability=target_reach,
             func_name=func_name,
+            precondition=precondition,
         )
         counterexample.feedback_iterations = len(rounds)
         if refined_claim is not None and refined_claim.claim_id != claim.claim_id:
@@ -580,7 +618,9 @@ def _run_feedback_loop(
             # Soundness gate: the refined claim must hold on every reachable target path
             all_valid = True
             for r in reachabilities:
-                ob = build_obligations(refined_claim, r, executor)
+                ob = build_obligations(
+                    refined_claim, r, executor, precondition=precondition
+                )
                 rk, _, _ = run_reachability(ob)
                 if rk == "unsat":
                     continue
@@ -683,6 +723,7 @@ def _rejected_result(
     tokens_out: int,
     cot_trace: str,
     elapsed: float,
+    precondition: str | None = None,
 ) -> ProgramResult:
     """Build the result returned when the source never reaches the solver."""
     result = make_empty_program_result(
@@ -697,6 +738,7 @@ def _rejected_result(
     result.total_tokens_out = tokens_out
     result.cot_trace = cot_trace
     result.elapsed_seconds = elapsed
+    result.precondition = precondition
     return result
 
 
@@ -712,6 +754,7 @@ def _roll_up(
     tokens_in: int = 0,
     tokens_out: int = 0,
     cot_trace: str = "",
+    precondition: str | None = None,
 ) -> ProgramResult:
     """Aggregate the per-claim results into a single program result."""
     by_status: dict[StatusEnum, int] = dict.fromkeys(StatusEnum, 0)
@@ -734,6 +777,7 @@ def _roll_up(
         total_tokens_in=tokens_in,
         total_tokens_out=tokens_out,
         cot_trace=cot_trace,
+        precondition=precondition,
     )
 
 

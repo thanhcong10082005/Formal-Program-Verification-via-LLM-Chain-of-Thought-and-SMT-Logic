@@ -67,6 +67,8 @@ def build_obligations(
     claim: Claim,
     reachability: Reachability,
     executor: TrustedSymbolicExecutor,
+    *,
+    precondition: ast.expr | str | None = None,
 ) -> TwoQueryObligations:
     """Construct the two Z3 solvers around a claim and its path reachability."""
     reach_solver = z3.Solver()
@@ -80,6 +82,24 @@ def build_obligations(
     # state at the target rather than a fresh unconstrained local.
     valid_solver.add(reachability.relation)
     valid_solver.add(z3.Not(_claim_to_z3(claim.expr_node, executor, state=reachability.state)))
+
+    if precondition is not None:
+        if isinstance(precondition, str):
+            pre_str = precondition.strip()
+            if pre_str and pre_str.lower() != "none":
+                try:
+                    pre_node = ast.parse(pre_str, mode="eval").body
+                except Exception:
+                    pre_node = None
+            else:
+                pre_node = None
+        else:
+            pre_node = precondition
+
+        if pre_node is not None:
+            pre_z3 = _claim_to_z3(pre_node, executor, state=None)
+            reach_solver.add(pre_z3)
+            valid_solver.add(pre_z3)
 
     return TwoQueryObligations(claim, reach_solver, valid_solver)
 

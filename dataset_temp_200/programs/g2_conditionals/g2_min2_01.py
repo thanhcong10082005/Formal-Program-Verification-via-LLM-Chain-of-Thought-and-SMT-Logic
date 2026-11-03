@@ -1,6 +1,7 @@
 # g2_min2_01
 # group: g2_conditionals | family: min2
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: none
 # note: min(n, c) is at most c
 
 def f(n: int) -> int:

@@ -1,6 +1,7 @@
 # g2_nested_02_b
 # group: g2_conditionals | family: nested_if
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_inverted
+# precondition: none
 # note: the claim is inverted for the nested classification
 
 def f(n: int) -> int:

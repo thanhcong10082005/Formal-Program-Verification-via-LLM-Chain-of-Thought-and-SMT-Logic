@@ -1,6 +1,7 @@
 # g4_accum_02
 # group: g4_nested | family: nested_accum
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the postcondition of a nested accumulation
 
 def f(n: int) -> int:

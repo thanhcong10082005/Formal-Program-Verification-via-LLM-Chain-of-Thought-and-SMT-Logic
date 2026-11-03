@@ -1,6 +1,7 @@
 # g2_clamp_02_b
 # group: g2_conditionals | family: clamp
 # expected_verdict: COUNTEREXAMPLE | bug_type: claim_wrong_bound
+# precondition: none
 # note: the claim uses the wrong clamp bound
 
 def f(n: int) -> int:

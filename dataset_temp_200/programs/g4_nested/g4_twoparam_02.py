@@ -1,6 +1,7 @@
 # g4_twoparam_02
 # group: g4_nested | family: nested_const
 # expected_verdict: VERIFIED | bug_type: none
+# precondition: n >= 0
 # note: the nested counter grows by a constant factor
 
 def f(n: int) -> int:
