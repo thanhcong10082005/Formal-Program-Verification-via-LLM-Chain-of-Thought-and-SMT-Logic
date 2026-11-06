@@ -1,6 +1,6 @@
-# `prototype/` — AST-Anchored Neuro-Symbolic Verification Framework
+# AST-Anchored Neuro-Symbolic Verification Framework
 
-> Đồ án chuyên ngành — *"Kiểm Chứng Chương Trình Dựa trên Chuỗi Lý Luận: Xác Minh Logic Thông qua Dấu Vết Ngôn Ngữ Tự Nhiên"*  
+> Đồ án chuyên ngành — *"Kiểm Chứng Chương Trình Dựa trên Chuỗi Lý Luận: Xác Minh Logic Thông qua Dấu Vết Ngôn Ngữ Tự Nhiên"*
 > GVHD: TS. Lê Xuân Bách
 
 ---
@@ -40,17 +40,16 @@ AST + Z3 đóng vai trò **trusted backbone** — không quyết định nào đ
         LLM (không tin được)                    Trusted backbone
    ┌──────────────────────────┐            ┌────────────────────────┐
    │  sinh CoT + claim (NL)   │            │  AST: NodeId, scope    │
-   │  tự phê bình, tự sửa    │  ─────────▶ │  Z3: reachability +    │
-   │  sinh invariant          │            │       validity          │
+   │  tự phê bình, tự sửa     │  ───────▶ │  Z3: reachability +    │
+   │  sinh invariant          │            │       validity         │
    └──────────────────────────┘            │  CPython: replay CE    │
                                            └────────────────────────┘
 ```
 
 - **Claim phải neo được vào một nút AST cụ thể.** Không neo được → `UNSUPPORTED`
-→ đây chính là nguồn của **Hallucination Rate** (`HR = 1.81%`).
+→ đây chính là nguồn của **Hallucination Rate** (`HR`).
 - **Hai truy vấn Z3 cho mỗi claim**: (1) *reachability* — có đường đi nào tới
 nút đích không; (2) *validity* — claim có đúng trên mọi đường đi đó không.
-→ Đây là trục **REACHABILITY** mà không baseline nào khác trả lời được (RQ3).
 - **Counterexample phải được CPython tái hiện** mới tính là đáng tin
 → **CRVR = 88.0%** (so với 40.0% của LLM-as-a-Judge).
 
@@ -66,48 +65,65 @@ nút đích không; (2) *validity* — claim có đúng trên mọi đường đ
 ```
 prototype/
 ├── src/astverifier/                 # Package Python chuẩn (PEP 8, src-layout)
-│   ├── __init__.py                  # Re-export API cấp cao
-│   ├── core/                        # ★ CORE PROPOSED METHOD
-│   │   ├── __init__.py
-│   │   ├── pipeline.py      (714 d.) # Orchestrator: subset → … → roll-up
-│   │   ├── executor.py      (753 d.) # Trusted symbolic executor + CFG
-│   │   ├── binding.py       (270 d.) # Anchor gate: neo claim vào nút AST
-│   │   ├── obligations.py   (129 d.) # Hai truy vấn Z3: reachability + validity
-│   │   ├── invariants.py    (561 d.) # Sinh & kiểm chứng loop invariant
-│   │   └── feedback.py      (456 d.) # Vòng retrospective feedback
-│   ├── shared/                      # ★ SCHEMAS & UTILITIES dùng chung
-│   │   ├── __init__.py
-│   │   ├── schemas.py       (130 d.) # StatusEnum, ClaimResult, ProgramResult
-│   │   ├── subset.py        (450 d.) # Cổng QF-LIA + trích claim từ assert
-│   │   ├── anchors.py       (118 d.) # NodeId ổn định cho nút AST
-│   │   ├── replay.py        (271 d.) # Replay counterexample trên CPython thật
-│   │   └── metrics.py       (143 d.) # FDR / F1 / CRVR / HR / token / cost
-│   └── llm/                         # Adapter Gemini (chỉ gọi, không quyết định)
-│       ├── __init__.py
-│       └── gemini.py        (215 d.) # Sinh CoT + claim, đếm token
+│   ├── core/                        # CORE PROPOSED METHOD
+│   │   ├── pipeline.py              # Orchestrator: subset → … → roll-up
+│   │   ├── executor.py              # Trusted symbolic executor + CFG
+│   │   ├── binding.py               # Anchor gate: neo claim vào nút AST
+│   │   ├── obligations.py           # Hai truy vấn Z3: reachability + validity
+│   │   ├── invariants.py            # Sinh & kiểm chứng loop invariant
+│   │   └── feedback.py              # Vòng retrospective feedback
+│   ├── shared/                      #  SCHEMAS & UTILITIES dùng chung
+│   │   ├── schemas.py               # StatusEnum, ClaimResult, ProgramResult
+│   │   ├── subset.py                # Cổng QF-LIA + trích claim từ assert
+│   │   ├── anchors.py               # NodeId ổn định cho nút AST
+│   │   ├── replay.py                # Replay counterexample trên CPython thật
+│   │   ├── metrics.py               # FDR / F1 / CRVR / HR / token / cost
+│   │   ├── claims.py                # Kiểu Claim + loader cho Shared Claim Pool
+│   │   ├── preconditions.py         # Trích path-precondition từ nhánh if
+│   │   ├── structure.py             # CFG skeleton + loop summary
+│   │   ├── symexec.py               # Symbolic explorer (Z3)
+│   │   ├── prover.py                # Prover chính xác (Z3/Spacer)
+│   │   ├── oracle.py                # Oracle CPython (BVA + seed)
+│   │   ├── oracle_runner.py         # Batch runner + checkpoint
+│   │   └── hashing.py               # Hash AST / normalise
+│   ├── baselines/                   # 14 BASELINE A–N (độc lập với core/)
+│   │   ├── base.py                  # BaseBaseline (ABC) + ProgramSpec
+│   │   ├── registry.py              # @register + get_baseline
+│   │   ├── llm.py                   # LLMClient + StubClient + GeminiClient
+│   │   ├── common.py                # Prompting / parsing dùng chung
+│   │   └── a_direct_smt.py … n_invariant_smt.py 
+│   └── llm/gemini.py                # Adapter Gemini (chỉ gọi, không quyết định)
 │
-├── dataset_temp_200/                # ★ Bộ benchmark tạm (200 chương trình)
-│   ├── README.md                    # Quy tắc sinh, chính sách nhãn, hạn chế
-│   ├── manifest.json                # Ground truth index (200 entries)
-│   └── programs/{g1..g5}/           # 200 file .py, mỗi file 1 assert
+├── data/bench_v1/                   # ★ BỘ 1.000 MẪU CHUẨN + Shared Claim Pool
+│   ├── manifest.json                # Schema thống nhất + GT + precondition
+│   ├── manifest_full.json           # Manifest trước khi gắn precondition
+│   ├── claim_pool.json              # 1.000 claim dùng chung cho MỌI phương pháp
+│   ├── sample_1000.txt              # Danh sách 1.000 path
+│   └── sampling_report.json         # Phân bố claim × verdict + lịch sử lọc
+│
+├── dataset_temp_200/                # Bộ phát triển harness 200 mẫu (đã backup)
 │
 ├── tools/                           # Script dòng lệnh
-│   ├── build_temp200.py             # Sinh + kiểm chứng bộ 200 mẫu
-│   └── smoke_temp200.py             # Smoke test pipeline trên bộ 200 mẫu
+│   ├── build_ground_truth.py        # Gán nhãn GT: CPython oracle + Z3 (2 tầng)
+│   ├── extract_preconditions.py     # Trích precondition từ nhánh if
+│   ├── select_stratified_sample.py  # Lọc trùng + lấy 1.000 mẫu phân tầng
+│   └── build_claim_pool.py          # Trích claim từ assert (0 token)
 │
-├── tests/                           # 27 test (pytest)
-│   ├── test_extensions.py   (306 d.)
-│   └── test_regressions.py  (198 d.)
+├── tests/                           # 109 test (pytest)
+│   ├── test_baselines.py            # Contract test cho 14 baseline
+│   ├── test_dataset_pipeline.py     # Tính đúng của pipeline dataset
+│   ├── test_extensions.py
+│   └── test_regressions.py
 │
 ├── pyproject.toml                   # Metadata + cấu hình ruff/pytest
 └── README.md                        # File này
 ```
 
-> **Vì sao tách `core/` và `shared/`?**
+> **Vì sao tách** `core/` **và** `shared/`**?**
 > `core/` = **Proposed Method** — logic riêng, không baseline nào được chạm tới.
 > `shared/` = **hợp đồng dữ liệu & tiện ích** — cả Proposed lẫn 14 Baseline
-> đều dùng chung. Đây là ranh giới mà `Information/BASELINE_DISCOVERY.md`
-> đề xuất để cài đặt Baseline ở giai đoạn sau mà không sửa lại code lõi.
+> đều dùng chung. Đây là ranh giới đảm bảo baseline là **phương pháp độc lập**,
+> không mượn máy móc của Proposed Method.
 
 ### 3.1. Quy ước import
 
@@ -116,34 +132,172 @@ from astverifier.core.pipeline import run_pipeline, BASELINE_AST_ANCHORED
 from astverifier.shared.schemas import ProgramResult, ClaimResult, StatusEnum
 from astverifier.shared.subset import check_and_normalize
 from astverifier.shared.metrics import aggregate, load_ground_truth
+
+from astverifier.baselines import get_baseline, all_baselines, StubClient
+from astverifier.shared.claims import Claim, load_claim_pool
 ```
 
 Cài package ở chế độ editable (`pip install -e .`) hoặc đặt `PYTHONPATH=src`.
 
 ---
 
-## 4. Kiến trúc 7 bước của Proposed Method
+## 4. 14 Baseline A–N — kết quả hiện thực
+
+Mỗi baseline là một **phương pháp hoàn chỉnh và độc lập**: nhận cùng một
+Shared Claim Pool, trả về cùng một schema `ProgramResult` mà Proposed Method dùng.
+
+
+| Kết quả                            | Giá trị                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| Baseline đã hiện thực              | **14 / 14** (A–N) — 19 file, 2.956 dòng trong `astverifier/baselines/` |
+| Contract test                      | **50 / 50 pass** (`tests/test_baselines.py`)                           |
+| Toàn bộ test suite                 | **109 pass** · `ruff` **0 lỗi**                                        |
+| Baseline chạy offline (0 token)    | **3** — J, K, L · còn 11 baseline cần LLM                              |
+| Token Gemini đã tiêu khi hiện thực | **0** (contract test dùng `StubClient`)                                |
+| Thay đổi vào `core/`               | **0** — Proposed Method không bị đụng tới                              |
+
+
+### 4.1. Danh mục
+
+
+| ID    | Tên                       | Cơ chế                                                                                       | Công cụ kiểm chứng | LLM |
+| ----- | ------------------------- | -------------------------------------------------------------------------------------------- | ------------------ | --- |
+| **A** | SatLM Direct SMT-LIB2     | Dịch chương trình + claim thành SMT-LIB2; solver kiểm `Constraints ∧ ¬Spec`                  | Z3                 | ✓   |
+| **B** | Execution Grounding       | Chạy chương trình trên lưới input tất định dưới trace; mô hình chỉ nhìn *những gì đã xảy ra* | CPython            | ✓   |
+| **C** | Structural Reasoning      | Skeleton điều khiển (CFG) + k-induction ở mức Python — **không** gọi Z3                      | CFG                | ✓   |
+| **D** | LLM-as-a-Judge            | CoT zero-shot + sanity check biên (−1, 0, 1, MAX, MIN)                                       | LLM-only           | ✓   |
+| **E** | Neuro-Symbolic (AutoSpec) | Mô hình đề xuất spec (pre/post/inv); checker kiểm; lỗi → refine, tối đa k=3 vòng             | checker            | ✓   |
+| **F** | Agentic Multi-Step        | PLAN → ANALYZE → TEST (thực thi thật) → VERIFY → REFINE                                      | CPython            | ✓   |
+| **G** | Self-Consistency          | Lấy mẫu n=5 ở temperature 0.7, majority vote; hòa → `UNKNOWN_TIMEOUT`                        | LLM-only           | ✓   |
+| **H** | Self-Refine               | verdict → tự chê → sửa, 3 vòng                                                               | LLM-only           | ✓   |
+| **I** | LLM-Guided PBT            | Mô hình đề xuất invariant → thành strategy của PBT; input tìm được phải replay               | CPython            | ✓   |
+| **J** | Deterministic Fuzzing     | 256 input tất định (BVA + seed 42), chạy CPython, so với claim                               | CPython            | ✗   |
+| **K** | Mutation Testing          | Tiêm mutant (constant shift / comparison swap / binop swap) → hỏi claim còn giữ không        | CPython            | ✗   |
+| **L** | Symbolic Execution        | Thực thi ký hiệu thuần trên Z3/Spacer; liệt kê đường đi tới điểm assert                      | Z3                 | ✗   |
+| **M** | Hoare Triple (NL)         | Mô hình viết `{P} c {Q}` bằng ngôn ngữ tự nhiên rồi tự đánh giá                              | LLM-only           | ✓   |
+| **N** | Invariant Synthesis       | Mô hình đề xuất 1–3 invariant; Z3 kiểm base case + inductive step                            | Z3                 | ✓   |
+
+
+**3 baseline offline** (J, K, L) chạy **0 token**; **11 baseline** cần LLM.
+
+### 4.2. Bất biến "không lệ thuộp `core/`"
+
+Baseline **không bao giờ** import `astverifier.core`. Đây là điều kiện tiên quyết để
+phép so sánh có ý nghĩa — nếu baseline mượn máy móc của Proposed Method thì nó
+không còn là phương pháp độc lập nữa.
+
+Bất biến này được **cài đặt thành test tự động**, không phải bằng quy ước:
+
+```python
+# tests/test_baselines.py::test_no_baseline_imports_core
+# Quét AST mọi file trong baselines/: mọi ast.Import / ast.ImportFrom
+# chạm "core" đều bị flag. Import relative bị bỏ qua (vì relative
+# trong baselines/ không thể với tới core/).
+```
+
+### 4.3. Nguyên tắc "N/A ≠ 0"
+
+Mỗi baseline khai báo tường minh 4 cờ khả năng. Metric không đo được → `None`
+→ in `N/A`, **không bao giờ** in `0` thay cho `N/A`.
+
+
+| ID    | Hallucination Rate | CRVR    | UNREACHABLE detected | Precondition |
+| ----- | ------------------ | ------- | -------------------- | ------------ |
+| A     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| B     | **N/A**            | ✓       | **N/A**              | ✓            |
+| C     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| D     | **N/A**            | ✓       | **N/A**              | ✓            |
+| E     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| F     | **N/A**            | ✓       | **N/A**              | ✓            |
+| G     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| H     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| I     | **N/A**            | ✓       | **N/A**              | ✓            |
+| J     | **N/A**            | ✓       | **N/A**              | ✓            |
+| K     | **N/A**            | ✓       | **N/A**              | ✗            |
+| **L** | **N/A**            | ✓       | **✓**                | ✓            |
+| M     | **N/A**            | **N/A** | **N/A**              | ✓            |
+| N     | **N/A**            | **N/A** | **N/A**              | ✓            |
+
+
+- **HR = N/A cho cả 14.** Không baseline nào có *cổng neo AST* — kể cả L, dù L
+dùng Z3. Không có cổng neo thì **không có khái niệm "bịa"** ⇒ HR không đo được,
+không phải bằng 0. Đây là điểm so sánh then chốt với Proposed Method (có cổng neo).
+- **CRVR đo được cho 7 baseline** (B, D, F, I, J, K, L) — tức là baseline **thực sự
+chạy** chương trình và tạo ra input cụ thể, rồi **replay trên CPython thật**.
+7 baseline còn lại chỉ *nói* là có counterexample nhưng không có input cụ thể.
+- **Chỉ L trả lời được reachability** — nên chỉ L hỗ trợ `supports_reachability`.
+
+### 4.4. Giao diện chung — `ProgramSpec` / `ProgramResult`
+
+```python
+@dataclass
+class ProgramSpec:
+    program_id: str
+    source: str
+    source_path: str = ""
+    claims: list[Claim] = field(default_factory=list)
+    precondition: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+```
+
+```python
+@register
+class SomeBaseline(BaseBaseline):
+    id = "X"
+    name = "…"
+    supports_grounding = False      # → HR = N/A
+    supports_replay = False          # → CRVR = N/A
+    supports_reachability = False    # → UNREACHABLE = N/A
+    supports_precondition = True
+    requires_llm = True
+
+    def run(self, spec: ProgramSpec) -> ProgramResult:
+        ...
+```
+
+`registry.EXPECTED_IDS` là **nguồn sự thật duy nhất** cho "baseline nào tồn tại";
+`@register` ném `ValueError` nếu ID trùng hoặc rỗng.
+
+### 4.5. Cổng LLM — chạy offline được
+
+```python
+class LLMClient(Protocol):
+    def complete(self, prompt: str, *, system: str = "",
+                 temperature: float = 0.0) -> LLMReply: ...
+```
+
+
+| Cài đặt        | Dùng khi nào                              | Token |
+| -------------- | ----------------------------------------- | ----- |
+| `StubClient`   | Contract test — trả reply JSON cố định    | **0** |
+| `GeminiClient` | Chạy thật, đếm token qua `usage_metadata` | Thật  |
+
+
+Baseline **không** import `astverifier.llm.gemini` trực tiếp — chúng nhận client
+qua constructor. Đó là lý do contract test chạy offline hoàn toàn.
+
+### 4.6. Không baseline nào bao giờ crash
+
+Cả 14 baseline bọc logic trong `try/except Exception` và báo lỗi **bên trong**
+`ClaimResult` với status `UNKNOWN_TIMEOUT` (kèm `reason` mô tả lỗi) thay vì ném
+exception ra ngoài.
+
+## 5. Kiến trúc 7 bước của Proposed Method
 
 ```
-   ┌──────────────────────────────────────────────────────────────────────┐
-   │                                                                     │
-   │  1. SAFE SUBSET        subset.py       lọc tập con QF-LIA            │
-   │  2. AST ANCHOR        anchors.py      gán NodeId ổn định cho nút    │
-   │     + binding.py      binding.py      Anchor Gate: claim → nút AST  │
-   │  3. TRUSTED SYMBOLIC  executor.py     dựng CFG, liệt kê đường đi     │
-   │     EXECUTION                                        có trạng thái  │
-   │  4. LLM CoT           llm/gemini.py   sinh reasoning trace + claim  │
-   │  5. INVARIANT         invariants.py   sinh & kiểm chứng invariant   │
-   │  6. TWO-QUERY Z3      obligations.py  reachability + validity      │
-   │  7. RETROSPECTIVE     feedback.py     vòng tự sửa sau khi có CE    │
-   │     FEEDBACK                                                        │
-   │                                                                     │
-   │              shared/replay.py — CPython tái hiện counterexample      │
-   │              shared/metrics.py — roll-up FDR / F1 / CRVR / HR        │
-   └──────────────────────────────────────────────────────────────────────┘
+   1. SAFE SUBSET        subset.py       lọc tập con QF-LIA
+   2. AST ANCHOR        anchors.py      gán NodeId ổn định cho nút
+      + binding.py      binding.py      Anchor Gate: claim → nút AST
+   3. TRUSTED SYMBOLIC  executor.py     dựng CFG, liệt kê đường đi có trạng thái
+      EXECUTION
+   4. LLM CoT           llm/gemini.py   sinh reasoning trace + claim
+   5. INVARIANT         invariants.py   sinh & kiểm chứng loop invariant
+   6. TWO-QUERY Z3      obligations.py  reachability + validity
+   7. RETROSPECTIVE     feedback.py     vòng tự sửa sau khi có CE
+      FEEDBACK
+           shared/replay.py — CPython tái hiện counterexample
+           shared/metrics.py — roll-up FDR / F1 / CRVR / HR
 ```
-
-**Bảng đường đi dữ liệu trong `pipeline.py`:**
 
 
 | Bước | Hàm                                                       | Input        | Output                     | Nếu thất bại                                         |
@@ -161,72 +315,9 @@ Cài package ở chế độ editable (`pip install -e .`) hoặc đặt `PYTHON
 > hoặc LLM lỗi thì pipeline vẫn chạy và vẫn trả kết quả hợp lệ — chỉ mất
 > đi lớp cải thiện, không mất đi kết quả chính.
 
----
+### 5.1. Ba cơ chế cốt lõi
 
-## 5. Mô tả chi tiết từng module
-
-### 5.1. `core/pipeline.py` — Orchestrator
-
-Điểm vào duy nhất của toàn framework:
-
-```python
-result = run_pipeline(source, program_id="demo", source_path="demo.py")
-```
-
-**Tham số quan trọng:**
-
-
-| Tham số             | Mặc định         | Ý nghĩa                                                                |
-| ------------------- | ---------------- | ---------------------------------------------------------------------- |
-| `baseline`          | `"AST_ANCHORED"` | **Chỉ** chấp nhận giá trị này — baseline khác phải cài ở giai đoạn sau |
-| `use_llm`           | `False`          | `True` → gọi Gemini sinh claim; `False` → dùng `assert` trong source   |
-| `suggested_claims`  | `None`           | Inject claim đã tính sẵn (dùng cho Shared Claim Pool)                  |
-| `do_replay`         | `True`           | Tái hiện counterexample trên CPython thật                              |
-| `enable_feedback`   | `True`           | Bật vòng retrospective (cần API key)                                   |
-| `enable_invariants` | `True`           | Bật bộ sinh invariant (cần API key)                                    |
-
-
-> `**baseline` chỉ nhận `"AST_ANCHORED"**` là một chủ ý thiết kế: đảm bảo
-> Proposed Method không vô tình dùng đường tắt của baseline nào, và đảm bảo
-> logic của baseline sẽ được cài **bên ngoài** `core/`, không trộn vào.
-
-### 5.2. `core/executor.py` — Trusted symbolic executor
-
-Phần lớn nhất của framework. Trách nhiệm:
-
-- **Dựng CFG** từ AST, theo dõi biến nào chắc chắn đã được gán (`definite assignment`) để phát hiện claim dùng biến chưa khởi tạo.
-- **Liệt kê đường đi** (`enumerate_paths`) với trạng thái ký hiệu (Z3 expr).
-- `**enumerate_target_paths(anchor)**` — chỉ giữ những đường đi thực sự tới
-*đúng nút AST* mà claim neo vào. Đây là điểm khác biệt so với baseline
-chỉ kiểm tra "công thức có nhất quán không".
-- `**build_reachability**` — sinh điều kiện Z3 cho một đường đi cụ thể.
-- **Bounded loop approximation** — vòng lặp được xấp xỉ bằng số vòng hữu hạn;
-khi coverage không đầy đủ, framework trả `UNKNOWN_TIMEOUT` thay vì `VERIFIED`.
-
-### 5.3. `core/binding.py` — Anchor Gate
-
-Nơi quyết định claim có **được neo** hay không:
-
-
-| Tình trạng                                               | Status              | Đếm vào HR |
-| -------------------------------------------------------- | ------------------- | ---------- |
-| Claim có biểu thức hợp lệ + biến trong scope + dòng khớp | `ANCHORED`          | không      |
-| Không tìm được dòng phù hợp                              | `UNSUPPORTED`       | **có**     |
-| Biến nằm ngoài scope tại điểm neo                        | `UNSUPPORTED`       | **có**     |
-| Không parse được thành AST                               | `TRANSLATION_ERROR` | **có**     |
-
-
-> Đây chính là **cổng chặn ảo giác**: một LLM có thể "viết" một claim nghe
-> hợp lý nhưng không gắn được vào bất kỳ nút nào của chương trình — và nó bị
-> chặn, thay vì được chấp nhận rồi báo sai.
-
-### 5.4. `core/obligations.py` — Hai truy vấn Z3
-
-```python
-def build_obligations(claim, reachability, executor) -> TwoQueryObligations
-def run_reachability(obligations) -> (kind, elapsed, model)
-def run_validity(obligations)    -> (kind, elapsed, model)
-```
+**Hai truy vấn Z3 cho mỗi claim** — vì sao 2 thay vì 1:
 
 
 | Truy vấn         | Hỏi gì                                  | Kết quả                                                        |
@@ -235,21 +326,22 @@ def run_validity(obligations)    -> (kind, elapsed, model)
 | **Validity**     | `Path ∧ ¬Claim` có thỏa mãn được không? | `sat` → tồn tại input vi phạm → **COUNTEREXAMPLE** kèm mô hình |
 
 
-> **Vì sao 2 truy vấn thay vì 1?** Chỉ kiểm tra *validity* sẽ báo
-> `COUNTEREXAMPLE` cho một claim nằm trong nhánh không bao giờ chạy tới — tức
-> là báo động giả. Truy vấn *reachability* loại bỏ đúng trường hợp đó, và khi
-> **mọi** đường đi đều `unsat`, claim mới thực sự là `UNREACHABLE`.
-> Đây là cơ sở kỹ thuật của **RQ3**.
+> Chỉ kiểm tra *validity* sẽ báo `COUNTEREXAMPLE` cho một claim nằm trong nhánh
+> không bao giờ chạy tới — tức là báo động giả. Truy vấn *reachability* loại bỏ
+> đúng trường hợp đó, và khi **mọi** đường đi đều `unsat`, claim mới thực sự
+> là `UNREACHABLE`.
 
-### 5.5. `core/invariants.py` — Bộ sinh loop invariant
+**Anchor Gate** — cổng chặn ảo giác:
 
-Sinh candidate invariant (dạng constant / linear / quadratic / relational),
-rồi **kiểm chứng bằng Z3**: base case + inductive step + termination.
-Có parser SMT-LIB2 nhúng để đọc candidate từ LLM.
 
-### 5.6. `core/feedback.py` — Vòng retrospective
+| Tình trạng                                      | Status              | Đếm vào HR |
+| ----------------------------------------------- | ------------------- | ---------- |
+| Biểu thức hợp lệ + biến trong scope + dòng khớp | `ANCHORED`          | không      |
+| Không tìm được dòng phù hợp / biến ngoài scope  | `UNSUPPORTED`       | **có**     |
+| Không parse được thành AST                      | `TRANSLATION_ERROR` | **có**     |
 
-Chạy **sau khi** có counterexample đã replay thành công:
+
+**Vòng retrospective** — chạy sau khi đã có counterexample replay thành công:
 
 ```
 CE (Z3) → replay (CPython) → LLM phê bình → claim sửa → kiểm lại
@@ -257,69 +349,7 @@ CE (Z3) → replay (CPython) → LLM phê bình → claim sửa → kiểm lại
          ↓ nếu vẫn sai → giữ COUNTEREXAMPLE (fail-safe)
 ```
 
-Theo dõi `feedback_iterations`, `feedback_resolution` trong `CounterexampleInfo`.
-
-### 5.7. `shared/schemas.py` — Hợp đồng dữ liệu
-
-**Đây là hợp đồng mọi Baseline phải tuân theủ.**
-
-```python
-class StatusEnum(StrEnum):
-    VERIFIED | COUNTEREXAMPLE | UNREACHABLE
-    UNSUPPORTED | TRANSLATION_ERROR | UNKNOWN_TIMEOUT
-
-class ClaimResult(BaseModel):
-    claim_id: str
-    claim_text: str
-    status: StatusEnum
-    anchor: AnchorInfo            # node_ids, source_lines, has_grounding
-    counterexample: CounterexampleInfo | None = None
-    z3_stats: dict[str, float] = {}
-    reason: str = ""
-    explanation: str = ""
-
-class ProgramResult(BaseModel):
-    program_id: str
-    source_path: str
-    n_claims / n_verified / n_counterexample / n_unreachable
-    n_unsupported / n_translation_error / n_unknown_timeout
-    claim_results: list[ClaimResult]
-    elapsed_seconds: float
-    total_tokens_in / total_tokens_out: int
-    baseline: str
-```
-
-> `**has_grounding` và `replay_verdict` là `Optional`.** Đây là cách hiện
-> thực hoá nguyên tắc **"N/A ≠ 0"**: baseline không có cổng neo sẽ để
-> `has_grounding=False` → `Hallucination Rate = N/A` (**không phải 0**).
-> Baseline không replay sẽ để `replay_verdict=None` → `CRVR = N/A`.
-
-### 5.8. `shared/subset.py` — Cổng QF-LIA
-
-Whitelist chi tiết ở `dataset_temp_200/README.md` §2. Tóm tắt:
-
-- **Chấp nhận:** `int`/`bool`, `+ - * // %` (với hằng số), `if/while/for`,
-`break/continue/return/assert`, so sánh, phép logic, `abs/min/max/range`.
-- **Từ chối:** `float`/`str`/`list`/`dict`, `class`, `import`, `print/input`,
-nhân phi tuyến (`n * (n-1)`), attribute access, subscript, lambda, f-string.
-
-Đồng thời **trích claim** từ mọi `assert` trong source → `ClaimInfo`
-(claim_id, source_line, expr_source, expr_node).
-
-### 5.9. `shared/replay.py` — Replay trên CPython thật
-
-Chạy chương trình gốc trong subprocess với `sys.settrace`, theo dõi biến tại
-`target_line`, đánh giá lại claim tại đó. Kết quả:
-
-
-| `replay_verdict` | Ý nghĩa                                           |
-| ---------------- | ------------------------------------------------- |
-| `True`           | CE tái hiện được → claim thực sự sai (đáng tin)   |
-| `False`          | CE không tái hiện → CE của Z3 không đáng tin      |
-| `None`           | Không replay (baseline không hỗ trợ) → CRVR = N/A |
-
-
-### 5.10. `shared/metrics.py` — Roll-up metric
+### 5.2. Roll-up metric
 
 ```python
 metrics = aggregate(results, ground_truth)
@@ -336,13 +366,38 @@ metrics = aggregate(results, ground_truth)
 | Token / Cost            | trung bình mỗi chương trình                    | `PRICE_IN_PER_1K = 0.005`, `PRICE_OUT_PER_1K = 0.015` |
 
 
-> **Lưu ý về `HR`:** hàm `aggregate` hiện trả `hr = 0.0` khi không có claim.
-> Khi cài Baseline, **phải** sửa thành `None` cho baseline không có cổng neo
-> theo nguyên tắc "N/A ≠ 0" — xem `Information/BASELINE_DISCOVERY.md` §5.3.
+**Replay trên CPython thật** — `replay_verdict = True` (CE tái hiện được → claim
+thực sự sai) · `False` (CE không tái hiện → CE của Z3 không đáng tin) ·
+`None` (không replay → CRVR = N/A).
 
 ---
 
-## 6. Cài đặt
+## 6. Bộ dữ liệu chuẩn `data/bench_v1/`
+
+1.000 chương trình được chọn có hệ thống từ 14.785 chương trình QF-LIA, có ground
+truth kiểm chứng bằng **hai tầng độc lập** (CPython execution oracle + Z3/Spacer).
+
+
+| Thuộc tính        | Giá trị                                                |
+| ----------------- | ------------------------------------------------------ |
+| Số mẫu            | **1.000** (seed 42)                                    |
+| Phân bố verdict   | **500 VERIFIED / 500 COUNTEREXAMPLE** (cân bằng 50/50) |
+| Độ phủ dạng claim | **34/34** dạng đại diện được (trong tổng 36 dạng)      |
+| Precondition      | Trích từ mọi nhánh `if` chứa assert                    |
+| Shared Claim Pool | 1.000 claim — trích từ `assert` sẵn, **0 token**       |
+
+
+**Tại sao cần Shared Claim Pool:** mọi phương pháp — Proposed lẫn 14 baseline —
+phải dùng **cùng một bộ claim** để không ai được lợi vì trích hay diễn đạt claim
+tốt hơn người khác.
+
+**Hạn chế đã biết:** bộ dữ liệu không có `nested_loops`, `for`, `break`/`continue`,
+`try/except` hay hàm đệ quy. Kết quả đo trên `bench_v1` **không** suy rộng được
+sang các cấu trúc đó.
+
+---
+
+## 7. Cài đặt
 
 **Yêu cầu:** Python 3.11+ (khuyến nghị 3.13/3.14), `z3-solver`, `pydantic` v2.
 
@@ -370,32 +425,9 @@ $env:GEMINI_API_KEY = (Get-Content -Raw geminiapi.txt).Trim()
 
 ---
 
-## 7. Chạy thử nhanh
+## 8. Chạy thử nhanh
 
-### 7.1. Smoke test tối thiểu (không cần API key)
-
-```powershell
-cd prototype
-$env:PYTHONPATH = "src"
-python tools/smoke_temp200.py --size 20 --no-feedback
-```
-
-Kết quả mẫu (20 chương trình ngẫu nhiên, seed=7):
-
-```
-g1_accum_01_b      gt=COUNTEREXAMPLE  got=COUNTEREXAMPLE  Z3 found a violating model...
-g1_accum_02        gt=VERIFIED        got=VERIFIED        claim holds on every complete path...
-g1_negate_02_b     gt=COUNTEREXAMPLE  got=COUNTEREXAMPLE  Z3 found a violating model...
-...
---- status counts ---
-  COUNTEREXAMPLE       13
-  VERIFIED             7
-```
-
-> `--no-feedback` tắt vòng retrospective (gọi LLM) — pipeline chạy offline,
-> mỗi chương trình ~1 giây.
-
-### 7.2. Chạy trực tiếp trên một đoạn code
+### 8.1. Chạy Proposed Method trên một đoạn code
 
 ```powershell
 $env:PYTHONPATH = "src"
@@ -416,260 +448,92 @@ print(r.claim_results[0].status.value, '|', r.claim_results[0].reason)
 "
 ```
 
-### 7.3. Với LLM sinh claim
+### 8.2. Chạy một baseline (offline, 0 token)
+
+```powershell
+$env:PYTHONPATH = "src"
+python -c "
+from pathlib import Path
+from astverifier.baselines import get_baseline, ProgramSpec
+from astverifier.shared.claims import load_claim_pool
+
+pool = load_claim_pool('data/bench_v1/claim_pool.json')
+program_id, claims = next(iter(pool.items()))
+source = (Path('../Dataset/filtered') / program_id).read_text(encoding='utf-8')
+
+cls = get_baseline('L')          # Symbolic Execution — không cần LLM
+result = cls().run(ProgramSpec(program_id=program_id, source=source, claims=claims))
+print(result.baseline, result.n_claims, result.claim_results[0].status.value)
+"
+```
+
+### 8.3. Chạy baseline cần LLM
 
 ```powershell
 $env:PYTHONPATH = "src"
 $env:GEMINI_API_KEY = (Get-Content -Raw geminiapi.txt).Trim()
 python -c "
-from astverifier.core.pipeline import run_pipeline
-src = open('dataset_temp_200/programs/g3_loops/g3_count_01.py', encoding='utf-8').read()
-r = run_pipeline(src, program_id='g3_count_01', use_llm=True,
-                 gemini_model='gemini-3.5-flash')
-print(r.n_claims, r.claim_results[0].status.value)
+from astverifier.baselines import get_baseline, GeminiClient, ProgramSpec
+
+spec = ProgramSpec(program_id='demo', source=open('demo.py', encoding='utf-8').read())
+result = get_baseline('D')(llm=GeminiClient()).run(spec)   # LLM-as-a-Judge
+print(result.total_tokens_in, result.total_tokens_out)
 "
 ```
 
-### 7.4. Roll-up metric trên nhiều chương trình
+### 8.4. Roll-up metric trên nhiều chương trình
 
 ```python
 import json
 from pathlib import Path
 from astverifier.core.pipeline import run_pipeline
-from astverifier.shared.metrics import aggregate, load_ground_truth
+from astverifier.shared.metrics import aggregate
 
-DATASET = Path("dataset_temp_200")
-manifest = json.loads((DATASET / "manifest.json").read_text(encoding="utf-8"))
+manifest = json.loads(Path("data/bench_v1/manifest.json").read_text(encoding="utf-8"))
+# Chỉ entry có claim mới mang expected_verdict.
+labelled = [e for e in manifest["programs"] if e.get("expected_verdict")]
 
-results = []
-for entry in manifest["programs"]:
-    source = (DATASET / entry["path"]).read_text(encoding="utf-8")
-    results.append(run_pipeline(source, program_id=entry["program_id"]))
+results = [
+    run_pipeline((Path("../Dataset/filtered") / e["path"]).read_text(encoding="utf-8"),
+                 program_id=e["path"])
+    for e in labelled
+]
 
-ground_truth = {e["program_id"]: e["expected_verdict"] for e in manifest["programs"]}
+ground_truth = {e["path"]: e["expected_verdict"] for e in labelled}
 m = aggregate(results, ground_truth)
-print(f"F1={m.f1:.3f} FDR={m.fdr:.3f} HR={m.hr:.4f} CRVR={m.crvr}")
+print(f"F1={m.f1:.3f} FDR={m.fdr:.3f} HR={m.hr} CRVR={m.crvr}")
 ```
 
 ---
 
-## 8. Bộ dữ liệu `dataset_temp_200/`
-
-200 chương trình QF-LIA, ground truth bằng **execution oracle** (không LLM).
-
-
-| Nhóm               | Số mẫu | Nội dung                               |
-| ------------------ | ------ | -------------------------------------- |
-| `g1_arithmetic/`   | 40     | Biểu thức số học & tuyến tính đơn giản |
-| `g2_conditionals/` | 40     | Rẽ nhánh & điều kiện đường đi          |
-| `g3_loops/`        | 50     | Vòng lặp đơn & loop invariants         |
-| `g4_nested/`       | 40     | Vòng lặp lồng nhau & cận sâu           |
-| `g5_bugs/`         | 30     | Bug thật / Unreachable code            |
-
-
-
-| Nhãn             | Số mẫu |
-| ---------------- | ------ |
-| `VERIFIED`       | 85     |
-| `COUNTEREXAMPLE` | 100    |
-| `UNREACHABLE`    | 15     |
-
-
-**Điểm khác biệt so với `dataset_curated` (68 mẫu):**
-
-
-| Tiêu chí                 | `dataset_curated`                         | `dataset_temp_200`                                    |
-| ------------------------ | ----------------------------------------- | ----------------------------------------------------- |
-| Nhãn ground truth        | không nhất quán (38/30 vs 41/27 vs 45/32) | **execution oracle**, 100% khớp hành vi quan sát được |
-| Chương trình có `assert` | 19.8%                                     | **100%** (đúng 1 assert)                              |
-| Cỡ mẫu                   | 68                                        | 200                                                   |
-| Phân loại lỗi            | không có                                  | 15 loại `bug_type`                                    |
-| Precondition             | không ghi                                 | ghi trong manifest                                    |
-
-
-> Chi tiết đầy đủ (quy tắc sinh, chính sách nhãn, miền oracle, hạn chế):
-> `**dataset_temp_200/README.md**`
-
----
-
-## 9. Công cụ trong `tools/`
-
-
-| Script             | Mục đích                                                      | Lệnh                                                    |
-| ------------------ | ------------------------------------------------------------- | ------------------------------------------------------- |
-| `build_temp200.py` | Sinh & kiểm chứng bộ 200 mẫu (subset gate + execution oracle) | `python tools/build_temp200.py`                         |
-| `smoke_temp200.py` | Smoke test pipeline trên ngẫu nhiên N mẫu                     | `python tools/smoke_temp200.py --size 20 --no-feedback` |
-
-
-`**build_temp200.py` là idempotent**: chạy lại sẽ ghi đè `programs/` và
-`manifest.json`; nếu có bất kỳ chương trình nào lệch với oracle thì **build
-fail** và không ghi manifest.
-
----
-
-## 10. Kết quả & cách diễn giải
-
-### 10.1. Số liệu hiện tại (tập `dataset_curated`, 68 mẫu)
-
-
-| Phương pháp        | F1    | Accuracy | Precision | Recall | FDR   | CRVR      | HR        | Thời gian TB |
-| ------------------ | ----- | -------- | --------- | ------ | ----- | --------- | --------- | ------------ |
-| A — SatLM Direct   | 0.635 | 54.4%    | 57.4%     | 71.1%  | 42.6% | N/A       | 5.56%     | 1.41 s       |
-| D — LLM-as-a-Judge | 0.696 | 58.8%    | 59.3%     | 84.2%  | 40.7% | 40.0%     | N/A       | 1.92 s       |
-| **Proposed**       | 0.617 | 54.4%    | 58.1%     | 65.8%  | 41.9% | **88.0%** | **1.81%** | 7.71 s       |
-
-
-### 10.2. Đọc đúng các con số này
-
-**Điều 1 — Proposed thua D về F1, nhưng thắng về độ tin cậy.**
-
-
-| Metric | D     | Proposed  | Ý nghĩa                                                               |
-| ------ | ----- | --------- | --------------------------------------------------------------------- |
-| CRVR   | 40.0% | **88.0%** | Counterexample của Proposed tái hiện được gần như luôn; của D chỉ 2/5 |
-| HR     | N/A   | **1.81%** | Proposed có cổng neo → đo được; D không có → **N/A, không phải 0**    |
-
-
-> **Đây chính là điểm cốt lõi của đồ án.** Baseline D có Recall cao (84.2%)
-> nhưng 60% counterexample của nó **không tái hiện được** — tức là nó báo
-> động giả. Proposed có Recall thấp hơn nhưng khi báo `COUNTEREXAMPLE` thì
-> đúng 88%. Trong kiểm chứng chương trình, **tín hiệu âm sai còn tệ hơn tín
-> hiệu dương thiếu**.
-
-**Điều 2 — Không được đọc `HR = N/A` của D là "D không ảo giác".**
-
-D không có cổng neo AST → **không có cơ chế đo** → `N/A`. In `0` sẽ khiến
-reviewer hiểu nhầm là "D không ảo giác", tức là D tốt hơn Proposed về mặt
-này. Đây là lý do nguyên tắc **N/A ≠ 0** là bất di bất dịch.
-
-**Điều 3 — F1 ở hai mức khác nhau.**
-
-Proposed sinh **6.5 claim/chương trình**, D sinh **1.2**. F1 ở mức claim-level
-và program-level cho ra số khác nhau. Báo cáo cuối **phải trình bày cả hai**;
-nếu không, con số nào được chọn cũng sẽ bị chất vấn.
-
-**Điều 4 — Vòng retrospective làm thay đổi verdict, nên phải báo 2 cấu hình.**
-
-Smoke test trên `dataset_temp_200` (cùng 20 mẫu, seed=7):
-
-
-| Chế độ                     | Kết quả                            | Thời gian |
-| -------------------------- | ---------------------------------- | --------- |
-| `--no-feedback`            | 13 COUNTEREXAMPLE / 7 VERIFIED     | ~22 s     |
-| **có feedback** (mặc định) | **5 COUNTEREXAMPLE / 15 VERIFIED** | ~99 s     |
-
-
-Vòng retrospective đã **sửa được 10/20 verdict** từ `COUNTEREXAMPLE` thành
-`VERIFIED`. Điều này có hệ quả hai chiều:
-
-
-| Mặc độ đo     | Ảnh hưởng                                                         |
-| ------------- | ----------------------------------------------------------------- |
-| Accuracy / F1 | Tăng rõ rệt (claim sai được sửa rồi verify)                       |
-| **FDR**       | **Cần đo cẩn thận** — nếu claim sửa thành đúng *sai* thì FDR tăng |
-| CRVR          | Giảm (nhiều CE đã chuyển thành V nên mẫu số co lại)               |
-
-
-→ Báo cáo cuối **phải có 2 cấu hình** (có/không feedback), và **AB-4**
-(bỏ retrospective) phải đo trên **cùng một tập claim**.
-
-> **Lưu ý kỹ thuật:** log feedback cho thấy Gemini đôi khi trả JSON không
-> parse được (`core/feedback.py::_parse_feedback_json`). Cơ chế fail-safe đã
-> hoạt động đúng — pipeline không crash, giữ nguyên `COUNTEREXAMPLE` — nhưng
-> nếu tỷ lệ parse lỗi cao thì feedback kém hiệu quả hơn kỳ vọng. Cần **đo
-> tỷ lệ này** trong phase Baseline.
-
-### 10.3. Rủi ro đã biết (nêu thẳng trong báo cáo)
-
-
-| Rủi ro                                                                            | Mức | Xử lý trong phase Baseline                                                                                           |
-| --------------------------------------------------------------------------------- | --- | -------------------------------------------------------------------------------------------------------------------- |
-| **Baseline N (Invariant + SMT, không neo AST) có thể ≈ Proposed**                 | 🔴  | Nếu xảy ra → framing đóng góp phải đổi từ "AST anchor là chìa khóa" sang "grounding + reachability"                  |
-| **Baseline D đang bị đánh giá thấp** (tắt self-consistency vì hết quota)          | 🔴  | Baseline G (n=5, majority vote) phải chạy trước; nếu G > D đáng kể thì kết luận "Proposed thua D" là do lỗi cấu hình |
-| **Chưa có baseline không dùng LLM**                                               | 🟡  | Baseline J (fuzzing) & L (symbolic thuần) — "sanity floor", chạy offline 0 token                                     |
-| **Ground truth của bộ curated không nhất quán**                                   | 🟡  | Dùng `dataset_temp_200` có oracle; đồng bộ với bộ chính của Tâm                                                      |
-| **14 baseline × 200 mẫu vượt quota Gemini**                                       | 🟡  | 6 baseline cốt lõi chạy đầy đủ, 8 cái chạy tập con 50 mẫu                                                            |
-| **Feedback loop đổi 1/2 số verdict** → có thể tăng F1 nhưng tăng cả FDR           | 🔴  | Báo 2 cấu hình có/không feedback; đo FDR + CRVR + self-correct rate cùng nhau                                        |
-| `**executor.py` báo `COUNTEREXAMPLE` khi coverage không đầy đủ** (2/20 mẫu smoke) | 🟡  | Phải là `UNKNOWN_TIMEOUT`; kiểm tra cờ `complete` trong `executor.py`                                                |
-| `**metrics.aggregate` trả `hr = 0.0` khi không có cổng neo**                      | 🟡  | Phải là `None` (nguyên tắc N/A ≠ 0) — sửa khi cài Baseline                                                           |
-
-
----
-
-## 11. Kiểm thử
+## 9. Kiểm thử
 
 ```powershell
 $env:PYTHONPATH = "src"
 
-python -m pytest tests -q          # 27 test
+python -m pytest tests -q          # 109 test
 python -m ruff check src tools tests
 python -m compileall -q src tools tests
 ```
 
 
-| Tệp test              | Phủ                                                             |
-| --------------------- | --------------------------------------------------------------- |
-| `test_extensions.py`  | Subset gate, anchor binding, Z3 obligations, replay, metric     |
-| `test_regressions.py` | Các lỗi đã từng xảy ra (cache, undefined name, zip strictness…) |
+| Tệp test                   | Phủ                                                                                                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_baselines.py`        | Registry đủ 14 ID · quét AST chặn import `core/` · contract: mỗi baseline chạy 1 chương trình mẫu → `ProgramResult` đúng schema · chương trình hỏng & claim list rỗng không crash · token khai báo đúng |
+| `test_dataset_pipeline.py` | Tính đúng của pipeline dataset: idempotency, replay counterexample, reachability                                                                                                                        |
+| `test_extensions.py`       | Subset gate, anchor binding, Z3 obligations, replay, metric                                                                                                                                             |
+| `test_regressions.py`      | Các lỗi đã từng xảy ra (cache, undefined name, zip strictness…)                                                                                                                                         |
 
 
 ---
 
-## 12. Giai đoạn tiếp theo: cài đặt Baseline
-
-Bối cảnh đầy đủ: `Information/BASELINE_DISCOVERY.md` (14 baseline, 8 trục cơ chế,
-ánh xạ 4 RQ, 7 phép thử ablation) và `Information/BASELINE_DISCOVERY_PLAN.md`.
-
-### 12.1. Nguyên tắc bắt buộc
-
-
-| #   | Nguyên tắc                                | Cơ chế hiện thực hoá                                                 |
-| --- | ----------------------------------------- | -------------------------------------------------------------------- |
-| 1   | **Baseline không sửa code trong `core/`** | Cài ở `astverifier/baselines/`; dùng `shared/`                       |
-| 2   | **Cùng một giao diện**                    | Mỗi baseline trả `ProgramResult` của `shared/schemas.py`             |
-| 3   | **Metric không đo được → `None`**         | `has_grounding=False` → HR = N/A; `replay_verdict=None` → CRVR = N/A |
-| 4   | **Cùng một bộ claim**                     | `Shared Claim Pool` trích 1 lần, mọi baseline dùng chung             |
-| 5   | **Báo cáo 2 mức**                         | claim-level **và** program-level                                     |
-
-
-### 12.2. Thứ tự thực hiện đề xuất
-
-
-| Bước | Việc                                     | Ghi chú                                                   |
-| ---- | ---------------------------------------- | --------------------------------------------------------- |
-| 1    | **N, J, L** — baseline offline, 0 token  | Chạy được ngay, không chờ quota; N là phép thử quyết định |
-| 2    | **G, E** — cần LLM nhưng rẻ              | G quyết định tính công bằng của baseline D                |
-| 3    | **A, B, C, D** — tái tạo số liệu hiện có | Trên `dataset_temp_200` để so sánh trực tiếp              |
-| 4    | **H, F, M, K** — cơ chế tự sửa           | Phục vụ ablation AB-3, AB-4                               |
-| 5    | **B+, C+** — biến thể nâng cấp           | Chỉ khi cần thêm điểm so sánh                             |
-
-
-### 12.3. Giao diện tối thiểu cho một baseline
-
-```python
-# astverifier/baselines/n_invariant_smt.py
-class BaselineN(BaseBaseline):
-    id = "N"
-    supports_grounding = False      # → HR = N/A
-    supports_replay = True          # → CRVR đo được
-    supports_reachability = False   # → UNREACHABLE = N/A
-
-    def run(self, program: ProgramSpec, claims: list[Claim]) -> ProgramResult:
-        ...
-```
-
-> `**supports_*` là cơ chế hiện thực hoá nguyên tắc "N/A ≠ 0" ở tầng
-> registry** — thay vì mỗi baseline tự nhớ phải để `None`.
-
----
-
-## 13. Quy ước phát triển
+## 10. Quy ước phát triển
 
 
 | Mục           | Quy ước                                                                                  |
 | ------------- | ---------------------------------------------------------------------------------------- |
 | **Style**     | PEP 8, `ruff` với `E/W/F/I/N/UP/B/C4/SIM`, line length 88                                |
-| **Typing**    | `from __future__ import annotations`, `X                                                 |
+| **Typing**    | `from __future__ import annotations`                                                     |
 | **Enum**      | `StrEnum` (Python 3.11+) để serialize JSON trực tiếp                                     |
 | **Docstring** | Google-style, mô tả **tại sao** chứ không chỉ **cái gì**                                 |
 | **Test**      | pytest, `pythonpath = ["src"]` cấu hình sẵn trong `pyproject.toml`                       |
