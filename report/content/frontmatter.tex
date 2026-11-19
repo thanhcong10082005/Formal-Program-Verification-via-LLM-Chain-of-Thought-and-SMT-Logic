@@ -1,0 +1,111 @@
+\chapter*{Lời cam đoan}
+\addcontentsline{toc}{chapter}{Lời cam đoan}
+Chúng tôi xin cam đoan rằng toàn bộ nội dung được trình bày trong báo cáo Đồ án Chuyên ngành này là công trình nghiên cứu và phát triển độc lập của nhóm chúng tôi, dưới sự hướng dẫn khoa học của TS. Lê Xuân Bách tại Khoa Khoa học và Kỹ thuật Máy tính, Trường Đại học Bách Khoa -- ĐHQG TP. Hồ Chí Minh.
+
+Các số liệu thực nghiệm, mô hình thuật toán, mã nguồn hệ thống phân tích cú pháp ký hiệu, bộ sinh bằng chứng hình thức, và các kết quả đo lường benchmark trên các tập dữ liệu chuẩn được trình bày trong báo cáo hoàn toàn trung thực, khách quan và được thu thập trực tiếp từ các phiên thực thi thực tế của framework. Mọi thông tin, tài liệu, kết quả hoặc ý tưởng kế thừa từ các công trình nghiên cứu của các tác giả khác đều đã được trích dẫn nguồn gốc rõ ràng, đầy đủ và chính xác theo chuẩn mực học thuật quốc tế trong danh mục Tài liệu tham khảo.
+
+\vspace{1.5cm}
+\begin{flushright}
+\begin{tabular}{c}
+\textit{TP. Hồ Chí Minh, ngày 19 tháng 11 năm 2026} \\
+\textbf{Đại diện nhóm sinh viên thực hiện} \\[2cm]
+Hứa Thanh Tâm \quad Nguyễn Thành Công \quad Huỳnh A Dũng
+\end{tabular}
+\end{flushright}
+
+\chapter*{Lời cảm ơn}
+\addcontentsline{toc}{chapter}{Lời cảm ơn}
+Lời đầu tiên, nhóm nghiên cứu xin bày tỏ lòng biết ơn sâu sắc và chân thành nhất tới Thầy hướng dẫn -- \textbf{TS. Lê Xuân Bách}. Trong suốt thời gian thực hiện đồ án, Thầy đã dành nhiều thời gian quý báu để định hướng đề tài nghiên cứu, gợi mở những ý tưởng cốt lõi về việc kết hợp giữa phương pháp kiểm chứng hình thức truyền thống với các mô hình trí tuệ nhân tạo thế hệ mới, đồng thời luôn tận tình chỉ dẫn, phản biện nghiêm túc và động viên nhóm vượt qua những nút thắt kỹ thuật phức tạp.
+
+Nhóm xin trân trọng cảm ơn quý Thầy, Cô giáo thuộc Khoa Khoa học và Kỹ thuật Máy tính, Trường Đại học Bách Khoa -- ĐHQG TP. Hồ Chí Minh, những người đã trang bị cho chúng tôi nền tảng kiến thức vững chắc về Lý thuyết Khoa học Máy tính, Trình biên dịch, Phương pháp Hình thức, Cấu trúc Dữ liệu \& Giải thuật và Trí tuệ Nhân tạo trong suốt những năm học vừa qua.
+
+Chúng tôi cũng xin gửi lời cảm ơn chân thành đến các bạn sinh viên cùng khóa và các anh chị học viên cao học tại phòng thí nghiệm đã có những trao đổi chuyên môn bổ ích, hỗ trợ phản hồi và đóng góp những ý kiến thiết thực trong quá trình nhóm xây dựng bộ dữ liệu benchmark và kiểm thử hệ thống.
+
+Sau cùng, nhóm xin gửi lời tri ân sâu sắc tới gia đình và người thân, điểm tựa tinh thần vững chắc và nguồn động viên vô bờ bến giúp chúng tôi có đầy đủ nghị lực và sự kiên trì để hoàn thành tốt đồ án chuyên ngành này.
+
+\input{content/member_list}
+
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
+Sự bùng nổ của các mô hình ngôn ngữ lớn (Large Language Models -- LLM) đã mở ra một kỷ nguyên mới trong tự động hóa kỹ thuật phần mềm, đặc biệt là khả năng sinh chuỗi lý luận (Chain-of-Thought -- CoT) bằng ngôn ngữ tự nhiên để giải thích hành vi và suy luận về tính đúng đắn của chương trình mã nguồn. Tuy nhiên, các mô hình sinh xác suất tự hồi quy vốn dĩ mắc phải điểm yếu chí tử là hiện tượng ảo giác (hallucination), ngụy biện logic (logical fallacy) và sự thiếu vắng nền tảng ngữ nghĩa toán học chính xác. Một lời giải thích nghe rất hợp lý và mạch lạc hoàn toàn có thể chứa đựng những khẳng định sai lệch về trạng thái biến, điều kiện rẽ nhánh hay giá trị trả về. 
+
+Mặt khác, các phương pháp tiếp cận ngây thơ kết hợp trực tiếp giữa LLM và bộ giải quyết thỏa mãn lý thuyết modulo (SMT Solver) theo dạng \texttt{Code $\rightarrow$ LLM $\rightarrow$ Formula $\rightarrow$ SMT} lại tiềm ẩn rủi ro nghiêm trọng: solver chỉ kiểm tra tính thỏa mãn của công thức do LLM sinh ra mà không bảo đảm công thức đó phản ánh đúng ngữ nghĩa của chương trình gốc. Nguy hiểm hơn, hiện tượng chứng minh rỗng (vacuous truth) xảy ra trên các nhánh mã chết (dead-code / unreachable paths) có thể khiến solver kết luận \texttt{VERIFIED} giả mạo một cách sai lầm đối với những khẳng định vô nghĩa.
+
+Đồ án này nghiên cứu và hiện thực một kiến trúc kiểm chứng chương trình bán tự động theo phong cách Neuro-Symbolic mang tên \textbf{AST-Anchored Neuro-Symbolic Verification Framework}. Triết lý thiết kế cốt lõi của đề tài là xác lập Cây Cú pháp Trừu tượng (AST) và Trình thực thi ký hiệu đáng tin cậy (Trusted Symbolic Executor) làm \textit{xương sống tin cậy} (trusted backbone / ground truth), trong khi LLM chỉ đóng vai trò là một bộ đề xuất lý luận không tin cậy (untrusted generator). Hệ thống đề xuất sáu cơ chế then chốt: (1) Cổng neo AST (Anchor Gate) kiểm tra định danh nút, tọa độ và phạm vi biến khả kiến; (2) Giao thức Hai truy vấn Z3 tách bạch kiểm tra Reachability trước và Validity sau; (3) Xác nhận phản ví dụ bằng CPython Sandbox Replay (CRVR); (4) Vòng phản hồi hồi cứu (Retrospective Feedback Loop); (5) Tổng hợp Bất biến vòng lặp bằng $k$-induction; và (6) Thư viện 14 Baseline độc lập (A--N).
+
+Framework được thực nghiệm toàn diện trên bộ dữ liệu chuẩn \texttt{bench\_v1} gồm 1.000 chương trình QF-LIA phân tầng cân bằng 50/50 và tập dữ liệu kiểm chứng 68 chương trình chuẩn SV-COMP. Kết quả đo lường thực tế chứng minh: Proposed Pipeline đạt tỷ lệ phản ví dụ hợp lệ (CRVR / Fidelity) lên tới \textbf{88.0\%} (so với 40.0\% của LLM-as-a-Judge), giảm Tỷ lệ Ảo giác xuống chỉ còn \textbf{1.81\%}, phát hiện thành công \textbf{127 claim} trên nhánh chết (\texttt{UNREACHABLE}) mà các baseline hoàn toàn bỏ sót, và tự sửa chữa thành công \textbf{23.9\%} số claim sai sót thông qua cơ chế phản hồi hồi cứu.
+
+\vspace{0.5cm}
+\noindent\textbf{Từ khóa:} Kiểm chứng chương trình hình thức, Mô hình ngôn ngữ lớn (LLM), Chain-of-Thought, Cây cú pháp trừu tượng (AST), SMT Solver, Z3, Static Single Assignment (SSA), Bất biến vòng lặp, Replay phản ví dụ, Neuro-Symbolic.
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+The rapid proliferation of Large Language Models (LLMs) has profoundly transformed automated software engineering, particularly through their capability to generate natural language Chain-of-Thought (CoT) reasoning traces that explain program semantics and assert program correctness. Nonetheless, autoregressive generative models inherently suffer from critical vulnerabilities: hallucinations, logical fallacies, and a fundamental absence of formal mathematical semantics. A reasoning trace that appears syntactically coherent and persuasive may nonetheless assert completely fabricated variable states, incorrect branch guards, or invalid program invariants.
+
+Furthermore, naive neuro-symbolic pipelines following the paradigm $\text{Code} \rightarrow \text{LLM CoT} \rightarrow \text{SMT Formula} \rightarrow \text{Solver}$ introduce grave soundness hazards: the solver verifies only whether the LLM-synthesized formula is satisfiable, with no formal guarantee that the formula faithfully models the underlying code. Worse still, the phenomenon of \textit{vacuous truth} along dead-code or unreachable control-flow paths causes solvers to emit spurious \texttt{VERIFIED} verdicts on logically impossible premises, yielding a dangerous illusion of verification.
+
+This report presents the design, theoretical formalization, implementation, and empirical evaluation of the \textbf{AST-Anchored Neuro-Symbolic Verification Framework}. The central architectural philosophy of our framework is establishing the Abstract Syntax Tree (AST) and a deterministic, trusted symbolic executor as the immutable \textit{trusted backbone} (ground truth), relegating the LLM strictly to an untrusted generation oracle. Our framework introduces six core mechanisms: (1) An AST Anchor Gate verifying canonical node identifiers, line/column spans, and variable lexical scopes; (2) A Two-Query Z3 Decision Protocol decoupling Reachability from Validity; (3) Concrete Counterexample Replay via an isolated CPython runtime (CRVR); (4) A Retrospective Feedback Loop for autonomous multi-round self-repair; (5) Loop Invariant Synthesis and $k$-induction; and (6) An exhaustive suite of 14 independent baselines (A--N) evaluated across a unified Shared Claim Pool.
+
+Comprehensive empirical evaluations conducted on the balanced 1,000-program \texttt{bench\_v1} dataset and the 68-program SV-COMP loop benchmark demonstrate the superiority of the proposed framework: the proposed pipeline achieves a high Counterexample Replay Validity Rate of \textbf{88.0\%} (compared to only 40.0\% for LLM-as-a-Judge), reduces the Hallucination Rate to \textbf{1.81\%}, uncovers \textbf{127 dead-code claims} (\texttt{UNREACHABLE}) that were completely misclassified by conventional baselines, and autonomously self-repairs \textbf{23.9\%} of refuted claims via retrospective feedback.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} Formal Program Verification, Large Language Models, Chain-of-Thought, Abstract Syntax Tree, Satisfiability Modulo Theories (SMT), Z3 Solver, Static Single Assignment (SSA), Loop Invariants, Counterexample Replay, Neuro-Symbolic Computing.
+
+\chapter*{Danh mục từ viết tắt và thuật ngữ}
+\addcontentsline{toc}{chapter}{Danh mục từ viết tắt và thuật ngữ}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{|p{0.18\textwidth}|p{0.38\textwidth}|p{0.38\textwidth}|}
+\hline
+\textbf{Thuật ngữ / Viết tắt} & \textbf{Tiếng Anh} & \textbf{Giải thích / Định nghĩa} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Thuật ngữ / Viết tắt} & \textbf{Tiếng Anh} & \textbf{Giải thích / Định nghĩa} \\
+\hline
+\endhead
+\hline
+\endfoot
+\textbf{LLM} & Large Language Model & Mô hình ngôn ngữ lớn dựa trên kiến trúc Transformer. \\
+\hline
+\textbf{CoT} & Chain-of-Thought & Chuỗi lý luận từng bước bằng ngôn ngữ tự nhiên. \\
+\hline
+\textbf{AST} & Abstract Syntax Tree & Cây cú pháp trừu tượng biểu diễn cấu trúc ngữ pháp chương trình. \\
+\hline
+\textbf{CFG} & Control Flow Graph & Đồ thị luồng điều khiển biểu diễn các đường thực thi. \\
+\hline
+\textbf{SSA} & Static Single Assignment & Dạng gán tĩnh duy nhất; mỗi biến chỉ được gán giá trị đúng một lần. \\
+\hline
+\textbf{SMT} & Satisfiability Modulo Theories & Bài toán thỏa mãn mệnh đề kết hợp các lý thuyết nền tảng. \\
+\hline
+\textbf{QF-LIA} & Quantifier-Free Linear Integer Arithmetic & Lý thuyết số học số nguyên tuyến tính không chứa lượng từ. \\
+\hline
+\textbf{DPLL(T)} & Davis-Putnam-Logemann-Loveland modulo Theories & Thuật toán cốt lõi của các SMT solver hiện đại. \\
+\hline
+\textbf{VC} & Verification Condition & Điều kiện kiểm chứng cần chứng minh tính đúng đắn. \\
+\hline
+\textbf{TCB} & Trusted Computing Base & Tập hợp các thành phần cốt lõi bắt buộc phải tin cậy tuyệt đối. \\
+\hline
+\textbf{BVA} & Boundary Value Analysis & Kỹ thuật phân tích giá trị biên trong kiểm thử phần mềm. \\
+\hline
+\textbf{FDR} & False Discovery Rate & Tỷ lệ các kết luận \texttt{VERIFIED} sai trên tổng số kết luận đúng. \\
+\hline
+\textbf{CRVR} & Counterexample Replay Validity Rate & Tỷ lệ các phản ví dụ tái hiện thành công trên runtime CPython. \\
+\hline
+\textbf{HR} & Hallucination Rate & Tỷ lệ các khẳng định của LLM bị từ chối do không neo được vào AST. \\
+\hline
+\textbf{PBT} & Property-Based Testing & Kiểm thử dựa trên thuộc tính tổng quát (thư viện Hypothesis). \\
+\hline
+\textbf{PRNG} & Pseudorandom Number Generator & Bộ sinh số giả ngẫu nhiên có seed tất định. \\
+\hline
+\textbf{CE} & Counterexample & Phản ví dụ (mô hình gán giá trị làm vi phạm thuộc tính). \\
+\hline
+\textbf{SAT} & Satisfiable & Có thể thỏa mãn (tồn tại phép gán chân trị làm công thức đúng). \\
+\hline
+\textbf{UNSAT} & Unsatisfiable & Không thể thỏa mãn (công thức luôn sai với mọi phép gán). \\
+\hline
+\textbf{SV-COMP} & Competition on Software Verification & Kỳ thi quốc tế thường niên về các công cụ kiểm chứng phần mềm. \\
+\hline
+\end{longtable}
+\end{center}

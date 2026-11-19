@@ -1,0 +1,105 @@
+\setlength{\headheight}{32pt}
+\pagestyle{fancy}
+\fancyhf{}
+
+% Header dùng chung theo đúng mẫu: Logo + 2 dòng chữ tiêu chuẩn
+\fancyhead[L]{
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.pdf}}
+   \end{picture}&
+	\begin{tabular}{l}
+		Đại học Bách Khoa Thành phố Hồ Chí Minh\\[-1pt]
+		Khoa Khoa học và Kỹ thuật Máy tính\\
+	\end{tabular}
+ \end{tabular}
+}
+\fancyfoot[L]{\scriptsize \ttfamily Đồ án Chuyên ngành - CO4029}
+\fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+
+% Style cho phần đầu (Frontmatter): Đánh số La Mã không kèm /LastPage
+\fancypagestyle{frontmatter}{
+ \fancyhf{}
+ \fancyhead[L]{
+  \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.pdf}}
+   \end{picture}&
+   \begin{tabular}{l}
+    Đại học Bách Khoa Thành phố Hồ Chí Minh\\[-1pt]
+    Khoa Khoa học và Kỹ thuật Máy tính\\
+   \end{tabular}
+  \end{tabular}
+ }
+ \fancyfoot[L]{\scriptsize \ttfamily Đồ án Chuyên ngành - CO4029}
+ \fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}}
+ \renewcommand{\headrulewidth}{0.3pt}
+ \renewcommand{\footrulewidth}{0.3pt}
+}
+
+% Style cho trang đầu của Chapter trong Frontmatter
+\fancypagestyle{plain}{
+ \fancyhf{}
+ \fancyhead[L]{
+  \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.pdf}}
+   \end{picture}&
+   \begin{tabular}{l}
+    Đại học Bách Khoa Thành phố Hồ Chí Minh\\[-1pt]
+    Khoa Khoa học và Kỹ thuật Máy tính\\
+   \end{tabular}
+  \end{tabular}
+ }
+ \fancyfoot[L]{\scriptsize \ttfamily Đồ án Chuyên ngành - CO4029}
+ \fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}}
+ \renewcommand{\headrulewidth}{0.3pt}
+ \renewcommand{\footrulewidth}{0.3pt}
+}
+
+% Style cho phần nội dung chính (Mainmatter): Đánh số Ả Rập kèm /LastPage
+\fancypagestyle{mainmatter}{
+ \fancyhf{}
+ \fancyhead[L]{
+  \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+    \put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.pdf}}
+   \end{picture}&
+   \begin{tabular}{l}
+    Đại học Bách Khoa Thành phố Hồ Chí Minh\\[-1pt]
+    Khoa Khoa học và Kỹ thuật Máy tính\\
+   \end{tabular}
+  \end{tabular}
+ }
+ \fancyfoot[L]{\scriptsize \ttfamily Đồ án Chuyên ngành - CO4029}
+ \fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}/\pageref{LastPage}}
+ \renewcommand{\headrulewidth}{0.3pt}
+ \renewcommand{\footrulewidth}{0.3pt}
+}
+
+% Lệnh chuyển tiếp sang Mainmatter: cập nhật cả pagestyle mặc định lẫn plain pagestyle
+\newcommand{\switchToMainmatter}{
+ \clearpage
+ \pagenumbering{arabic}
+ \pagestyle{mainmatter}
+ \fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyhead[L]{
+   \begin{tabular}{rl}
+     \begin{picture}(25,15)(0,0)
+     \put(0,-6){\includegraphics[width=8mm, height=8mm]{hcmut.pdf}}
+    \end{picture}&
+    \begin{tabular}{l}
+     Đại học Bách Khoa Thành phố Hồ Chí Minh\\[-1pt]
+     Khoa Khoa học và Kỹ thuật Máy tính\\
+    \end{tabular}
+   \end{tabular}
+  }
+  \fancyfoot[L]{\scriptsize \ttfamily Đồ án Chuyên ngành - CO4029}
+  \fancyfoot[R]{\scriptsize \ttfamily Trang {\thepage}/\pageref{LastPage}}
+  \renewcommand{\headrulewidth}{0.3pt}
+  \renewcommand{\footrulewidth}{0.3pt}
+ }
+}

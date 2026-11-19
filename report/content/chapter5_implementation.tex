@@ -1,0 +1,247 @@
+\chapter{Thiết kế và Hiện thực Hệ thống}
+\label{ch:implementation}
+
+Chương này trình bày chi tiết về mặt kỹ thuật phần mềm, cấu trúc kiến trúc mã nguồn, các lớp đối tượng cốt lõi, hiện thực của bộ 14 Baseline độc lập, cơ chế chịu lỗi, bảo đảm an toàn và hệ thống kiểm thử tự động của hệ thống \textbf{AST-Anchored Neuro-Symbolic Verification Framework}. Toàn bộ hệ thống được lập trình bằng ngôn ngữ Python 3.12 theo các chuẩn mực kỹ thuật phần mềm tiên tiến nhất (PEP 8, Modern Type Hinting, và cấu trúc thư mục chuẩn \texttt{src-layout}).
+
+\section{Kiến trúc Phần mềm và Tổ chức Mã nguồn}
+\label{sec:software_architecture}
+
+Hệ thống được đóng gói thành một thư viện Python hoàn chỉnh mang tên \texttt{astverifier}, tổ chức theo mô hình phân tách chức năng rõ rệt gồm 4 gói (packages) độc lập như được thể hiện trong sơ đồ cây thư mục dưới đây:
+
+\begin{center}
+\begin{minipage}{0.96\textwidth}
+\begin{verbatim}
+src/astverifier/
+|-- core/                        # CORE PROPOSED METHOD (Pipeline de xuat)
+|   |-- pipeline.py              # Bo dieu phoi chinh (Orchestrator)
+|   |-- executor.py              # Trusted symbolic executor + CFG generator
+|   |-- binding.py               # Anchor Gate: tham dinh va neo claim vao AST
+|   |-- obligations.py           # Giao thuc Hai truy van Z3: Reachability + Validity
+|   |-- invariants.py            # Bo sinh va kiem chung loop invariant (k-induction)
+|   \-- feedback.py              # Bo dieu phoi vong phan hoi hoi cuu (Retrospective)
+|-- shared/                      # MODULES DUNG CHUNG & TIEN ICH TOAN HE THONG
+|   |-- schemas.py               # Dinh nghia StatusEnum, ClaimResult, ProgramResult
+|   |-- subset.py                # Cong loc tap con QF-LIA va trich xuat assert
+|   |-- anchors.py               # Bo cap phat NodeId chinh tac cho nut AST
+|   |-- replay.py                # Sandbox CPython tai hien phan vi du voi capture_state
+|   |-- metrics.py               # Bo tinh toan chi so: FDR, F1, CRVR, HR, Token, Cost
+|   |-- claims.py                # Kieu du lieu Claim va Shared Claim Pool loader
+|   |-- preconditions.py         # Tu dong trich xuat path-precondition tu nhanh if
+|   |-- structure.py             # Trich xuat CFG skeleton va loop summary
+|   |-- symexec.py               # Trinh thuc thi ky hieu nen tang (Z3)
+|   |-- prover.py                # Bo chung minh hinh thuc chinh xac (Z3/Spacer)
+|   |-- oracle.py                # CPython execution oracle (BVA + seed PRNG)
+|   \-- oracle_runner.py         # Batch runner kem checkpointing
+|-- baselines/                   # 14 BASELINES DOC LAP (A den N)
+|   |-- base.py                  # Abstract Base Class BaseBaseline va ProgramSpec
+|   |-- registry.py              # He thong dang ky @register va get_baseline
+|   |-- llm.py                   # LLMClient: StubClient (offline) va GeminiClient
+|   |-- common.py                # Utilities ho tro prompting va parsing ket qua
+|   |-- a_direct_smt.py          # Baseline A: SatLM Direct SMT-LIB2
+|   |-- b_execution.py           # Baseline B: Execution Grounding
+|   |-- c_structural.py          # Baseline C: Structural Reasoning (CFG + k-ind)
+|   |-- d_judge.py               # Baseline D: LLM-as-a-Judge
+|   |-- e_neuro_symbolic.py      # Baseline E: Neuro-Symbolic AutoSpec
+|   |-- f_agentic.py             # Baseline F: Agentic Multi-Step (ReAct)
+|   |-- g_self_consistency.py    # Baseline G: Self-Consistency (Majority voting)
+|   |-- h_self_refine.py         # Baseline H: Self-Refine (Iterative critique)
+|   |-- i_property_based.py      # Baseline I: LLM-Guided Property-Based Testing
+|   |-- j_fuzzing.py             # Baseline J: Deterministic Fuzzing (0 tokens)
+|   |-- k_mutation.py            # Baseline K: Mutation Testing (0 tokens)
+|   |-- l_symbolic.py            # Baseline L: Pure Symbolic Execution (0 tokens)
+|   |-- m_hoare_nl.py            # Baseline M: Hoare Triple Natural Language
+|   \-- n_invariant_smt.py       # Baseline N: Invariant Synthesis with SMT
+\-- llm/                         # ADAPTER KET NOI MO HINH NGON NGU
+    \-- gemini.py                # Wrapper cho Google Gemini API (gemini-2.5-flash)
+\end{verbatim}
+\vspace{-6pt}
+\captionof{figure}{Cấu trúc tổ chức thư mục của package \texttt{astverifier}}
+\label{fig:package_structure}
+\end{minipage}
+\end{center}
+
+\section{Hiện thực Các Mô-đun Cốt lõi của Proposed Method}
+\label{sec:core_modules_implementation}
+
+\subsection{Lớp Kết quả và Trạng thái Chuẩn tắc (\texttt{shared/schemas.py})}
+Mọi thành phần trong hệ thống đều giao tiếp thông qua một hệ thống phân loại trạng thái khép kín được định nghĩa bằng lớp liệt kê \texttt{StatusEnum}:
+\begin{lstlisting}[language=Python, caption={Định nghĩa StatusEnum và các schema kết quả}]
+class StatusEnum(str, Enum):
+    VERIFIED = "VERIFIED"                    # Claim dung tren moi duong di kha dat
+    COUNTEREXAMPLE = "COUNTEREXAMPLE"        # Z3 tim duoc mo hinh vi pham tai nut
+    UNREACHABLE = "UNREACHABLE"              # Khong co duong di nao toi duoc nut
+    UNSUPPORTED = "UNSUPPORTED"              # Cong neo AST tu choi (ngoai scope, sai kind)
+    TRANSLATION_ERROR = "TRANSLATION_ERROR"  # Khong parse duoc bieu thuc SMT
+    UNKNOWN_TIMEOUT = "UNKNOWN_TIMEOUT"      # Solver timeout hoac thieu chung cu
+
+@dataclass
+class ClaimResult:
+    claim_id: str
+    status: StatusEnum
+    node_id: str | None = None
+    expression: str = ""
+    model: dict[str, Any] | None = None      # Gia tri cu the neu co phan vi du
+    replay_confirmed: bool | None = None     # True neu CPython tai hien loi thanh cong
+    unreachable: bool = False
+    details: str = ""
+
+@dataclass
+class ProgramResult:
+    program_id: str
+    claims: list[ClaimResult] = field(default_factory=list)
+    final_verdict: StatusEnum = StatusEnum.UNKNOWN_TIMEOUT
+    input_tokens: int = 0
+    output_tokens: int = 0
+    execution_time_seconds: float = 0.0
+\end{lstlisting}
+
+\subsection{Bộ Điều phối Pipeline Chính (\texttt{core/pipeline.py})}
+Lớp \texttt{VerificationPipeline} thực thi chu trình 7 bước đã mô tả trong Chương 4. Phương thức trung tâm \texttt{verify\_program} nhận mã nguồn và trả về \texttt{ProgramResult}. Quá trình này áp dụng cơ chế cuộn kết quả (Roll-up logic):
+\begin{itemize}
+    \item Nếu bất kỳ claim nào có kết quả là \texttt{COUNTEREXAMPLE} đã được replay xác nhận $\implies$ Phán quyết toàn chương trình là \texttt{COUNTEREXAMPLE}.
+    \item Nếu toàn bộ các claim đều đạt trạng thái \texttt{VERIFIED} $\implies$ Phán quyết là \texttt{VERIFIED}.
+    \item Nếu có claim bị \texttt{UNSUPPORTED} hoặc \texttt{UNKNOWN\_TIMEOUT} mà không có phản ví dụ $\implies$ Phán quyết là \texttt{UNKNOWN\_TIMEOUT} (nguyên tắc thận trọng, không đoán mò).
+\end{itemize}
+
+\subsection{Trình Thực thi Ký hiệu Đáng tin cậy (\texttt{core/executor.py})}
+Lớp \texttt{TrustedSymbolicExecutor} sử dụng trực tiếp thư viện \texttt{z3-solver} của Python. Với mỗi nút trong cây AST, phương thức \texttt{build\_transition} tạo ra các đối tượng \texttt{z3.BoolRef} và \texttt{z3.ArithRef}. Các biến SSA được định danh bằng quy ước \texttt{z3.Int(f"\{var\}\_\_\{version\}")}. Nhờ đó, việc tích lũy các điều kiện đường đi được thực hiện thông qua toán tử \texttt{z3.And(*path\_guards)}.
+
+\subsection{Cổng Neo AST và Phân tích Phạm vi (\texttt{core/binding.py})}
+Lớp \texttt{AnchorGate} triển khai 5 lớp kiểm định nghiêm ngặt. Khi nhận một danh sách các claim do LLM sinh ra, \texttt{AnchorGate.bind\_claims} đối chiếu với bảng ký hiệu được sinh từ \texttt{ast.walk(tree)}. Bất kỳ claim nào vi phạm sẽ được gắn nhãn \texttt{UNSUPPORTED} và được ghi nhận vào nhật ký chẩn đoán để phục vụ việc tính toán Tỷ lệ Ảo giác (Hallucination Rate).
+
+\subsection{Bộ Sinh Nghĩa vụ Hai Truy vấn (\texttt{core/obligations.py})}
+Lớp \texttt{TwoQueryObligationEngine} khởi tạo hai đối tượng \texttt{z3.Solver()} độc lập cho mỗi claim:
+\begin{lstlisting}[language=Python, caption={Hiện thực Giao thức Hai Truy vấn trong obligations.py}]
+def evaluate_claim(self, claim: AnchoredClaim, path: SymbolicPath) -> ClaimResult:
+    # 1. TRUY VAN REACHABILITY
+    reach_solver = z3.Solver()
+    reach_solver.set("timeout", 5000) # 5 giay timeout
+    reach_solver.add(path.path_condition)
+    
+    if reach_solver.check() == z3.unsat:
+        return ClaimResult(claim.id, StatusEnum.UNREACHABLE, unreachable=True)
+    elif reach_solver.check() != z3.sat:
+        return ClaimResult(claim.id, StatusEnum.UNKNOWN_TIMEOUT, details="Reachability timeout")
+        
+    # 2. TRUY VAN VALIDITY (Chi chay khi duong di kha dat)
+    valid_solver = z3.Solver()
+    valid_solver.set("timeout", 5000)
+    valid_solver.add(path.path_condition)
+    valid_solver.add(z3.Not(claim.smt_expression))
+    
+    res = valid_solver.check()
+    if res == z3.unsat:
+        return ClaimResult(claim.id, StatusEnum.VERIFIED)
+    elif res == z3.sat:
+        model = extract_model(valid_solver.model())
+        return ClaimResult(claim.id, StatusEnum.COUNTEREXAMPLE, model=model)
+    else:
+        return ClaimResult(claim.id, StatusEnum.UNKNOWN_TIMEOUT, details="Validity timeout")
+\end{lstlisting}
+
+\subsection{Mô-đun Replay CPython và Bắt giữ Trạng thái (\texttt{shared/replay.py})}
+Lớp \texttt{CPythonReplayer} sử dụng module \texttt{subprocess} để khởi chạy một tiến trình Python độc lập. Để bắt giữ trạng thái bộ nhớ chính xác tại thời điểm câu lệnh \texttt{assert} sụp đổ, hệ thống tự động tiêm một hàm hook mang tên \texttt{\_\_capture\_state\_on\_error} vào trước dòng assert thông qua AST rewriting:
+\begin{lstlisting}[language=Python, caption={Mô hình tiêm hook bắt trạng thái tại điểm lỗi}]
+try:
+    assert condition
+except AssertionError:
+    __record_crash_state(locals())
+    raise
+\end{lstlisting}
+Trạng thái các biến cục bộ (\texttt{locals()}) được tuần tự hóa thành JSON và trả về cho tiến trình cha. Nhờ đó, hệ thống không chỉ biết chương trình bị lỗi mà còn nắm giữ chính xác giá trị của từng biến tại micro-second xảy ra lỗi.
+
+\section{Hiện thực Độc lập 14 Phương pháp Baseline (A--N)}
+\label{sec:baselines_implementation}
+
+Một đóng góp kỹ thuật đồ sộ của đề tài là việc hiện thực hoàn chỉnh, độc lập và có hệ thống \textbf{14 phương pháp baseline} trong thư mục \texttt{astverifier/baselines/}.
+
+\subsection{Bất biến Kiến trúc: ``Không lệ thuộc \texttt{core/}''}
+Để bảo đảm tính khách quan và khoa học tuyệt đối, các baseline là các thực thể độc lập hoàn toàn, không được phép sử dụng bất kỳ cơ chế nào của Proposed Method. 
+
+Bất biến này không chỉ được cam kết bằng lời nói mà được \textbf{ràng buộc thành một bài kiểm thử tự động (Contract Test)} trong bộ test suite:
+\begin{lstlisting}[language=Python, caption={Kiểm thử tự động cấm baseline import module core/}]
+# tests/test_baselines.py::test_no_baseline_imports_core
+def test_no_baseline_imports_core():
+    baseline_dir = Path("src/astverifier/baselines")
+    for py_file in baseline_dir.glob("*.py"):
+        tree = ast.parse(py_file.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert "core" not in alias.name, f"Vi pham: {py_file} import core!"
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    assert "core" not in node.module, f"Vi pham: {py_file} importFrom core!"
+\end{lstlisting}
+Nhờ kiểm thử này, nếu bất kỳ nhà phát triển nào vô tình import một thành phần của Proposed Pipeline vào một baseline, toàn bộ hệ thống CI/CD sẽ lập tức báo lỗi.
+
+\subsection{Giao diện Chuẩn Tắc và Hệ thống Đăng ký (\texttt{baselines/base.py})}
+Mọi baseline đều kế thừa từ lớp trừu tượng \texttt{BaseBaseline} và bắt buộc phải khai báo tường minh các cờ năng lực:
+\begin{lstlisting}[language=Python, caption={Cấu trúc lớp cơ sở BaseBaseline}]
+class BaseBaseline(ABC):
+    id: str                          # Dinh danh duy nhat: "A", "B", ..., "N"
+    name: str                        # Ten day du cua phuong phap
+    supports_grounding: bool = False # Co cong neo AST khong? (Mac dinh False -> HR = N/A)
+    supports_replay: bool = False    # Co sinh input chay CPython khong? (CRVR)
+    supports_reachability: bool = False # Co phat hien UNREACHABLE khong?
+    supports_precondition: bool = True
+    requires_llm: bool = True        # Co ton token LLM khong?
+
+    @abstractmethod
+    def run(self, spec: ProgramSpec) -> ProgramResult:
+        """Thuc thi kiem chung tren chuong trinh duoc chi dinh."""
+        pass
+\end{lstlisting}
+
+Hệ thống đăng ký dựa trên decorator \texttt{@register} tự động quản lý danh mục \texttt{EXPECTED\_IDS = \{"A", "B", ..., "N"\}}. Nếu phát hiện hai baseline trùng ID hoặc một baseline thiếu ID, hệ thống sẽ ném ngoại lệ \texttt{ValueError} ngay khi khởi động.
+
+\subsection{Bộ 3 Baseline Ngoại Tuyến (Offline Baselines, 0 Token)}
+Trong số 14 baseline, có 3 baseline chạy hoàn toàn ngoại tuyến, tiêu thụ đúng \textbf{0 token}:
+\begin{enumerate}
+    \item \textbf{Baseline J (\texttt{j\_fuzzing.py}):} Sử dụng thuật toán phân tích giá trị biên (BVA) kết hợp bộ sinh số giả ngẫu nhiên với seed 42 cố định, sinh ra 256 ca kiểm thử bao phủ các giá trị đặc biệt ($-1, 0, 1, 2, -2$, giá trị lũy thừa của 2, và các biên phép chia). Toàn bộ 256 ca được chạy trực tiếp trên CPython.
+    \item \textbf{Baseline K (\texttt{k\_mutation.py}):} Sử dụng trình duyệt AST để tạo ra các đột biến mã nguồn: thay đổi toán tử quan hệ ($< \rightarrow \le$, $== \rightarrow \ne$), thay đổi toán tử số học ($+ \rightarrow -$), hoặc dịch chuyển hằng số biên ($c \rightarrow c \pm 1$). Baseline chạy kiểm tra xem các mutant này có bị phát hiện bởi claim hay không để tính điểm đột biến (Mutation Score).
+    \item \textbf{Baseline L (\texttt{l\_symbolic.py}):} Triển khai công cụ thực thi ký hiệu truyền thống hoàn toàn trên Z3/Spacer. Đây là baseline duy nhất trong 14 baseline có cờ \texttt{supports\_reachability = True}.
+\end{enumerate}
+
+\subsection{Bộ 11 Baseline Sử dụng Mô hình Ngôn ngữ}
+11 baseline còn lại sử dụng LLM thông qua giao diện \texttt{LLMClient}. Trong quá trình kiểm thử contract test, các baseline nhận \texttt{StubClient} (trả về các câu trả lời giả lập cố định) để kiểm tra tính toàn vẹn của mã nguồn mà không tiêu tốn bất kỳ chi phí API nào. Khi chạy thực tế, chúng nhận \texttt{GeminiClient} kết nối với mô hình \texttt{gemini-2.5-flash}.
+
+\section{Cơ chế An toàn, Chịu lỗi và Quản lý Tài nguyên}
+\label{sec:safety_fault_tolerance}
+
+Trong quá trình phân tích hàng nghìn chương trình phức tạp, các tình huống bất thường như mã nguồn lặp vô hạn, solver bế tắc, mạng Internet gián đoạn hoặc API LLM vượt giới hạn hạn mức (Rate Limit) là điều không thể tránh khỏi. Hệ thống triển khai các cơ chế an toàn cấp độ doanh nghiệp:
+
+\subsection{Nguyên tắc Bất biến: ``Không Phương pháp Nào Được Phép Crash''}
+Cả Proposed Pipeline và toàn bộ 14 baseline đều tuân thủ nguyên tắc: \textbf{Không bao giờ để ngoại lệ (unhandled exception) thoát ra ngoài làm gián đoạn batch runner}. Mọi khối logic thực thi đều được bọc trong cấu trúc \texttt{try-except Exception}. Khi xảy ra ngoại lệ không mong muốn, hệ thống tự động bắt lỗi, đóng gói thông tin vết sụp đổ vào trường \texttt{details}, và trả về đối tượng \texttt{ClaimResult} với trạng thái an toàn là \texttt{UNKNOWN\_TIMEOUT}. Nhờ đó, việc thực thi trên bộ dữ liệu 1.000 mẫu diễn ra liên tục, trơn tru mà không cần sự can thiệp thủ công của con người.
+
+\subsection{Quản lý Giới hạn Tài nguyên (Timeouts)}
+Hệ thống thiết lập các chốt chặn thời gian (hard limits) nghiêm ngặt tại tất cả các điểm có nguy cơ treo tiến trình:
+\begin{itemize}
+    \item \textbf{Z3 Solver Timeout:} Giới hạn cứng $5{,}000$ ms cho mỗi truy vấn SMT thông qua tham số \texttt{solver.set("timeout", 5000)}. Nếu sau 5 giây Z3 không thể tìm ra nghiệm, solver tự động hủy bỏ và trả về \texttt{unknown}.
+    \item \textbf{CPython Replay Timeout:} Tiến trình con CPython được ấn định thời gian chạy tối đa là $3{,}000$ ms (\texttt{subprocess.run(timeout=3.0)}). Điều này ngăn chặn việc chương trình có chứa vòng lặp vô hạn làm cạn kiệt tài nguyên CPU của máy chủ.
+\end{itemize}
+
+\subsection{Xử lý Lỗi API LLM và Chiến lược Exponential Backoff}
+Lớp \texttt{GeminiClient} được trang bị cơ chế tự phục hồi tự động khi gặp các lỗi gián đoạn dịch vụ hoặc giới hạn tần suất yêu cầu (\texttt{HTTP 429 Too Many Requests / ResourceExhausted}). Client áp dụng thuật toán lùi lũy thừa kết hợp độ trễ ngẫu nhiên (Truncated Exponential Backoff with Jitter):
+\begin{equation}
+T_{\text{wait}} = \min(T_{\text{max}}, \; T_{\text{base}} \cdot 2^{\text{attempt}} + \text{random}(0, 1))
+\end{equation}
+Hệ thống thử lại tối đa 5 lần trước khi chuyển sang phương án dự phòng an toàn. Toàn bộ lượng token tiêu thụ (prompt tokens và completion tokens) được trích xuất trực tiếp từ trường \texttt{usage\_metadata} của phản hồi API để phục vụ hạch toán chi phí tài chính chính xác tới từng phần nghìn USD.
+
+\section{Kiểm thử Hệ thống và Bảo đảm Chất lượng Mã nguồn}
+\label{sec:testing_quality_assurance}
+
+Chất lượng và độ tin cậy của framework được bảo đảm thông qua một quy trình kiểm thử và đánh giá tĩnh cực kỳ khắt khe:
+
+\begin{enumerate}
+    \item \textbf{Bộ 109 Bài Kiểm thử Tự động (Pytest Suite):}
+    \begin{itemize}
+        \item \textbf{50 Contract Tests (\texttt{test\_baselines.py}):} Kiểm tra xem tất cả 14 baseline có tuân thủ đúng hợp đồng giao diện \texttt{ProgramSpec $\rightarrow$ ProgramResult} hay không, bảo đảm không baseline nào crash trước các ca biên dị thường, và xác thực cấm import \texttt{core/}.
+        \item \textbf{Kiểm thử Tính toàn vẹn Dữ liệu (\texttt{test\_dataset\_pipeline.py}):} Kiểm chứng thuật toán trích xuất precondition, kiểm tra tính phân tầng cân bằng 500/500 của bộ dữ liệu \texttt{bench\_v1}, và bảo đảm tính hợp lệ của Hồ chứa Khẳng định Dùng chung (\textit{Shared Claim Pool}).
+        \item \textbf{Regression Tests (\texttt{test\_regressions.py}):} Kiểm thử hồi quy trên các trường hợp biên từng phát hiện lỗi trong quá khứ như: gán phức hợp lồng nhau, biến trùng tên trong các phạm vi khác nhau, và các biểu thức Boolean rút gọn (\texttt{short-circuit evaluation}).
+    \end{itemize}
+    Toàn bộ \textbf{109/109 bài test đều đạt kết quả Pass tuyệt đối (100\%)}.
+    
+    \item \textbf{Kiểm tra Chuẩn mực Mã nguồn với Ruff Linter:}
+    Toàn bộ hơn 5.000 dòng mã nguồn của dự án được quét liên tục bằng công cụ kiểm tra tĩnh \texttt{ruff} (phiên bản mới nhất năm 2026). Mã nguồn tuân thủ nghiêm ngặt chuẩn định dạng PEP 8, loại bỏ biến thừa, kiểm soát type hints đầy đủ, và đạt thành tích \textbf{0 cảnh báo, 0 lỗi (clean linter check)}.
+\end{enumerate}

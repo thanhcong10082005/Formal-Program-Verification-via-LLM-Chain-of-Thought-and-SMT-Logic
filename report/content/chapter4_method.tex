@@ -1,0 +1,468 @@
+\chapter{Phương pháp Đề xuất}
+\label{ch:method}
+
+Chương này trình bày chi tiết và toàn diện về mặt toán học cũng như thuật toán của phương pháp nghiên cứu đề xuất: \textbf{Kiến trúc Kiểm chứng Neuro-Symbolic Neo Cú pháp Trừu tượng (AST-Anchored Neuro-Symbolic Verification Framework)}. Phương pháp được thiết kế theo triết lý phân tách nghiêm ngặt giữa bộ sinh đề xuất không tin cậy (LLM) và bộ khung kiểm chứng hình thức đáng tin cậy (AST, Trusted Symbolic Executor, Z3 Solver, và CPython Runtime).
+
+\section{Tổng quan Kiến trúc Hệ thống}
+\label{sec:architecture_overview}
+
+Kiến trúc tổng thể của hệ thống bao gồm một chuỗi xử lý liên hoàn gồm 8 giai đoạn khép kín, được tổ chức thành hai luồng song song gặp nhau tại chốt kiểm soát chất lượng \textbf{Anchor Gate}, như được trực quan hóa trong Hình \ref{fig:system_architecture}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.0cm,
+    box/.style={rectangle, draw=black, thick, fill=blue!5, rounded corners, minimum height=0.9cm, text centered, font=\small},
+    trusted/.style={rectangle, draw=red!80!black, very thick, fill=red!5, rounded corners, minimum height=0.9cm, text centered, font=\small\bfseries},
+    untrusted/.style={rectangle, draw=orange!80!black, dashed, thick, fill=yellow!10, rounded corners, minimum height=0.9cm, text centered, font=\small},
+    gate/.style={diamond, draw=purple!80!black, thick, fill=purple!10, text centered, font=\small\bfseries, inner sep=1pt},
+    arrow/.style={-{Stealth[scale=1.0]}, thick}
+]
+
+% Nodes
+\node[box] (code) {Mã nguồn Python};
+\node[trusted, below=0.8cm of code] (subset) {1. Safe Subset Filter (QF-LIA)};
+\node[trusted, below left=1.2cm and -0.2cm of subset] (ast) {2. AST Canonicalization \& SSA};
+\node[untrusted, below right=1.2cm and -0.2cm of subset] (llm) {4. LLM Structured CoT};
+\node[trusted, below=1.0cm of ast] (symexec) {3. Trusted Symbolic Executor};
+\node[gate, below=1.5cm of subset] (gate) {5. Anchor Gate};
+\node[trusted, below=1.5cm of gate] (twoquery) {6. Two-Query Z3 Protocol};
+\node[trusted, below left=1.2cm and -0.5cm of twoquery] (replay) {7. CPython Replay Sandbox};
+\node[box, below right=1.2cm and -0.5cm of twoquery] (inv) {Loop Invariants ($k$-ind)};
+\node[untrusted, right=1.0cm of twoquery] (feedback) {8. Retrospective Feedback};
+\node[box, below=1.2cm of twoquery, fill=green!10, draw=green!60!black, very thick] (verdict) {Final Verdict \& Roll-up Metrics};
+
+% Arrows
+\draw[arrow] (code) -- (subset);
+\draw[arrow] (subset) -| (ast);
+\draw[arrow] (subset) -| (llm);
+\draw[arrow] (ast) -- (symexec);
+\draw[arrow] (symexec) |- (gate);
+\draw[arrow] (llm) |- (gate);
+\draw[arrow] (gate) -- node[right, font=\scriptsize] {Anchored Claims} (twoquery);
+\draw[arrow] (twoquery) -| node[above, font=\scriptsize] {SAT (Model)} (replay);
+\draw[arrow] (twoquery) -| (inv);
+\draw[arrow] (replay) |- node[below, font=\scriptsize] {Crash Trace} (feedback);
+\draw[arrow] (feedback) |- (llm);
+\draw[arrow] (twoquery) -- (verdict);
+\draw[arrow] (replay) |- (verdict);
+
+\end{tikzpicture}
+\caption{Kiến trúc tổng thể của AST-Anchored Neuro-Symbolic Verification Framework}
+\label{fig:system_architecture}
+\end{figure}
+
+Nguyên tắc phân định ranh giới độ tin cậy được thể hiện rõ:
+\begin{itemize}
+    \item \textbf{Cơ sở Tính toán Tin cậy (Trusted Computing Base -- TCB):} Bao gồm Bộ phân tích cú pháp AST, Bộ lọc tập con, Trình thực thi ký hiệu SSA, Cổng neo Anchor Gate, Bộ giải Z3 SMT, và Trình thông dịch CPython. Toàn bộ logic ra quyết định kiểm chứng đều nằm hoàn toàn trong TCB.
+    \item \textbf{Thành phần Không Tin cậy (Untrusted Generator):} Mô hình ngôn ngữ lớn (Gemini) chỉ có quyền hạn duy nhất là sinh ra các chuỗi văn bản gợi ý (reasoning trace, ứng viên bất biến, hoặc đề xuất sửa sai). Mọi gợi ý này bắt buộc phải chịu sự phán quyết của TCB trước khi được chấp nhận.
+\end{itemize}
+
+\section{Giai đoạn 1: Lọc Tập con An toàn (Safe Subset Filtering)}
+\label{sec:safe_subset}
+
+Để bảo đảm tính khả chứng và ngăn ngừa lỗi sụp đổ không mong muốn do các tính năng ngôn ngữ chưa được mô hình hóa, hệ thống triển khai bộ lọc \texttt{SafeSubsetFilter} đóng vai trò là cửa ngõ đầu vào.
+
+\subsection{Đặc tả Whitelist Ngữ pháp QF-LIA}
+Một chương trình Python được chấp nhận vào pipeline kiểm chứng nếu và chỉ nếu toàn bộ các cấu trúc cú pháp của nó nằm hoàn toàn trong danh mục cho phép (whitelist):
+\begin{enumerate}
+    \item \textbf{Câu lệnh (\texttt{ast.stmt}):} \texttt{FunctionDef}, \texttt{Assign}, \texttt{AugAssign} (\texttt{+=}, \texttt{-=}), \texttt{If}, \texttt{While}, \texttt{For} (chỉ cho phép dạng duyệt dải số nguyên \texttt{range(stop)} hoặc \texttt{range(start, stop)}), \texttt{Pass}, \texttt{Return}, và \texttt{Assert}.
+    \item \textbf{Biểu thức (\texttt{ast.expr}):} \texttt{Constant} (chỉ số nguyên $\mathbb{Z}$), \texttt{Name} (tên biến), \texttt{UnaryOp} (\texttt{UAdd}, \texttt{USub}, \texttt{Not}), \texttt{BinOp} (\texttt{Add}, \texttt{Sub}, \texttt{Mult} -- với điều kiện ít nhất một toán hạng là hằng số nguyên tĩnh), \texttt{BoolOp} (\texttt{And}, \texttt{Or}), và \texttt{Compare} (\texttt{Eq}, \texttt{NotEq}, \texttt{Lt}, \texttt{LtE}, \texttt{Gt}, \texttt{GtE}).
+\end{enumerate}
+
+Bất kỳ chương trình nào chứa các cấu trúc ngoài whitelist như: số thực (\texttt{float}), chuỗi ký tự (\texttt{str}), danh sách (\texttt{list}), gọi hàm ngoại vi, xử lý ngoại lệ (\texttt{try-except}), hoặc phép nhân hai biến ký hiệu ($x \cdot y$) sẽ bị từ chối ngay lập tức tại cổng lọc và gán trạng thái \texttt{REJECTED\_BY\_SUBSET}, hoàn toàn không được đưa vào solver.
+
+\subsection{Thuật toán Chuẩn hóa Mã nguồn}
+Thuật toán kiểm tra và chuẩn hóa được mô tả chi tiết trong Thuật toán \ref{alg:subset_filter}.
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{Mã nguồn chương trình Python $S_{\text{code}}$}
+\KwOut{Đối tượng kết quả $R_{\text{subset}} = \langle \text{is\_valid}, \text{normalized\_ast}, \text{reason} \rangle$}
+\BlankLine
+\Begin{
+    $T \leftarrow \text{ast.parse}(S_{\text{code}})$\;
+}{
+    \Return $\langle \text{False}, \text{None}, \text{``Cú pháp không hợp lệ''} \rangle$\;
+}
+\ForEach{\text{node} $\in \text{ast.walk}(T)$}{
+    \If{$\text{type}(\text{node}) \notin \text{WHITELIST\_NODES}$}{
+        \Return $\langle \text{False}, \text{None}, \text{f``Nút không được hỗ trợ: } \{\text{type}(\text{node})\} \text{''} \rangle$\;
+    }
+    \If{$\text{isinstance}(\text{node}, \text{ast.BinOp})$ \textbf{and} $\text{isinstance}(\text{node.op}, \text{ast.Mult})$}{
+        \If{\textbf{not} $(\text{isinstance}(\text{node.left}, \text{ast.Constant}) \lor \text{isinstance}(\text{node.right}, \text{ast.Constant}))$}{
+            \Return $\langle \text{False}, \text{None}, \text{``Phép nhân phi tuyến (hai biến ký hiệu)''} \rangle$\;
+        }
+    }
+}
+$T_{\text{norm}} \leftarrow \text{NormalizeAugAssign}(T)$ \tcp*{Biến đổi x += 1 thành x = x + 1}
+\Return $\langle \text{True}, T_{\text{norm}}, \text{``Hợp lệ''} \rangle$\;
+\caption{Thuật toán Lọc và Chuẩn hóa Tập con An toàn (Safe Subset Filter)}
+\label{alg:subset_filter}
+\end{algorithm}
+
+\section{Giai đoạn 2: Định danh AST Canonical và Phân tích Phạm vi Biến}
+\label{sec:ast_canonicalization}
+
+\subsection{Cấp phát Định danh Nút Ổn định (\texttt{assign\_ids})}
+Mỗi nút trong cây AST đã chuẩn hóa được gán một thuộc tính duy nhất \texttt{node\_id}. Thuật toán duyệt cây theo thứ tự trước (pre-order traversal). Với một nút cú pháp $v$ bắt đầu tại dòng $L$, định danh chính tắc được thiết lập theo quy tắc:
+\begin{equation}
+\text{node\_id}(v) = \begin{cases}
+\text{type}(v) \text{@L} \cdot L & \text{nếu } v \text{ là nút duy nhất cùng kiểu trên dòng } L \\
+\text{type}(v) \text{@L} \cdot L \text{\_} k & \text{nếu } v \text{ là nút thứ } k \ (k \ge 1) \text{ cùng kiểu trên dòng } L
+\end{cases}
+\end{equation}
+
+Định danh này bảo đảm tính đơn ánh: hai câu lệnh khác nhau trong cùng một chương trình luôn sở hữu hai \texttt{NodeId} phân biệt, cho phép truy vết chính xác nguồn gốc của mọi nghĩa vụ kiểm chứng.
+
+\subsection{Bảng Ký hiệu và Phạm vi Từ vựng (Lexical Scope Analysis)}
+Hệ thống xây dựng một Bảng Phạm vi Ký hiệu (Lexical Scope Table) $\mathcal{T}_{\text{scope}}: \text{NodeId} \rightarrow 2^{\mathcal{V}}$. Với mỗi nút câu lệnh $v$, $\mathcal{T}_{\text{scope}}(v)$ lưu trữ tập hợp tất cả các tên biến đã được khai báo hoặc gán giá trị trên ít nhất một đường thực thi dẫn tới $v$. Nếu một biến $y$ xuất hiện trong một biểu thức tại $v$ mà $y \notin \mathcal{T}_{\text{scope}}(v)$, hệ thống xác định đây là một biến chưa khởi tạo hoặc một biến ảo giác do mô hình tự nghĩ ra.
+
+\subsection{Trích xuất Khẳng định Tiên nghiệm từ Mã nguồn}
+Cùng với các khẳng định do LLM sinh ra, hệ thống tự động trích xuất tất cả các câu lệnh \texttt{assert Condition} có sẵn trong mã nguồn:
+\begin{equation}
+\text{Claim}_{\text{assert}} = \langle \text{NodeId}(\text{assert\_node}), \text{lineno}, \text{Condition}, \text{Source} = \text{``source\_code''} \rangle
+\end{equation}
+Bộ khẳng định tiên nghiệm này được dùng để xây dựng Hồ chứa Khẳng định Dùng chung (\textit{Shared Claim Pool}), bảo đảm tính công bằng tuyệt đối khi so sánh với các baseline.
+
+\section{Giai đoạn 3: Thực thi Ký hiệu Đáng tin cậy (Trusted Symbolic Execution)}
+\label{sec:trusted_symbolic_execution}
+
+Mô-đun \texttt{TrustedSymbolicExecutor} là trái tim toán học của TCB, chịu trách nhiệm chuyển hóa mã nguồn thành hệ phương trình ràng buộc ngữ nghĩa hoàn chỉnh.
+
+\subsection{Quy tắc Chuyển đổi SSA và Môi trường Biến}
+Trạng thái ký hiệu tại một điểm thực thi được đặc trưng bởi hàm phiên bản biến $\sigma: \mathcal{V} \rightarrow \mathbb{N}$ và ánh xạ giá trị ký hiệu $\mathcal{E}: \mathcal{V}_{\text{SSA}} \rightarrow \text{Expr}_{\text{SMT}}$.
+
+Với mỗi câu lệnh cú pháp $v$, bộ thực thi sinh ra một \textit{Quan hệ Chuyển trạng thái Nút} (Node Transition Relation) $T_v(s, s')$ theo các quy tắc toán học:
+
+\begin{enumerate}
+    \item \textbf{Câu lệnh Gán Biến ($x = e$):}
+    \begin{align}
+    \text{Tăng chỉ số:} \quad & k_{\text{new}} = \sigma(x) + 1, \quad \sigma' = \sigma[x \mapsto k_{\text{new}}] \\
+    \text{Ràng buộc chuyển tiếp:} \quad & T_v(s, s') \equiv \Big( x^{(k_{\text{new}})} = \text{Eval}(e, \sigma) \Big) \land \bigwedge_{y \in \mathcal{V} \setminus \{x\}} (y^{(\sigma'(y))} = y^{(\sigma(y))})
+    \end{align}
+    Mọi biến khác không bị thay đổi giữ nguyên giá trị qua phép đồng nhất.
+
+    \item \textbf{Khối Rẽ nhánh Điều kiện (\texttt{if $B$ then $C_{\text{then}}$ else $C_{\text{else}}$}):}
+    Giả sử trạng thái trước khi rẽ nhánh là $\sigma_0$.
+    \begin{itemize}
+        \item Thực thi nhánh Then dưới tiền đề $\text{Guard}_{\text{then}} \equiv \text{Eval}(B, \sigma_0)$, thu được trạng thái biến $\sigma_1$.
+        \item Thực thi nhánh Else dưới tiền đề $\text{Guard}_{\text{else}} \equiv \neg \text{Eval}(B, \sigma_0)$, thu được trạng thái biến $\sigma_2$.
+    \end{itemize}
+    Tại điểm hội tụ sau khối lệnh \texttt{if}, với mỗi biến $z \in \mathcal{V}$ bị cập nhật trong ít nhất một nhánh, một phiên bản mới $z^{(\sigma'(z))}$ được sinh ra với điều kiện chuyển tiếp ITE:
+    \begin{equation}
+    z^{(\sigma'(z))} = \text{ite}\Big(\text{Eval}(B, \sigma_0), \; z^{(\sigma_1(z))}, \; z^{(\sigma_2(z))}\Big)
+    \end{equation}
+
+    \item \textbf{Khối Vòng lặp (\texttt{while $B$ do $C_{\text{body}}$}):}
+    Đối với các vòng lặp hữu hạn hoặc khi thực hiện duỗi vòng lặp có chặn (Bounded Loop Unrolling với độ sâu $K$):
+    \begin{equation}
+    T_{\text{loop}} \equiv \bigvee_{j=0}^{K} \left( \bigwedge_{i=0}^{j-1} \Big( \text{Guard}(s_i) \land T_{\text{body}}(s_i, s_{i+1}) \Big) \land \neg \text{Guard}(s_j) \right)
+    \end{equation}
+    Nếu sau $K$ bước lặp mà điều kiện dừng $\neg \text{Guard}$ chưa đạt được, trạng thái được đánh dấu là không đầy đủ (incomplete coverage), dẫn tới việc hạn chế kết luận \texttt{VERIFIED}.
+\end{enumerate}
+
+\subsection{Xây dựng Điều kiện Đường đi (Path Condition)}
+Với mỗi đường đi $\pi$ từ đỉnh bắt đầu đến nút đích $v$, điều kiện đường đi tích lũy $PC_{\pi}$ là phép hội của tất cả các biểu thức rẽ nhánh dọc theo $\pi$:
+\begin{equation}
+PC_{\pi} = \bigwedge_{e = (u, w) \in \pi} \text{BranchGuard}(e)
+\end{equation}
+Quan hệ tiếp cận tổng thể từ trạng thái đầu vào $s_0$ tới $v$ được xác định theo phương trình (\ref{eq:reachability_relation}).
+
+\section{Giai đoạn 4: Sinh Chuỗi Lý luận Có Cấu trúc từ LLM}
+\label{sec:llm_structured_cot}
+
+Để loại bỏ tính vô tổ chức của văn bản tự do, hệ thống định nghĩa một Lược đồ JSON nghiêm ngặt (Strict JSON Schema) bắt buộc mô hình LLM phải tuân thủ trong quá trình sinh chuỗi lý luận (Reasoning Trace).
+
+\subsection{Lược đồ Cấu trúc của Bước Lý luận}
+Mỗi bước lý luận trong trace là một bản ghi JSON có cấu trúc đầy đủ như sau:
+\begin{lstlisting}[language=Python, caption={Cấu trúc dữ liệu của một bước reasoning trace}]
+{
+  "step_id": int,              # Step ID (1, 2, 3...)
+  "depends_on": list[int],      # Step dependencies
+  "anchor": {
+    "node_id": str,             # Canonical AST node ID (e.g., "Assign@L4")
+    "kind": str                 # Node kind (e.g., "Assign", "If")
+  },
+  "location": {
+    "line": int,                # Source start line
+    "col": int                  # Source start column
+  },
+  "statement": str,             # Source statement text
+  "precondition": str,          # Path precondition
+  "pre_state": dict[str, str],  # Pre-state SSA mapping: {"x_0": "5"}
+  "guard": str | None,          # Branch condition if If/While
+  "post_state": dict[str, str], # Post-state SSA mapping: {"x_1": "6"}
+  "claim": str,                 # Mathematical claim to verify
+  "expected": str               # Expected verdict: "VERIFIED" or "COUNTEREXAMPLE"
+}
+\end{lstlisting}
+
+\subsection{Chiến lược Nhắc nhở (Prompt Engineering)}
+Hệ thống sử dụng kỹ thuật Few-shot Chain-of-Thought kết hợp các ràng buộc hệ thống (System Instructions) nghiêm ngặt:
+\begin{enumerate}
+    \item \textbf{Ràng buộc Tọa độ:} Mô hình phải trích xuất chính xác số dòng từ mã nguồn được đánh số dòng.
+    \item \textbf{Ràng buộc Phiên bản SSA:} Mô hình được hướng dẫn quy tắc đặt tên biến theo phiên bản SSA ($x^{(k)}$ tương ứng với \texttt{x\_k}) và phải bảo đảm rằng biến vế trái luôn có chỉ số phiên bản lớn hơn chỉ số của nó ở vế phải.
+    \item \textbf{Cấm đoán Ảo giác:} Mô hình nhận chỉ thị rõ ràng rằng mọi biến không xuất hiện trong mã nguồn đều bị coi là lỗi nghiêm trọng.
+\end{enumerate}
+
+\section{Giai đoạn 5: Cổng neo AST (Anchor Gate)}
+\label{sec:anchor_gate}
+
+Cổng neo AST (\texttt{AnchorGate}) là thành phần cốt lõi bảo đảm tính toàn vẹn ngữ nghĩa của toàn bộ hệ thống. Nhiệm vụ của cổng là thẩm định tính hợp thức của từng bước trong reasoning trace trước khi cho phép nó tiến vào bộ giải SMT.
+
+\subsection{Quy trình Thẩm định 5 Lớp (5-Layer Verification)}
+Với mỗi claim $C_i$ đi kèm thông tin neo $\text{Anchor}(C_i) = \langle \text{node\_id}, \text{kind}, \text{line}, \text{col}, \text{vars} \rangle$, Cổng neo thực hiện quy trình kiểm tra 5 bước tuần tự:
+
+\begin{enumerate}
+    \item \textbf{Lớp 1: Kiểm tra Tồn tại Định danh (\texttt{NodeId Existence}):}
+    Truy vấn xem $\text{node\_id}$ có tồn tại trong tập đỉnh $V$ của cây AST chính tắc đã xây dựng ở Giai đoạn 2 hay không:
+    \begin{equation}
+    \text{Check}_1 \equiv \text{node\_id} \in \text{Nodes}(\text{AST})
+    \end{equation}
+    Nếu không tồn tại (do LLM tự bịa ra định danh), từ chối ngay lập tức.
+
+    \item \textbf{Lớp 2: Kiểm tra Tương thích Kiểu Cú pháp (\texttt{Kind Match}):}
+    Đối chiếu thuộc tính $\text{kind}$ do LLM khai báo với kiểu thực tế của nút trong cây AST:
+    \begin{equation}
+    \text{Check}_2 \equiv \text{kind} == \text{type}(\text{AST}[\text{node\_id}])
+    \end{equation}
+    Ví dụ: Nếu LLM khai báo \texttt{kind = "Assign"} nhưng tại vị trí đó thực tế là một nút \texttt{ast.If}, kiểm tra thất bại.
+
+    \item \textbf{Lớp 3: Kiểm tra Khớp Tọa độ Mã nguồn (\texttt{Span Match}):}
+    Kiểm tra xem tọa độ dòng $\text{line}$ có nằm chính xác trong khoảng dòng định vị của nút AST hay không:
+    \begin{equation}
+    \text{Check}_3 \equiv \text{node.lineno} \le \text{line} \le \text{node.end\_lineno}
+    \end{equation}
+
+    \item \textbf{Lớp 4: Kiểm tra Phạm vi Biến Từ vựng (\texttt{Scope Resolution}):}
+    Trích xuất toàn bộ các định danh biến tự do xuất hiện trong biểu thức khẳng định: $\mathcal{V}_{\text{claim}} = \text{FreeVars}(\text{Claim})$. Kiểm tra xem tất cả các biến này có nằm trong bảng phạm vi khả kiến tại nút đó hay không:
+    \begin{equation}
+    \text{Check}_4 \equiv \forall x \in \mathcal{V}_{\text{claim}}, \quad x_{\text{base}} \in \mathcal{T}_{\text{scope}}(\text{node\_id})
+    \end{equation}
+    Nếu một claim nhắc tới một biến ngoài phạm vi (out-of-scope variable), đây là dấu hiệu rõ ràng của ảo giác.
+
+    \item \textbf{Lớp 5: Kiểm tra Cú pháp Biểu thức và Phân tích Kiểu (\texttt{Typecheck}):}
+    Thử nghiệm phân tích cú pháp biểu thức toán học của claim thành cây biểu thức SMT và kiểm tra tính nhất quán kiểu dữ liệu trong đại số nguyên.
+\end{enumerate}
+
+\subsection{Cơ chế Phân loại và Tác động tới Tỷ lệ Ảo giác}
+Dựa trên kết quả thẩm định 5 lớp, Anchor Gate đưa ra phân loại:
+\begin{itemize}
+    \item \textbf{\texttt{ANCHORED}:} Vượt qua toàn bộ 5 lớp kiểm tra. Claim được phê duyệt và chuyển tiếp sang Giai đoạn 6.
+    \item \textbf{\texttt{UNSUPPORTED}:} Thất bại tại một trong các Lớp 1, 2, 3, hoặc 4. Khẳng định bị loại bỏ và tính trực tiếp vào chỉ số $N_{\text{UNSUPPORTED}}$ cấu thành \textit{Hallucination Rate} (HR).
+    \item \textbf{\texttt{TRANSLATION\_ERROR}:} Thất bại tại Lớp 5 do lỗi cú pháp biểu thức không thể phân tích được. Tính vào $N_{\text{TRANSLATION\_ERROR}}$ trong HR.
+\end{itemize}
+
+Thuật toán thẩm định của Anchor Gate được hình thức hóa trong Thuật toán \ref{alg:anchor_gate}.
+
+\begin{algorithm}[H]
+\SetAlgoLined
+\KwIn{Claim từ LLM $C = \langle \text{node\_id}, \text{kind}, \text{line}, \text{expr} \rangle$, Bảng AST $\mathcal{T}_{\text{AST}}$, Bảng Scope $\mathcal{T}_{\text{scope}}$}
+\KwOut{Trạng thái neo $\text{Status} \in \{\text{ANCHORED}, \text{UNSUPPORTED}, \text{TRANSLATION\_ERROR}\}$, Đối tượng Claim đã neo $C^*$}
+\BlankLine
+\If{$\text{node\_id} \notin \mathcal{T}_{\text{AST}}$}{
+    \Return $\langle \text{UNSUPPORTED}, \text{None} \rangle$ \tcp*{Thất bại Lớp 1}
+}
+$\text{node} \leftarrow \mathcal{T}_{\text{AST}}[\text{node\_id}]$\;
+\If{$\text{type}(\text{node}) \ne \text{kind}$}{
+    \Return $\langle \text{UNSUPPORTED}, \text{None} \rangle$ \tcp*{Thất bại Lớp 2}
+}
+\If{$\text{line} < \text{node.lineno}$ \textbf{or} $\text{line} > \text{node.end\_lineno}$}{
+    \Return $\langle \text{UNSUPPORTED}, \text{None} \rangle$ \tcp*{Thất bại Lớp 3}
+}
+$\mathcal{V}_{\text{used}} \leftarrow \text{ExtractVariables}(\text{expr})$\;
+\ForEach{$v \in \mathcal{V}_{\text{used}}$}{
+    $v_{\text{base}} \leftarrow \text{StripSSAVersion}(v)$\;
+    \If{$v_{\text{base}} \notin \mathcal{T}_{\text{scope}}[\text{node\_id}]$}{
+        \Return $\langle \text{UNSUPPORTED}, \text{None} \rangle$ \tcp*{Thất bại Lớp 4: Biến ảo giác}
+    }
+}
+\Begin{
+    $\text{smt\_expr} \leftarrow \text{ParseSMTExpression}(\text{expr})$\;
+}{
+    \Return $\langle \text{TRANSLATION\_ERROR}, \text{None} \rangle$ \tcp*{Thất bại Lớp 5}
+}
+$C^* \leftarrow \text{BindToAST}(C, \text{node}, \text{smt\_expr})$\;
+\Return $\langle \text{ANCHORED}, C^* \rangle$\;
+\caption{Thuật toán Thẩm định và Neo Khẳng định (Anchor Gate Algorithm)}
+\label{alg:anchor_gate}
+\end{algorithm}
+
+\section{Giai đoạn 6: Giao thức Hai Truy vấn Z3 (Two-Query Z3 Protocol)}
+\label{sec:two_query_protocol}
+
+Với mỗi khẳng định đã vượt qua Anchor Gate thành công, hệ thống áp dụng Giao thức Hai Truy vấn độc lập để kiểm chứng hình thức, giải quyết triệt để vấn đề chân lý rỗng.
+
+\subsection{Truy vấn 1: Kiểm tra Tính Khả đạt (Reachability Obligation)}
+Mục đích của truy vấn này là xác minh xem có tồn tại bất kỳ vết thực thi cụ thể nào bắt đầu từ trạng thái hợp lệ của chương trình mà thực sự chạm tới được nút AST đích hay không.
+
+Công thức toán học của Truy vấn Tính Khả đạt:
+\begin{equation}
+\Phi_{\text{reach}} \equiv \exists s_0, s. \quad \text{Precondition}(s_0) \land R_{\pi}(s_0, s)
+\end{equation}
+
+Hệ thống gửi $\Phi_{\text{reach}}$ cho Z3 solver với thời gian giới hạn (timeout) là $5{,}000$ ms:
+\begin{itemize}
+    \item \textbf{Nếu Z3 trả về \texttt{UNSAT}:} Điều này chứng minh tuyệt đối rằng \textbf{không tồn tại bất kỳ đầu vào nào} có thể kích hoạt đường đi $\pi$ dẫn tới nút đích. Nút này là một khối mã chết (dead code). Hệ thống lập tức dừng lại và phát ra phán quyết:
+    \begin{equation}
+    \text{Verdict}(C) = \texttt{UNREACHABLE}
+    \end{equation}
+    Toàn bộ quá trình kiểm tra kết thúc tại đây, ngăn chặn hoàn toàn việc thực hiện truy vấn hợp lệ có thể dẫn tới kết luận \texttt{VERIFIED} sai lầm.
+    \item \textbf{Nếu Z3 trả về \texttt{UNKNOWN} hoặc Timeout:} Hệ thống không thể chứng minh tính khả đạt do giới hạn tài nguyên tính toán. Kết luận được phát ra là:
+    \begin{equation}
+    \text{Verdict}(C) = \texttt{UNKNOWN\_TIMEOUT}
+    \end{equation}
+    \item \textbf{Nếu Z3 trả về \texttt{SAT}:} Đường đi được xác nhận là \textbf{khả đạt thực tế}. Hệ thống trích xuất nghiệm mẫu của $s_0$ làm chứng chỉ khả đạt và chuyển tiếp sang Truy vấn 2.
+\end{itemize}
+
+\subsection{Truy vấn 2: Kiểm tra Tính Hợp lệ (Validity Obligation)}
+Khi tính khả đạt đã được chứng minh, hệ thống tiến hành kiểm tra xem khẳng định $\text{Claim}(s')$ có được bảo toàn trên mọi trạng thái sau câu lệnh hay không, thông qua việc tìm kiếm một phản ví dụ (vi phạm khẳng định).
+
+Công thức toán học của Truy vấn Tính Hợp lệ:
+\begin{equation}
+\Phi_{\text{valid}} \equiv \exists s_0, s, s'. \quad \text{Precondition}(s_0) \land R_{\pi}(s_0, s) \land T_v(s, s') \land \neg \text{Claim}(s')
+\end{equation}
+
+Z3 giải quyết công thức $\Phi_{\text{valid}}$:
+\begin{itemize}
+    \item \textbf{Nếu Z3 trả về \texttt{UNSAT}:} Điều này chứng minh rằng không tồn tại bất kỳ trạng thái nào vi phạm khẳng định. Nói cách khác, khẳng định đúng đắn trên mọi đường đi khả đạt. Hệ thống kết luận:
+    \begin{equation}
+    \text{Verdict}(C) = \texttt{VERIFIED}
+    \end{equation}
+    \item \textbf{Nếu Z3 trả về \texttt{SAT}:} Tồn tại ít nhất một trạng thái làm khẳng định bị sai. Solver trích xuất một mô hình thỏa mãn (satisfying model) $\mathcal{M} \models \Phi_{\text{valid}}$. Mô hình này chứa các giá trị gán cụ thể cho các biến đầu vào $s_0$ và trạng thái biến trung gian $s, s'$. Hệ thống tạm thời phát ra:
+    \begin{equation}
+    \text{Verdict}(C) = \texttt{COUNTEREXAMPLE}
+    \end{equation}
+    Mô hình $\mathcal{M}$ được đóng gói thành một đối tượng Phản ví dụ và chuyển tiếp sang Giai đoạn 8 để thực hiện kiểm tra chéo bằng replay.
+\end{itemize}
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.0cm and 1.2cm,
+    block/.style={rectangle, draw=blue!80, fill=blue!5, rounded corners, thick, text centered, font=\small, minimum height=0.8cm},
+    decision/.style={diamond, draw=purple!80, fill=purple!10, thick, text centered, font=\small\bfseries, inner sep=1pt},
+    verdict/.style={rectangle, draw=green!60!black, fill=green!10, rounded corners, thick, text centered, font=\small\bfseries, minimum height=0.8cm},
+    fail/.style={rectangle, draw=red!80, fill=red!10, rounded corners, thick, text centered, font=\small\bfseries, minimum height=0.8cm},
+    arrow/.style={-{Stealth[scale=1.0]}, thick}
+]
+    \node[block] (claim) {Claim đã neo từ Anchor Gate};
+    \node[decision, below=0.8cm of claim] (q1) {Query 1: $\Phi_{\text{reach}}$ SAT?};
+    \node[fail, right=1.5cm of q1] (unreach) {UNREACHABLE};
+    \node[decision, below=1.0cm of q1] (q2) {Query 2: $\Phi_{\text{valid}}$ SAT?};
+    \node[fail, right=1.5cm of q2] (ce) {COUNTEREXAMPLE};
+    \node[verdict, below=0.8cm of q2] (ver) {VERIFIED};
+
+    \draw[arrow] (claim) -- (q1);
+    \draw[arrow] (q1) -- node[above, font=\scriptsize] {UNSAT} (unreach);
+    \draw[arrow] (q1) -- node[right, font=\scriptsize] {SAT} (q2);
+    \draw[arrow] (q2) -- node[above, font=\scriptsize] {SAT (Vi phạm)} (ce);
+    \draw[arrow] (q2) -- node[right, font=\scriptsize] {UNSAT (An toàn)} (ver);
+\end{tikzpicture}
+\caption{Lưu đồ quyết định của Giao thức Hai Truy vấn Z3 (Two-Query Z3 Decision Protocol)}
+\label{fig:two_query_flowchart}
+\end{figure}
+
+
+\subsection{Bảng Quyết định Tổng hợp Sáu Trạng thái Phán quyết}
+Toàn bộ logic ra quyết định của Giao thức Hai Truy vấn được tổng hợp trong Bảng \ref{tab:two_query_decision_table}.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{|c|c|c|l|}
+\hline
+\textbf{Anchor Gate} & \textbf{Reachability Query} & \textbf{Validity Query} & \textbf{Phán quyết Cuối cùng (Final Verdict)} \\
+\hline
+Từ chối & Chưa chạy & Chưa chạy & \texttt{UNSUPPORTED} (Đếm vào Hallucination Rate) \\
+Lỗi dịch & Chưa chạy & Chưa chạy & \texttt{TRANSLATION\_ERROR} (Đếm vào Hallucination Rate) \\
+Hợp lệ & \texttt{UNSAT} & Không chạy & \texttt{UNREACHABLE} (Nhánh chết, tránh vacuous truth) \\
+Hợp lệ & Timeout/Unknown & Không chạy & \texttt{UNKNOWN\_TIMEOUT} (Không đủ bằng chứng) \\
+Hợp lệ & \texttt{SAT} & \texttt{UNSAT} & \texttt{VERIFIED} (Khẳng định được chứng minh) \\
+Hợp lệ & \texttt{SAT} & \texttt{SAT} & \texttt{COUNTEREXAMPLE} (Chuyển sang CPython Replay) \\
+Hợp lệ & \texttt{SAT} & Timeout/Unknown & \texttt{UNKNOWN\_TIMEOUT} (Solver bế tắc) \\
+\hline
+\end{tabular}
+\caption{Bảng quyết định 6 trạng thái của Giao thức Hai Truy vấn Z3}
+\label{tab:two_query_decision_table}
+\end{table}
+
+\section{Giai đoạn 7: Tổng hợp Bất biến Vòng lặp và Quy nạp $k$-Induction}
+\label{sec:loop_invariant_synthesis_method}
+
+Đối với các chương trình chứa vòng lặp không thể xác định cận lặp tĩnh, việc duỗi vòng lặp sẽ dẫn đến kết quả \texttt{UNKNOWN\_TIMEOUT}. Để đạt được kết luận \texttt{VERIFIED} đầy đủ, mô-đun \texttt{LoopInvariantGenerator} kích hoạt quy trình sinh và kiểm chứng bất biến:
+
+\begin{enumerate}
+    \item \textbf{Đề xuất Ứng viên Bất biến (Candidate Proposal):} Trích xuất trạng thái trước vòng lặp, biểu thức Guard, và thân vòng lặp. Yêu cầu LLM đóng vai trò là một chuyên gia toán học, đề xuất từ 1 đến 3 biểu thức ứng viên bất biến $I_1, I_2, I_3 \in \text{QF-LIA}$.
+    \item \textbf{Kiểm chứng Tính Khởi tạo:} Với mỗi ứng viên $I$, thiết lập truy vấn Z3:
+    \begin{equation}
+    \Phi_{\text{init}} \equiv \text{Precondition}(s_0) \land \neg I(s_0)
+    \end{equation}
+    Nếu $\text{Check}(\Phi_{\text{init}}) \ne \texttt{UNSAT}$, loại bỏ ứng viên $I$.
+    \item \textbf{Kiểm chứng Bước Quy nạp (Inductive Step):} Thiết lập truy vấn Z3:
+    \begin{equation}
+    \Phi_{\text{step}} \equiv I(s) \land \text{Guard}(s) \land T_{\text{body}}(s, s') \land \neg I(s')
+    \end{equation}
+    Nếu $\text{Check}(\Phi_{\text{step}}) == \texttt{UNSAT}$, thì $I$ là một \textbf{Bất biến Quy nạp Hợp lệ} (Inductive Invariant).
+    \item \textbf{Mở rộng $k$-Induction:} Nếu bước quy nạp thất bại ở $k=1$, hệ thống tự động tăng bậc quy nạp lên $k=2$ và $k=3$ theo công thức ở Mục \ref{sec:loop_invariants_k_induction}.
+    \item \textbf{Suy luận Hậu điều kiện:} Sử dụng bất biến đã chứng minh $I$ làm tiên đề bổ sung để chứng minh các câu lệnh \texttt{assert} sau vòng lặp.
+\end{enumerate}
+
+\section{Giai đoạn 8: Replay Phản ví dụ trong Sandbox CPython \& Vòng Phản hồi Hồi cứu}
+\label{sec:replay_and_retrospective_feedback}
+
+Khi Z3 phát ra phán quyết \texttt{COUNTEREXAMPLE}, hệ thống không lập tức dừng lại mà kích hoạt tầng kiểm tra chéo thực nghiệm và chu trình tự sửa sai đóng kín.
+
+\subsection{Cơ chế Replay trong Sandbox CPython}
+Thuật toán trích xuất các giá trị gán của biến đầu vào từ mô hình Z3 $\mathcal{M}$:
+\begin{equation}
+\mathbf{x}_{\text{concrete}} = \{ v \mapsto \mathcal{M}.\text{eval}(v_{\text{initial}}).\text{as\_long}() \}
+\end{equation}
+
+Hệ thống sinh một kịch bản kiểm thử độc lập (test harness) và khởi chạy trong một tiến trình con CPython biệt lập với môi trường runtime:
+\begin{itemize}
+    \item \textbf{Replay Thành công (\texttt{replay = True}):} Tiến trình CPython thực sự ném ra ngoại lệ \texttt{AssertionError} tại đúng vị trí dòng lệnh tương ứng với \texttt{NodeId} của claim. Phản ví dụ được xác nhận là \textbf{Trung thực tuyệt đối} (True Counterexample).
+    \item \textbf{Replay Thất bại (\texttt{replay = False}):} Chương trình thực thi kết thúc bình thường mà không gây lỗi, hoặc ném ngoại lệ khác (ví dụ chia cho 0 ngoài dự kiến). Điều này chứng minh rằng phản ví dụ của Z3 là một phản ví dụ giả tạo (Spurious Counterexample) do sai lệch mô hình hóa ký hiệu. Phán quyết bị hạ cấp xuống \texttt{UNKNOWN\_TIMEOUT}.
+\end{itemize}
+
+\subsection{Vòng Phản hồi Hồi cứu (Retrospective Feedback Loop)}
+Khi một phản ví dụ được CPython xác nhận thành công, hệ thống sử dụng hàm \texttt{capture\_state} để đóng băng trạng thái bộ nhớ thực tế tại thời điểm xảy ra lỗi, tạo thành một \textbf{Ngữ cảnh Phản hồi Chẩn đoán} (Diagnostic Feedback Context):
+\begin{equation}
+\mathcal{C}_{\text{feedback}} = \langle \text{Input: } \mathbf{x}_{\text{concrete}}, \quad \text{Crash\_Line: } L, \quad \text{State\_at\_Crash: } s_{\text{concrete}}, \quad \text{Failed\_Claim: } C \rangle
+\end{equation}
+
+Quy trình tự sửa sai diễn ra trong tối đa 3 vòng lặp (Rounds 1--3):
+\begin{enumerate}
+    \item Gửi $\mathcal{C}_{\text{feedback}}$ ngược lại cho LLM với chỉ thị: \textit{``Phản ví dụ sau đã được CPython xác nhận gây sụp đổ chương trình với đầu vào $\mathbf{x}_{\text{concrete}}$. Hãy phân tích nguyên nhân vì sao khẳng định ban đầu bị sai, và đề xuất lại khẳng định hoặc bất biến đã được sửa đổi.''}
+    \item Nhận phản hồi mới từ LLM, đưa qua Anchor Gate để kiểm định lại.
+    \item Chạy lại Giao thức Hai Truy vấn Z3 trên claim mới.
+    \item Nếu claim mới đạt trạng thái \texttt{VERIFIED}, chu trình kết thúc với kết quả \textbf{Tự sửa thành công} (Self-Repaired). Nếu vẫn tiếp tục thất bại sau 3 vòng lặp, hệ thống giữ nguyên phán quyết \texttt{COUNTEREXAMPLE} ban đầu để bảo đảm tính an toàn (fail-safe).
+\end{enumerate}
+
+\section{Cơ sở Tính toán Tin cậy (TCB) và Phân tích Tính Đúng đắn (Soundness)}
+\label{sec:tcb_soundness}
+
+\begin{definition}[Trusted Computing Base -- TCB]
+Cơ sở tính toán tin cậy của hệ thống kiểm chứng bao gồm: (1) Trình phân tích cú pháp Python chuẩn (\texttt{ast}); (2) Bộ lọc Safe Subset; (3) Bộ thực thi ký hiệu SSA; (4) Cổng neo Anchor Gate; (5) Trình giải Z3 SMT; và (6) Trình thông dịch CPython.
+\end{definition}
+
+\begin{theorem}[Tính Đúng đắn Tương đối -- Relative Soundness]
+Giả sử toàn bộ các thành phần trong TCB hoạt động đúng đắn theo đặc tả toán học của chúng. Khi đó, nếu hệ thống phát ra phán quyết:
+\begin{equation}
+\text{Verdict}(C) = \texttt{VERIFIED}
+\end{equation}
+thì khẳng định $C$ được bảo đảm là đúng đắn trên mọi vết thực thi khả đạt của chương trình trong phạm vi ngữ nghĩa QF-LIA và các giả định đầu vào đã công bố, hoàn toàn độc lập với việc mô hình LLM có bị ảo giác hay không.
+\end{theorem}
+
+\begin{proof}
+Để hệ thống phát ra nhãn \texttt{VERIFIED}, claim $C$ bắt buộc phải:
+\begin{enumerate}
+    \item Vượt qua Anchor Gate: Điều này bảo đảm mọi biến trong $C$ đều tồn tại trong bảng phạm vi ký hiệu của AST, và $C$ được dịch đúng cú pháp SMT-LIB2 thành công thức toán học $\phi_C$.
+    \item Vượt qua Truy vấn 1 (Reachability): Z3 chứng minh công thức $\Phi_{\text{reach}} \equiv \exists s_0, s. R_{\pi}(s_0, s)$ là thỏa mãn (\texttt{SAT}). Do đó đường đi $\pi$ là khả đạt thực sự, loại trừ hiện tượng chứng minh rỗng theo Định lý \ref{thm:vacuous_hazard}.
+    \item Vượt qua Truy vấn 2 (Validity): Z3 chứng minh công thức phủ định $\Phi_{\text{valid}} \equiv \exists s_0, s, s'. R_{\pi}(s_0, s) \land T(s, s') \land \neg \phi_C(s')$ là vô nghiệm (\texttt{UNSAT}).
+\end{enumerate}
+Vì Z3 là một solver đúng đắn (sound) đối với lý thuyết quyết định được QF-LIA, kết quả \texttt{UNSAT} đồng nghĩa với việc không tồn tại bất kỳ phép gán giá trị nguyên nào làm thỏa mãn $\neg \phi_C$ trên đường đi $\pi$. Do đó, $\phi_C$ là một định lý đúng đắn trên mọi trạng thái kết thúc của $\pi$. Vì không có bước ra quyết định nào xuất phát từ nội dung sinh tự do của LLM, tính đúng đắn được bảo toàn tuyệt đối theo giả thiết TCB.
+\end{proof}

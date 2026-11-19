@@ -56,3 +56,21 @@ Dataset/sv-benchmarks-loops-py/
 geminiapi.txt
 proposal
 Dataset
+
+# --- Skills -----------------------------------------------------------------
+skills/
+
+# --- LaTeX build artifacts --------------------------------------------------
+report/*.aux
+report/*.bbl
+report/*.bcf
+report/*.blg
+report/*.out
+report/*.toc
+report/*.lot
+report/*.lof
+report/*.fls
+report/*.fdb_latexmk
+report/*.run.xml
+report/*.synctex.gz
+report/prism-uploads/

@@ -1,0 +1,152 @@
+\chapter{Các Nghiên cứu Liên quan}
+\label{ch:related_work}
+
+Kiểm chứng phần mềm tự động kết hợp giữa trí tuệ nhân tạo và các phương pháp hình thức là một trong những lĩnh vực nghiên cứu sôi động nhất của khoa học máy tính hiện đại. Chương này tiến hành khảo sát có hệ thống các công trình nghiên cứu tiêu biểu liên quan mật thiết đến đề tài, được chia thành sáu nhóm chủ đề chính: (i) Lý luận có cấu trúc và có thể kiểm chứng với LLM; (ii) Lý luận dựa trên vết thực thi (Execution-Grounded Reasoning); (iii) Tự động tổng hợp đặc tả chương trình và bất biến vòng lặp; (iv) Các hệ thống kiểm chứng lai ghép Neuro-Symbolic hiện đại; (v) Khảo sát toàn diện 14 trường phái phương pháp đối chứng (Baselines A--N); và (vi) Tổng hợp so sánh nhằm chỉ rõ các khoảng trống nghiên cứu (Research Gaps) mà đề tài nhắm tới giải quyết.
+
+\section{Lý luận có Cấu trúc và Có thể Kiểm chứng với LLM}
+\label{sec:structured_verifiable_reasoning}
+
+Chuỗi lý luận bằng ngôn ngữ tự nhiên tự do (unstructured Chain-of-Thought) của các mô hình ngôn ngữ lớn thường thiếu tính kỷ luật logic và không thể tự động phân tích cú pháp bởi các công cụ hình thức. Để khắc phục điều này, nhiều nhà nghiên cứu đã đề xuất các hình thức biểu diễn lý luận có cấu trúc:
+
+\begin{itemize}
+    \item \textbf{Natural Program và Lập luận Diễn dịch:} Ling và cộng sự \cite{ling2023deductive} đề xuất phương pháp \textit{Natural Program}, trong đó quá trình suy luận phức tạp của mô hình được chia tách thành một chuỗi các bước suy diễn hình thức (deductive steps). Mỗi bước bao gồm một tập các tiền đề rõ ràng, một luật suy diễn cụ thể, và một kết luận trung gian có thể kiểm tra được. Cách tiếp cận này giúp giảm đáng kể hiện tượng nhảy cóc logic và kết luận sai tiền đề.
+    \item \textbf{Typed Chain-of-Thought:} Perrier và cộng sự \cite{perrier2025typed} đưa ra khái niệm \textit{Typed CoT}, áp dụng lý thuyết kiểu vào các bước suy luận bằng ngôn ngữ tự nhiên. Mỗi câu khẳng định trong trace được gắn với một kiểu logic (như tiền điều kiện, quan hệ cập nhật biến, hoặc điều kiện dừng). Việc kiểm tra kiểu (type-checking) tĩnh trên trace giúp phát hiện sớm các phát biểu phi lý trước khi chuyển tiếp sang các giai đoạn sau.
+    \item \textbf{VeryTrace:} Công trình VeryTrace của Zhong và cộng sự \cite{zhong2026verytrace} tiến một bước xa hơn khi đề xuất một định dạng hình thức trung gian cho các vết suy luận, cho phép biên dịch trực tiếp trace thành các ngôn ngữ kiểm chứng có thể thực thi. VeryTrace chứng minh rằng việc cấu trúc hóa trace giúp các hệ thống tự động kiểm tra được tính nhất quán nội tại của lời giải.
+    \item \textbf{Hợp tác Mô hình và Trợ lý Chứng minh Hình thức:} Hệ thống MA-LoT (Model-Collaboration Lean-based Long CoT) của Wang và cộng sự \cite{wang2025malot} tích hợp LLM với trợ lý chứng minh định lý Lean. Mô hình sinh chuỗi lý luận dài, sau đó một tác tử AI chuyên trách chuyển đổi các bước này thành các chiến thuật (tactics) của Lean để solver kiểm chứng hình thức. Tương tự, hệ thống SAFE của Liu và cộng sự \cite{liu2025safe} áp dụng cơ chế xác minh từng bước với phản hồi hồi cứu trong các bài toán suy luận toán học phức tạp.
+\end{itemize}
+
+\noindent\textbf{Điểm khác biệt của đề tài:} Các công trình trên chủ yếu tập trung vào các bài toán suy luận toán học trừu tượng hoặc tương tác với các hệ thống chứng minh định lý như Lean/Coq vốn đòi hỏi kiến thức chuyên gia sâu và rất khó áp dụng cho mã nguồn chương trình thông thường. Đề tài của chúng tôi kế thừa tư tưởng cấu trúc hóa trace nhưng tập trung chuyên biệt vào mã nguồn mệnh lệnh: từng bước trong trace bắt buộc phải được gắn kết trực tiếp với một nút cú pháp trong cây AST của chương trình đích và tuân thủ chặt chẽ ngữ nghĩa toán học SSA.
+
+\section{Lý luận Dựa trên Vết Thực thi (Execution-Grounded Reasoning)}
+\label{sec:execution_grounded_reasoning}
+
+Một hướng nghiên cứu quan trọng khác nhằm kiềm chế ảo giác của LLM là buộc mô hình phải bám sát vào các vết thực thi thực tế của chương trình:
+
+\begin{itemize}
+    \item \textbf{CRUXEval:} Gu và cộng sự \cite{gu2024cruxeval} giới thiệu bộ kiểm chuẩn CRUXEval nhằm đánh giá năng lực của các mô hình ngôn ngữ trong việc mô phỏng quá trình thực thi của máy tính (code reasoning and execution). Nghiên cứu chỉ ra rằng các LLM tiên tiến nhất hiện nay vẫn gặp khó khăn rất lớn khi phải theo dõi chính xác sự biến thiên của bộ nhớ qua nhiều bước lặp phức tạp, dẫn đến sai lệch tích lũy giữa kết quả mô phỏng của LLM và kết quả chạy thật của CPython.
+    \item \textbf{Generating Verifiable CoT from Execution Traces:} Thakur và cộng sự \cite{thakur2026think} đề xuất phương pháp trích xuất chuỗi lý luận trực tiếp từ vết thực thi động (dynamic execution trace) thu được khi chạy chương trình với các bộ kiểm thử cụ thể. Bằng cách quan sát trạng thái cụ thể của các biến tại từng dòng lệnh, mô hình được cung cấp một ``mỏ neo thực tế'' vững chắc để tạo ra các lời giải thích trung thực.
+\end{itemize}
+
+\noindent\textbf{Đánh giá và Hạn chế:} Mặc dù việc neo vào vết thực thi động (Dynamic Execution Grounding) mang lại bằng chứng thực tế không thể chối cãi cho một tập đầu vào hữu hạn, phương pháp này mắc phải giới hạn cơ bản của kiểm thử động: \textit{Kiểm thử chỉ có thể chỉ ra sự hiện diện của lỗi chứ không bao giờ có thể chứng minh sự vắng mặt của lỗi} (E. W. Dijkstra). Một chương trình chạy đúng trên 1.000 test case ngẫu nhiên vẫn hoàn toàn có thể chứa lỗi tiềm ẩn tại một giá trị biên hiếm gặp. Đề tài của chúng tôi khắc phục điểm yếu này bằng cách kết hợp sức mạnh chứng minh toàn diện trên mọi đầu vào của thực thi ký hiệu (Symbolic Execution) với độ tin cậy thực tế của việc chạy lại phản ví dụ trong sandbox CPython.
+
+\section{Tự động Tổng hợp Đặc tả và Bất biến Vòng lặp}
+\label{sec:specification_and_invariant_synthesis}
+
+Việc thiếu vắng các đặc tả hình thức (formal specifications như tiền điều kiện, hậu điều kiện, và bất biến vòng lặp) là rào cản lớn nhất ngăn cản việc áp dụng kiểm chứng hình thức trên diện rộng trong công nghiệp phần mềm. Gần đây, LLM đã được khai thác mạnh mẽ để giải quyết nút thắt này:
+
+\begin{itemize}
+    \item \textbf{AutoSpec:} Wen và cộng sự \cite{wen2024autospec} đề xuất hệ thống AutoSpec, kết hợp phân tích tĩnh với LLM để tự động suy luận đặc tả chương trình. Phân tích tĩnh cung cấp các lát cắt chương trình (program slices) và đồ thị luồng điều khiển giúp giới hạn không gian tìm kiếm, từ đó định hướng LLM sinh ra các điều kiện kiểm chứng chính xác hơn.
+    \item \textbf{SpecGen:} Ma và cộng sự \cite{ma2025specgen} phát triển công cụ SpecGen, sử dụng LLM để sinh các đặc tả hình thức cấp hàm và phương thức. SpecGen áp dụng kỹ thuật kiểm tra tính nhất quán để loại bỏ các đặc tả tầm thường (trivial specifications như $\text{True}$) hoặc các đặc tả tự mâu thuẫn.
+    \item \textbf{Tổng hợp Bất biến Vòng lặp:} Si và cộng sự \cite{si2020code2inv} tiên phong xây dựng khung làm việc Code2Inv dựa trên học tăng cường để sinh bất biến vòng lặp. Wang và cộng sự \cite{wang2026bali} đề xuất BALI (Branch-Aware Loop Invariant Inference), chỉ ra rằng việc phân tách các nhánh rẽ bên trong thân vòng lặp giúp LLM nhận biết được các điều kiện duy trì bất biến phức tạp hơn rất nhiều so với cách tiếp cận toàn cục.
+    \item \textbf{HoarePrompt:} Bouras và cộng sự \cite{bouras2026hoareprompt} giới thiệu HoarePrompt, một kỹ thuật nhắc nhở yêu cầu LLM phân tích cấu trúc chương trình theo các quy tắc của logic Hoare (tiền điều kiện, thân vòng lặp, hậu điều kiện) hoàn toàn bằng ngôn ngữ tự nhiên.
+\end{itemize}
+
+\section{Các Hệ thống Kiểm chứng Lai ghép Neuro-Symbolic}
+\label{sec:neuro_symbolic_verification_systems}
+
+Sự kết hợp giữa mô hình học sâu và các bộ giải SMT đã khai sinh ra trường phái kiểm chứng Neuro-Symbolic, với mục tiêu tận dụng trực giác của mạng nơ-ron để hướng dẫn bộ giải hình thức giải quyết bài toán nhanh hơn:
+
+\begin{itemize}
+    \item \textbf{SatLM (Satisfiability-Aided Language Models):} Ye và cộng sự \cite{ye2023satlm} giới thiệu SatLM, một phương pháp tiếp cận mang tính bước ngoặt. Thay vì yêu cầu LLM tự suy luận và đưa ra kết quả bài toán, SatLM nhắc nhở LLM dịch đề bài và mã nguồn thành một công thức logic khai báo chuẩn SMT-LIB2. Công thức này sau đó được chuyển trực tiếp cho Z3 solver giải quyết. SatLM đạt độ chính xác vượt trội trên nhiều bài toán suy luận logic phức tạp. Tuy nhiên, SatLM là một hệ thống không có kiểm soát trung gian: nếu công thức SMT do LLM sinh ra bị sai lệch so với ý định mã nguồn, solver vẫn trả về kết quả trên công thức sai đó. Hơn nữa, SatLM hoàn toàn không xử lý hiện tượng chứng minh rỗng trên nhánh chết.
+    \item \textbf{Lemur và Clover:} Wu và cộng sự \cite{wu2024lemur} xây dựng Lemur, tích hợp LLM vào quy trình kiểm chứng chương trình tự động nhằm sinh các bổ đề phụ trợ (auxiliary lemmas) hỗ trợ solver vượt qua các điểm bế tắc. Sun và cộng sự \cite{sun2024clover} đề xuất Clover, thiết lập một chu trình đóng kín (closed-loop) kiểm chứng mã nguồn được sinh bởi LLM đối chiếu với các đặc tả hình thức.
+    \item \textbf{Hỗ trợ Kiểm chứng trong Dafny và Rust:} Poesia và cộng sự \cite{poesia2024dafnyannotator} phát triển DafnyAnnotator, sử dụng AI để tự động chèn các chú thích (annotations) vào mã nguồn Dafny giúp trình biên dịch Dafny xác minh thành công. Nâng cao hơn, Banerjee và cộng sự \cite{banerjee2026dafnypro} giới thiệu DafnyPro, một trợ lý thông minh có khả năng tương tác liên tục với solver để tự động sửa chữa các lỗi chứng minh. Trong hệ sinh thái Rust, Yang và cộng sự \cite{yang2025autoverus} phát triển AutoVerus, tự động tạo các chứng minh hình thức cho công cụ kiểm chứng Verus.
+\end{itemize}
+
+\section{Khảo sát Toàn diện 14 Trường phái Phương pháp Đối chứng (Baselines A--N)}
+\label{sec:baselines_taxonomy}
+
+Để xây dựng một bức tranh đối sánh khoa học toàn diện, đề tài đã nghiên cứu, mô hình hóa và hiện thực độc lập \textbf{14 phương pháp baseline} (ký hiệu từ A đến N). Đây là 14 trường phái đại diện cho hầu hết các kỹ thuật kiểm chứng, kiểm thử và suy luận mã nguồn phổ biến trong cộng đồng học thuật thế giới hiện nay.
+
+Tất cả các baseline đều được thiết kế để nhận cùng một đặc tả chương trình đầu vào (\texttt{ProgramSpec}) từ Hồ chứa Khẳng định Dùng chung (\textit{Shared Claim Pool}), và trả về cùng một cấu trúc kết quả (\texttt{ProgramResult}) chuẩn tắc:
+
+\begin{enumerate}
+    \item[\textbf{Baseline A:}] \textbf{SatLM Direct SMT-LIB2} \cite{ye2023satlm}. LLM nhận mã nguồn và claim, tự động sinh mã nguồn kịch bản SMT-LIB2 hoàn chỉnh. Hệ thống chuyển mã này cho Z3 solver kiểm tra tính thỏa mãn $\text{Constraints} \land \neg \text{Spec}$. Phương pháp này hoàn toàn phụ thuộc vào năng lực dịch SMT của LLM, không có phân tích AST trung gian.
+    \item[\textbf{Baseline B:}] \textbf{Execution Grounding} \cite{gu2024cruxeval,thakur2026think}. Chương trình được thực thi trên một lưới các giá trị đầu vào tất định. Mô hình LLM được cung cấp vết thực thi thực tế (dòng lệnh và giá trị biến) và chỉ được phép suy luận dựa trên những gì đã quan sát được trong vết thực thi.
+    \item[\textbf{Baseline C:}] \textbf{Structural Reasoning (CFG + Python k-induction)}. Hệ thống phân tích bộ khung điều khiển (CFG) của chương trình và áp dụng kỹ thuật $k$-induction hoàn toàn ở mức độ thông dịch Python mà không cần gọi đến solver Z3 bên ngoài.
+    \item[\textbf{Baseline D:}] \textbf{LLM-as-a-Judge} \cite{gu2024cruxeval}. Phương pháp thuần LLM phổ biến nhất hiện nay. LLM nhận mã nguồn và claim, sinh chuỗi lý luận CoT zero-shot, tự phân tích các ca biên ($-1, 0, 1, \text{MAX}, \text{MIN}$), và tự đưa ra phán quyết cuối cùng (\texttt{VERIFIED} hoặc \texttt{COUNTEREXAMPLE}).
+    \item[\textbf{Baseline E:}] \textbf{Neuro-Symbolic AutoSpec} \cite{wen2024autospec}. LLM đề xuất một bộ đặc tả đầy đủ gồm tiền điều kiện, hậu điều kiện và bất biến vòng lặp. Bộ kiểm tra hình thức đối chiếu đặc tả này với mã nguồn; nếu phát hiện vi phạm, thông báo lỗi được phản hồi lại để LLM tinh chỉnh (refine) trong tối đa 3 vòng lặp.
+    \item[\textbf{Baseline F:}] \textbf{Agentic Multi-Step (ReAct-style)}. Tác tử tự hành hoạt động theo chu trình khép kín: LẬP KẾ HOẠCH (PLAN) $\rightarrow$ PHÂN TÍCH (ANALYZE) $\rightarrow$ KIỂM THỬ (TEST -- thực thi thật trên runtime CPython) $\rightarrow$ XÁC MINH (VERIFY) $\rightarrow$ TINH CHỈNH (REFINE).
+    \item[\textbf{Baseline G:}] \textbf{Self-Consistency} \cite{wang2022self}. Lấy mẫu độc lập $n = 5$ chuỗi suy luận CoT khác nhau từ LLM với nhiệt độ (temperature) $0.7$. Quyết định cuối cùng được xác định dựa trên nguyên tắc bỏ phiếu đa số (majority voting); nếu tỷ lệ phiếu hòa, hệ thống trả về \texttt{UNKNOWN\_TIMEOUT}.
+    \item[\textbf{Baseline H:}] \textbf{Self-Refine} \cite{madaan2024self}. Quy trình phản hồi đơn tác tử lặp lại: LLM đưa ra kết luận ban đầu, sau đó tự đóng vai người phản biện để chỉ ra các điểm yếu hoặc lỗ hổng trong lý luận của chính mình, rồi tự sửa lại kết luận qua 3 vòng lặp liên tiếp.
+    \item[\textbf{Baseline I:}] \textbf{LLM-Guided Property-Based Testing (PBT)}. LLM đóng vai trò là chuyên gia phân tích miền giá trị, đề xuất các tính chất tổng quát và chiến lược sinh dữ liệu (Hypothesis strategies). Thư viện PBT chạy hàng trăm ca kiểm thử tự động; mọi phản ví dụ tìm được bắt buộc phải tái hiện thành công.
+    \item[\textbf{Baseline J:}] \textbf{Deterministic Fuzzing}. Phương pháp kiểm thử tự động truyền thống, hoạt động offline (tiêu thụ 0 token LLM). Bộ fuzzing sinh 256 vector đầu vào tất định kết hợp phân tích giá trị biên (Boundary Value Analysis -- BVA) và bộ sinh số giả ngẫu nhiên có seed cố định (seed 42), chạy trực tiếp trên CPython và đối chiếu với claim.
+    \item[\textbf{Baseline K:}] \textbf{Mutation Testing}. Phương pháp phân tích độ nhạy mã nguồn ngoại tuyến (0 token). Hệ thống chủ động tiêm các đột biến cú pháp (đổi dấu so sánh, đổi toán tử cộng trừ, dịch chuyển hằng số biên) để tạo ra các biến thể (mutants), sau đó kiểm tra xem claim có phân biệt và tiêu diệt được các đột biến đó hay không.
+    \item[\textbf{Baseline L:}] \textbf{Pure Symbolic Execution}. Thực thi ký hiệu truyền thống hoàn toàn dựa trên Z3/Spacer mà không sử dụng bất kỳ thành phần LLM nào (0 token). Bộ phân tích liệt kê toàn bộ các đường đi khả đạt dẫn tới câu lệnh \texttt{assert} và giải các điều kiện kiểm chứng.
+    \item[\textbf{Baseline M:}] \textbf{Hoare Triple Natural Language Verification} \cite{bouras2026hoareprompt}. LLM được yêu cầu phân rã chương trình và viết lại tường minh dưới dạng các bộ ba Hoare $\{P\} \; C \; \{Q\}$ bằng văn bản ngôn ngữ tự nhiên, sau đó tự đánh giá tính hợp lệ của từng bộ ba.
+    \item[\textbf{Baseline N:}] \textbf{Invariant Synthesis with SMT} \cite{si2020code2inv,wang2026bali}. LLM đóng vai trò chuyên biệt là bộ sinh ứng viên bất biến (từ 1 đến 3 ứng viên). Z3 solver đóng vai trò là trọng tài duy nhất, kiểm tra tính đúng đắn của bất biến qua trường hợp cơ sở và bước quy nạp.
+\end{enumerate}
+
+\subsection{Ma trận Năng lực của 14 Baselines và Phương pháp Đề xuất}
+Để làm rõ ranh giới kỹ thuật và tính năng giữa các phương pháp, Bảng \ref{tab:baselines_capability_matrix} tổng hợp ma trận năng lực của tất cả 15 phương pháp nghiên cứu dựa trên 4 thuộc tính cốt lõi:
+\begin{itemize}
+    \item \textbf{Cổng neo AST (Grounding):} Có cơ chế ánh xạ bắt buộc từng khẳng định vào nút AST cụ thể hay không (quyết định việc có đo được Hallucination Rate hay không).
+    \item \textbf{Replay Phản ví dụ (Replay):} Có khả năng trích xuất giá trị cụ thể từ phản ví dụ và chạy kiểm tra chéo trên CPython thật hay không (quyết định việc có đo được CRVR hay không).
+    \item \textbf{Phát hiện Nhánh Chết (Reachability):} Có khả năng phân biệt đường đi không thể đạt (\texttt{UNREACHABLE}) với khẳng định được chứng minh (\texttt{VERIFIED}) hay không.
+    \item \textbf{Yêu cầu Mô hình Ngôn ngữ (Requires LLM):} Phương pháp có phải tiêu tốn tài nguyên gọi mô hình AI hay chạy hoàn toàn ngoại tuyến (0 token).
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|l|c|c|c|c|c|}
+\hline
+\textbf{ID} & \textbf{Tên Phương pháp} & \textbf{Grounding} & \textbf{Replay} & \textbf{Reachability} & \textbf{Precondition} & \textbf{LLM} \\
+\hline
+\textbf{A} & SatLM Direct SMT-LIB2 & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{B} & Execution Grounding & N/A & Có & N/A & Có & Có \\
+\hline
+\textbf{C} & Structural Reasoning & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{D} & LLM-as-a-Judge & N/A & Có & N/A & Có & Có \\
+\hline
+\textbf{E} & Neuro-Symbolic AutoSpec & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{F} & Agentic Multi-Step & N/A & Có & N/A & Có & Có \\
+\hline
+\textbf{G} & Self-Consistency & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{H} & Self-Refine & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{I} & LLM-Guided PBT & N/A & Có & N/A & Có & Có \\
+\hline
+\textbf{J} & Deterministic Fuzzing & N/A & Có & N/A & Có & \textbf{Không (0t)} \\
+\hline
+\textbf{K} & Mutation Testing & N/A & Có & N/A & Không & \textbf{Không (0t)} \\
+\hline
+\textbf{L} & Pure Symbolic Execution & N/A & Có & \textbf{Có} & Có & \textbf{Không (0t)} \\
+\hline
+\textbf{M} & Hoare Triple NL & N/A & N/A & N/A & Có & Có \\
+\hline
+\textbf{N} & Invariant Synthesis SMT & N/A & N/A & N/A & Có & Có \\
+\hline
+\hline
+\textbf{Ours} & \textbf{Proposed Pipeline} & \textbf{CÓ} & \textbf{CÓ} & \textbf{CÓ} & \textbf{Có} & \textbf{Có} \\
+\hline
+\end{tabular}
+\caption{Ma trận năng lực kỹ thuật của 14 Baselines và Phương pháp Đề xuất}
+\label{tab:baselines_capability_matrix}
+\end{table}
+
+\noindent\textbf{Nguyên tắc Khoa học ``N/A $\ne 0$'':} 
+Trong bảng đánh giá trên, một nguyên tắc quan trọng cần nhấn mạnh là giá trị \textbf{N/A} (Không áp dụng) mang ý nghĩa hoàn toàn khác với giá trị \textbf{0}. Ví dụ: 
+\begin{itemize}
+    \item Đối với chỉ số Tỷ lệ Ảo giác (Hallucination Rate -- HR): Cả 14 baseline đều không sở hữu cổng neo cú pháp AST (Anchor Gate). Khi một hệ thống không có khái niệm neo ngữ nghĩa, khái niệm ``khẳng định bị từ chối do không neo được'' đơn giản là không tồn tại trong thiết kế của nó. Do đó, HR của các baseline bắt buộc phải ghi nhận là \textbf{N/A}, tuyệt đối không được ghi là 0\% (vì 0\% sẽ gây hiểu nhầm tai hại rằng hệ thống đó hoàn toàn không có ảo giác).
+    \item Đối với chỉ số Tái hiện Phản ví dụ (CRVR): Chỉ có 7 baseline thực sự sinh ra các vector đầu vào cụ thể và kích hoạt trình thông dịch CPython để chạy kiểm tra chéo (B, D, F, I, J, K, L). 7 baseline còn lại chỉ đưa ra các nhãn lý thuyết hoặc công thức trừu tượng, nên CRVR của chúng là \textbf{N/A}.
+    \item Đối với năng lực phân biệt Nhánh chết (\texttt{UNREACHABLE}): Trong toàn bộ 14 baseline, duy nhất Baseline L (Symbolic Execution thuần túy) sở hữu bộ giải đường đi hình thức có khả năng trả lời câu hỏi Reachability độc lập. Toàn bộ 13 baseline còn lại hoàn toàn bất lực trước hiện tượng chứng minh rỗng trên nhánh chết.
+\end{itemize}
+
+\section{Tổng hợp và Xác định Khoảng trống Nghiên cứu (Research Gaps)}
+\label{sec:research_gaps}
+
+Từ việc phân tích tổng quan các công trình tiền nhiệm và cấu trúc của 14 trường phái đối chứng, chúng tôi xác định được bốn khoảng trống nghiên cứu cốt lõi mà cộng đồng khoa học hiện vẫn chưa có lời giải toàn diện:
+
+\begin{enumerate}
+    \item \textbf{Khoảng trống về Nguồn Sự thật Khách quan (Ground Truth Disconnect):} Các hệ thống tích hợp LLM-SMT hiện nay (như SatLM) coi văn bản công thức do LLM sinh ra là đầu vào đáng tin cậy cho solver. Không có cơ chế ràng buộc hình thức nào bảo đảm công thức đó phản ánh đúng cây cú pháp AST của mã nguồn. Thiếu vắng một tầng kiểm tra tương thích ngữ nghĩa khiến các hệ thống này dễ bị đánh lừa bởi các lỗi dịch tinh vi của AI.
+    \item \textbf{Lỗ hổng Chân lý Rỗng trên Nhánh Chết (The Vacuity Blindspot):} Chưa có bất kỳ công trình kiểm chứng neuro-symbolic nào trước đây nhận diện và giải quyết thấu đáo nguy cơ kết luận \texttt{VERIFIED} giả mạo do điều kiện đường đi bị mâu thuẫn (\texttt{UNSAT}). Các solver truyền thống khi kiểm tra tính hợp lệ bằng cách phủ định khẳng định ($\Phi_{\text{path}} \land \neg \text{Claim}$) sẽ ngay lập tức trả về \texttt{UNSAT} trên nhánh chết, tạo ra ảo tưởng nguy hiểm về một chứng minh hình thức hoàn hảo.
+    \item \textbf{Khoảng cách giữa Chứng minh Lý thuyết và Thực thi Thực tế (The Replay Gap):} Phần lớn các công trình dừng lại ở mức độ toán học lý thuyết mà không kiểm chứng chéo xem mô hình phản ví dụ của solver có thực sự gây sụp đổ chương trình trên môi trường thông dịch thực tế (CPython runtime) hay không. Ngược lại, các phương pháp dựa trên LLM-as-a-Judge lại tạo ra hàng loạt phản ví dụ ảo tưởng với tỷ lệ sai lệch thực nghiệm lên tới 60\%.
+    \item \textbf{Thiếu Cơ chế Tự Sửa sai Đóng kín có Hướng dẫn (Closed-Loop Self-Repair with Concrete Diagnostics):} Khi phát hiện lỗi trong chuỗi lý luận, các hệ thống như Self-Refine thường chỉ đưa ra các lời nhắc chung chung (``Hãy suy nghĩ lại cẩn thận hơn''). Việc thiếu vắng dữ liệu chẩn đoán cụ thể (trạng thái bộ nhớ tại điểm sụp đổ, dòng lệnh gây lỗi thực tế) khiến các vòng tự sửa của LLM thường rơi vào bế tắc hoặc lặp lại sai lầm cũ.
+\end{enumerate}
+
+Kiến trúc \textbf{AST-Anchored Neuro-Symbolic Verification Framework} được đề xuất trong báo cáo này được thiết kế có chủ đích nhằm lấp đầy toàn bộ bốn khoảng trống nghiên cứu trên, tạo nên một chuẩn mực mới về tính đúng đắn, minh bạch và khả năng kiểm chứng chéo trong ứng dụng AI cho kỹ thuật phần mềm an toàn.

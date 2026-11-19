@@ -1,0 +1,59 @@
+\chapter{Kết luận và Hướng Phát triển}
+\label{ch:conclusion}
+
+Chương này tổng kết toàn bộ các kết quả đạt được của đồ án chuyên ngành, đối chiếu trực tiếp với các mục tiêu và câu hỏi nghiên cứu ban đầu, khẳng định các đóng góp khoa học và kỹ thuật chính, đồng thời thẳng thắn nhìn nhận những hạn chế còn tồn tại và đề xuất lộ trình mở rộng nghiên cứu trong tương lai.
+
+\section{Tổng kết Kết quả Đạt được}
+\label{sec:conclusion_summary}
+
+Đề tài đã nghiên cứu, thiết kế và hiện thực thành công \textbf{AST-Anchored Neuro-Symbolic Verification Framework} -- một hệ thống kiểm chứng chương trình bán tự động kết hợp hài hòa giữa khả năng suy luận trực quan phong phú của Mô hình Ngôn ngữ Lớn (LLM) với tính đúng đắn toán học tuyệt đối của Cây Cú pháp Trừu tượng (AST) và Bộ giải Z3 SMT.
+
+Nghiên cứu đã đưa ra câu trả lời thực nghiệm rõ ràng cho 5 câu hỏi nghiên cứu:
+\begin{enumerate}
+    \item \textbf{Về Chất lượng Reasoning Trace của LLM (RQ1):} Khi được ràng buộc bởi một lược đồ JSON nghiêm ngặt và quy ước Static Single Assignment (SSA), LLM có khả năng mô phỏng diễn tiến trạng thái biến và sinh ra các khẳng định toán học trung gian có cấu trúc tốt, đóng vai trò là một bộ đề xuất giả thuyết hiệu quả cho solver.
+    \item \textbf{Về Hiệu quả của Cổng Neo AST (RQ2):} Cổng neo AST (\texttt{AnchorGate}) với thuật toán thẩm định 5 lớp đã chứng minh tính hiệu quả vượt bậc khi kiểm soát Tỷ lệ Ảo giác (\textit{Hallucination Rate} -- HR) ở mức cực thấp \textbf{1.81\%} (chỉ 8/443 claim bị từ chối), phát hiện sớm các lỗi biến ngoài phạm vi (out-of-scope) và sai lệch cú pháp trước khi đưa vào solver.
+    \item \textbf{Về Phát hiện Nhánh Chết và Hiện tượng Chân lý Rỗng (RQ3):} Giao thức Hai Truy vấn Z3 (Two-Query Z3 Protocol) đã tạo nên sự khác biệt mang tính bước ngoặt so với các cách tiếp cận truyền thống. Bằng cách kiểm tra tính khả đạt (\textit{Reachability Obligation}) trước tính hợp lệ (\textit{Validity Obligation}), hệ thống đã phát hiện chính xác \textbf{127 claim nằm trên nhánh chết (\texttt{UNREACHABLE})}, chiếm tới 28.7\% tổng số claim. Trong khi đó, các phương pháp đối chứng như SatLM và LLM-as-a-Judge hoàn toàn bỏ sót hiện tượng này, dẫn tới hàng loạt kết luận \texttt{VERIFIED} giả mạo vô nghĩa trên các điều kiện mâu thuẫn.
+    \item \textbf{Về Độ Tin cậy Phản ví dụ và Khả năng Tự Sửa sai (RQ4):} Nhờ tích hợp sandbox thực thi CPython thật, hệ thống đạt Tỷ lệ Phản ví dụ Hợp lệ (\textit{Counterexample Replay Validity Rate} -- CRVR / Fidelity) lên tới \textbf{88.0\%} (66/75 phản ví dụ tái hiện lỗi thực tế thành công), hoàn toàn áp đảo so với mức 40.0\% của phương pháp LLM-as-a-Judge. Hơn thế nữa, Vòng phản hồi hồi cứu (Retrospective Feedback Loop) với dữ liệu chẩn đoán trạng thái sụp đổ cụ thể đã hỗ trợ LLM tự sửa sai thành công \textbf{22 ca khẳng định lỗi (23.9\%)} mà không cần sự can thiệp của con người.
+    \item \textbf{Về Đánh đổi Chi phí và Năng lực So sánh (RQ5):} Khảo sát thực nghiệm đối đầu trên toàn bộ 14 trường phái baseline độc lập khẳng định Proposed Pipeline nằm trên đường biên tối ưu Pareto: mang lại mức độ tin cậy và khả năng giải thích cao nhất với chi phí tài chính cực kỳ tiết kiệm (\$0.000137 USD/bài).
+\end{enumerate}
+
+\section{Đóng góp Khoa học và Thực tiễn của Đề tài}
+\label{sec:contributions_highlight}
+
+Đề tài mang lại những giá trị đóng góp quan trọng cho cộng đồng nghiên cứu kỹ thuật phần mềm và trí tuệ nhân tạo:
+
+\begin{enumerate}
+    \item \textbf{Xác lập Nguyên tắc Kiến trúc ``AST as Trusted Backbone'':} Đề xuất một mô hình mẫu mực trong việc tích hợp AI sinh (Generative AI) vào các hệ thống đòi hỏi độ an toàn cao. Bằng cách định vị AST và symbolic executor làm xương sống tin cậy duy nhất và hạn chế LLM ở vai trò đề xuất không tin cậy, hệ thống triệt tiêu hoàn toàn rủi ro sai lệch do ảo giác của mô hình ngôn ngữ.
+    \item \textbf{Giao thức Hai Truy vấn Z3 Chuẩn mực:} Đóng góp một giải pháp toán học hoàn chỉnh nhằm giải quyết triệt để vấn đề chân lý rỗng (vacuous truth) trong kiểm chứng neuro-symbolic, chứng minh rằng tính khả đạt bắt buộc phải là điều kiện tiên quyết trước khi kiểm chứng bất kỳ thuộc tính an toàn nào.
+    \item \textbf{Chu trình Kiểm tra Chéo Thực nghiệm và Hồi cứu Đóng kín:} Kết hợp hài hòa giữa chứng minh hình thức lý thuyết và thực thi cụ thể trong runtime CPython, thu hẹp khoảng cách giữa mô hình toán học và hành vi phần mềm thực tế.
+    \item \textbf{Hệ thống 14 Baseline Kiểm chuẩn Độc lập Toàn diện:} Xây dựng một cơ sở mã nguồn mở gồm 14 baseline độc lập (A--N) tuân thủ nguyên tắc không lệ thuộc mã lõi, kết hợp cùng bộ dữ liệu chuẩn 1.000 mẫu phân tầng (\texttt{bench\_v1}) và Hồ chứa Khẳng định Dùng chung (\textit{Shared Claim Pool}), tạo ra một tiêu chuẩn kiểm nghiệm có tính tái lập cao cho các nghiên cứu tiếp theo.
+\end{enumerate}
+
+\section{Hạn chế của Đề tài}
+\label{sec:limitations}
+
+Bên cạnh những kết quả ấn tượng đạt được, nhóm tác giả thẳng thắn nhìn nhận những hạn chế kỹ thuật hiện tại của prototype:
+\begin{itemize}
+    \item \textbf{Phạm vi Ngữ nghĩa Ngôn ngữ Hẹp:} Hệ thống hiện chỉ hỗ trợ tập con QF-LIA của Python (số nguyên toán học, biểu thức tuyến tính). Các tính năng hiện đại và phổ biến của Python như lập trình hướng đối tượng, cấu trúc dữ liệu động (danh sách lồng nhau, từ điển), số thực dấu phẩy động, xử lý chuỗi ký tự, và đệ quy sâu vẫn chưa được mô hình hóa trong TCB.
+    \item \textbf{Bộ Chuyển đổi AST-to-SMT Chưa Được Chứng minh Cơ giới hóa:} Mặc dù bộ thực thi ký hiệu đã vượt qua 109 bài kiểm thử Pytest và các phiên differential testing với CPython, bản thân mã nguồn của bộ chuyển đổi vẫn được viết bằng Python thông thường và chưa được kiểm chứng toán học bằng các trợ lý chứng minh định lý cơ giới hóa như Coq hoặc Lean.
+    \item \textbf{Thách thức trong Tổng hợp Bất biến Phức tạp:} Mặc dù đã tích hợp $k$-induction và đề xuất bất biến từ LLM, đối với các vòng lặp chứa các điều kiện rẽ nhánh phi tuyến hoặc các mối quan hệ biến đan xen phức tạp, solver vẫn có thể rơi vào tình trạng timeout hoặc trả về \texttt{UNKNOWN\_TIMEOUT}.
+    \item \textbf{Độ trễ Thực thi Tương đối Cao:} Thời gian xử lý trung bình 7.71 giây/chương trình là chấp nhận được cho các đợt kiểm thử định kỳ (nightly builds / CI), nhưng vẫn còn chậm đối với các tác vụ yêu cầu phản hồi tức thời theo thời gian thực (real-time IDE feedback).
+\end{itemize}
+
+\section{Hướng Phát triển Tương lai}
+\label{sec:future_work}
+
+Từ những kết quả và hạn chế đã được nhận diện, nhóm nghiên cứu đề xuất các định hướng phát triển tiếp theo trong tương lai:
+
+\begin{enumerate}
+    \item \textbf{Mở rộng Ngữ nghĩa Sang Lý thuyết Mảng và Cấu trúc Dữ liệu Động:} Tích hợp lý thuyết mảng không lượng từ (Quantifier-Free Array Theory -- QF-AX) trong SMT-LIB2 vào Symbolic Executor để hỗ trợ đầy đủ các thao tác đọc ghi mảng và danh sách Python (\texttt{list[int]}), mở rộng khả năng kiểm chứng cho các thuật toán sắp xếp và tìm kiếm cổ điển.
+    \item \textbf{Tối ưu hóa Hiệu năng và Giảm Độ trễ:}
+    \begin{itemize}
+        \item Áp dụng kỹ thuật tỉa nhánh không khả đạt sớm (Early Dead-code Pruning): Khi một guard nhánh được Z3 xác định là \texttt{unsat}, toàn bộ cây con cú pháp bên dưới sẽ bị loại bỏ ngay lập tức khỏi quy trình phân tích SSA.
+        \item Caching ngữ nghĩa SMT: Lưu trữ băm (hash) của các mệnh đề đường đi tương đương để tái sử dụng kết quả giải của Z3 giữa các lần chạy liên tiếp.
+        \item Thu gọn Ngữ cảnh Phản hồi (Feedback Context Compaction): Rút trích chỉ các biến liên quan trực tiếp đến lát cắt lỗi (failure slice) thay vì gửi toàn bộ \texttt{locals()}, giúp giảm lượng token tiêu thụ và tăng tốc độ xử lý của LLM.
+    \end{itemize}
+    \item \textbf{Phân tích Tính Dừng và Hàm Giảm (Termination Analysis):} Bổ sung mô-đun yêu cầu LLM đề xuất các hàm giảm (Ranking Functions / Variants) $\mathcal{R}: S \rightarrow \mathbb{N}$ và sử dụng solver để chứng minh $\mathcal{R}(s') < \mathcal{R}(s)$, nâng cấp phán quyết từ tính đúng đắn từng phần (Partial Correctness) lên tính đúng đắn toàn phần (Total Correctness).
+    \item \textbf{Cơ giới hóa và Kiểm chứng Bản thân TCB trong Lean 4:} Tiến hành hình thức hóa toàn bộ ngữ nghĩa của Safe Subset và chứng minh tính đúng đắn của Trình thực thi Ký hiệu (Symbolic Executor Soundness Proof) bên trong trợ lý chứng minh định lý Lean 4, đạt tới cấp độ tin cậy cao nhất trong khoa học máy tính.
+    \item \textbf{Ứng dụng Thực tiễn trong Giáo dục và Công nghiệp:} Đóng gói framework thành tiện ích mở rộng cho Visual Studio Code (VS Code Extension) hỗ trợ lập trình viên phát hiện lỗi logic ngay trong quá trình soạn thảo, đồng thời ứng dụng làm hệ thống chấm bài và hướng dẫn sửa bài tập lập trình tự động trong các khóa học Khoa học Máy tính tại các trường đại học.
+\end{enumerate}

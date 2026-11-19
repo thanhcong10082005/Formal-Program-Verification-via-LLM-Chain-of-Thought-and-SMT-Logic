@@ -1,0 +1,361 @@
+\chapter{Cơ sở Lý thuyết}
+\label{ch:background}
+
+Chương này trình bày toàn diện các nền tảng lý thuyết toán học, khoa học máy tính và kỹ thuật công nghệ làm cơ sở vững chắc cho việc thiết kế, hiện thực và đánh giá hệ thống kiểm chứng neuro-symbolic. Nội dung bao gồm phương pháp kiểm chứng hình thức dựa trên logic Hoare, kỹ thuật biểu diễn chương trình bằng cây cú pháp trừu tượng (AST) và dạng gán tĩnh duy nhất (SSA), lý thuyết thực thi ký hiệu, bản chất toán học của hiện tượng chân lý rỗng (vacuous truth), lý thuyết bất biến vòng lặp và quy nạp $k$-induction, cơ chế hoạt động của các bộ giải SMT hiện đại, nguyên lý sinh của mô hình ngôn ngữ lớn kèm kỹ thuật Chain-of-Thought, và sau cùng là hệ thống độ đo kiểm chuẩn chuyên dụng.
+
+\section{Kiểm chứng Chương trình Hình thức và Logic Hoare}
+\label{sec:formal_verification_hoare}
+
+\subsection{Hệ thống Chuyển trạng thái và Tính đúng đắn của Chương trình}
+Trong khoa học máy tính lý thuyết, một chương trình mệnh lệnh (imperative program) có thể được mô hình hóa một cách trừu tượng dưới dạng một \textit{Hệ thống Chuyển trạng thái} (Transition System) $\mathcal{M} = \langle S, S_0, \rightarrow, L \rangle$, trong đó:
+\begin{itemize}
+    \item $S$ là tập hợp tất cả các trạng thái có thể có của chương trình (State Space). Mỗi trạng thái $s \in S$ là một hàm ánh xạ từ tập hợp các biến chương trình $\mathcal{V}$ sang miền giá trị tương ứng $\mathcal{D}$ (trong phạm vi đề tài, $\mathcal{D} = \mathbb{Z}$).
+    \item $S_0 \subseteq S$ là tập các trạng thái khởi tạo thỏa mãn tiền điều kiện đầu vào $\text{Pre}$.
+    \item $\rightarrow \subseteq S \times S$ là quan hệ chuyển trạng thái chuyển tiếp giữa hai trạng thái liên tiếp $(s, s') \in \rightarrow$, ký hiệu là $s \rightarrow s'$, tương ứng với việc thực thi một câu lệnh cơ sở.
+    \item $L: S \rightarrow 2^{\mathcal{AP}}$ là hàm gán nhãn trạng thái với tập các mệnh đề nguyên tử $\mathcal{AP}$.
+\end{itemize}
+
+Một \textit{vết thực thi} (Execution Trace) của chương trình là một chuỗi hữu hạn hoặc vô hạn các trạng thái $\tau = s_0, s_1, s_2, \dots$ sao cho $s_0 \in S_0$ và với mọi $i \ge 0$, ta có $s_i \rightarrow s_{i+1}$. Một trạng thái $s^*$ được gọi là \textit{khả đạt} (reachable) nếu tồn tại một vết thực thi xuất phát từ $s_0 \in S_0$ và kết thúc tại $s^*$.
+
+\subsection{Cú pháp và Ngữ nghĩa của Logic Hoare}
+Logic Hoare \cite{hoare1969axiomatic} cung cấp một hệ thống tiên đề hình thức để lập luận suy diễn chặt chẽ về tính đúng đắn của các chương trình máy tính. Khái niệm hạt nhân của logic Hoare là cấu trúc \textit{Bộ ba Hoare} (Hoare Triple):
+\begin{equation}
+\{P\} \; C \; \{Q\}
+\end{equation}
+Trong đó:
+\begin{itemize}
+    \item $P$ là vị ngữ biểu diễn \textbf{Tiền điều kiện} (Precondition), đặc tả các giả định bắt buộc phải thỏa mãn trước khi khối lệnh $C$ bắt đầu thực thi.
+    \item $C$ là một câu lệnh hoặc một chuỗi các câu lệnh của chương trình.
+    \item $Q$ là vị ngữ biểu diễn \textbf{Hậu điều kiện} (Postcondition), đặc tả thuộc tính mà trạng thái của chương trình bắt buộc phải bảo đảm sau khi khối lệnh $C$ kết thúc thực thi.
+\end{itemize}
+
+Có hai quan điểm về tính đúng đắn trong logic Hoare:
+\begin{enumerate}
+    \item \textbf{Tính Đúng đắn Từng phần (Partial Correctness):} Bộ ba Hoare $\{P\} \; C \; \{Q\}$ đúng đắn từng phần nếu với mọi trạng thái $s$ thỏa mãn $P(s)$, \textit{nếu} khối lệnh $C$ kết thúc thực thi tại trạng thái $s'$, thì $s'$ nhất thiết phải thỏa mãn $Q(s')$. Định nghĩa này không yêu cầu $C$ phải dừng lại (nếu $C$ lặp vô hạn, mệnh đề vẫn đúng theo nghĩa hiển nhiên).
+    \item \textbf{Tính Đúng đắn Toàn phần (Total Correctness):} Bộ ba Hoare $[P] \; C \; [Q]$ đúng đắn toàn phần khi và chỉ khi: nó đúng đắn từng phần, \textbf{và} khối lệnh $C$ được chứng minh là chắc chắn dừng lại (terminates) với mọi trạng thái khởi tạo thỏa mãn $P$.
+\end{enumerate}
+
+\subsection{Hệ thống Tiên đề và Luật Suy diễn Hoare}
+Hệ thống logic Hoare bao gồm các quy tắc suy diễn tiêu chuẩn cho từng cấu trúc ngữ pháp mệnh lệnh:
+
+\begin{enumerate}
+    \item \textbf{Tiên đề Phép gán (Axiom of Assignment):}
+    \begin{equation}
+    \frac{}{\{Q[e / x]\} \; x := e \; \{Q\}}
+    \end{equation}
+    Trong đó $Q[e / x]$ là vị ngữ thu được bằng cách thay thế mọi sự xuất hiện tự do của biến $x$ trong $Q$ bằng biểu thức $e$.
+
+    \item \textbf{Luật Tuần tự (Composition Rule):}
+    \begin{equation}
+    \frac{\{P\} \; C_1 \; \{R\} \quad\quad \{R\} \; C_2 \; \{Q\}}{\{P\} \; C_1 ; C_2 \; \{Q\}}
+    \end{equation}
+    Luật này cho phép kết nối hai câu lệnh liên tiếp thông qua một vị ngữ trung gian $R$.
+
+    \item \textbf{Luật Rẽ nhánh Điều kiện (Conditional Rule):}
+    \begin{equation}
+    \frac{\{P \land B\} \; C_1 \; \{Q\} \quad\quad \{P \land \neg B\} \; C_2 \; \{Q\}}{\{P\} \; \text{if } B \text{ then } C_1 \text{ else } C_2 \; \{Q\}}
+    \end{equation}
+
+    \item \textbf{Luật Vòng lặp (While Rule) với Bất biến $I$:}
+    \begin{equation}
+    \frac{\{I \land B\} \; C \; \{I\}}{\{I\} \; \text{while } B \text{ do } C \; \{I \land \neg B\}}
+    \end{equation}
+    Ở đây, $I$ là \textit{Bất biến vòng lặp} (Loop Invariant), một vị ngữ duy trì tính đúng đắn trước khi vào vòng lặp, sau mỗi lần lặp, và ngay sau khi vòng lặp kết thúc.
+
+    \item \textbf{Luật Hệ quả (Rule of Consequence):}
+    \begin{equation}
+    \frac{P \implies P' \quad\quad \{P'\} \; C \; \{Q'\} \quad\quad Q' \implies Q}{\{P\} \; C \; \{Q\}}
+    \end{equation}
+    Luật này cho phép làm mạnh thêm tiền điều kiện ($P \implies P'$) và làm yếu đi hậu điều kiện ($Q' \implies Q$).
+\end{enumerate}
+
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    state/.style={circle, draw=blue!70, fill=blue!10, thick, minimum size=1.0cm, font=\small\bfseries},
+    box/.style={rectangle, draw=black!80, fill=gray!10, rounded corners, minimum height=0.8cm, text centered, font=\small},
+    arrow/.style={-{Stealth[scale=1.0]}, thick}
+]
+    \node[state] (s0) {$s_0$};
+    \node[box, right=1.2cm of s0] (cmd1) {$x^{(1)} = e_1$};
+    \node[state, right=1.2cm of cmd1] (s1) {$s_1$};
+    \node[box, right=1.2cm of s1] (cmd2) {$x^{(2)} = x^{(1)} + 1$};
+    \node[state, right=1.2cm of cmd2] (s2) {$s_2$};
+
+    \draw[arrow] (s0) -- node[above, font=\scriptsize] {$\text{Pre}(s_0)$} (cmd1);
+    \draw[arrow] (cmd1) -- node[above, font=\scriptsize] {$\rho_1(s_0, s_1)$} (s1);
+    \draw[arrow] (s1) -- (cmd2);
+    \draw[arrow] (cmd2) -- node[above, font=\scriptsize] {$\rho_2(s_1, s_2)$} (s2);
+    \draw[arrow] (s2) -- ++(1.2, 0) node[right, font=\scriptsize] {$\text{Post}(s_2)$};
+\end{tikzpicture}
+\caption{Biểu diễn vết chuyển trạng thái và quan hệ ngữ nghĩa SSA trong Logic Hoare}
+\label{fig:hoare_ssa_flow}
+\end{figure}
+
+
+\subsection{Tiền điều kiện Yếu nhất (Weakest Precondition)}
+Phương pháp Tiền điều kiện Yếu nhất của Dijkstra cung cấp một thuật toán giải tích để tự động tính toán điều kiện kiểm chứng. Tiền điều kiện yếu nhất của khối lệnh $C$ đối với hậu điều kiện $Q$, ký hiệu là $wp(C, Q)$, là một vị ngữ mô tả tập hợp lớn nhất các trạng thái khởi tạo sao cho việc thực thi $C$ bảo đảm kết thúc tại một trạng thái thỏa mãn $Q$:
+\begin{align}
+wp(x := e, Q) &\equiv Q[e / x] \\
+wp(C_1 ; C_2, Q) &\equiv wp(C_1, wp(C_2, Q)) \\
+wp(\text{if } B \text{ then } C_1 \text{ else } C_2, Q) &\equiv (B \implies wp(C_1, Q)) \land (\neg B \implies wp(C_2, Q))
+\end{align}
+Để chứng minh một bộ ba Hoare $\{P\} \; C \; \{Q\}$ là đúng đắn, ta chỉ cần chứng minh mệnh đề logic sau là một định lý:
+\begin{equation}
+P \implies wp(C, Q)
+\end{equation}
+
+\section{Biểu diễn Chương trình và Cây Cú pháp Trừu tượng (AST)}
+\label{sec:ast_and_ssa}
+
+\subsection{Cây Cú pháp Trừu tượng (AST) trong Python}
+Cây Cú pháp Trừu tượng (Abstract Syntax Tree -- AST) là một cấu trúc dữ liệu cây có thứ tự, biểu diễn cấu trúc ngữ pháp phân cấp của mã nguồn chương trình mà đã loại bỏ đi các chi tiết cú pháp cụ thể như dấu ngoặc, dấu chấm phẩy, hay khoảng trắng thụt lề. Trong hệ sinh thái ngôn ngữ lập trình Python, thư viện chuẩn \texttt{ast} biên dịch mã nguồn thành một đồ thị dạng cây gồm các đối tượng kế thừa từ lớp cơ sở \texttt{ast.AST}:
+\begin{itemize}
+    \item \textbf{Các nút câu lệnh (\texttt{ast.stmt}):} Đại diện cho các cấu trúc thực thi như phép gán (\texttt{Assign}, \texttt{AugAssign}), rẽ nhánh (\texttt{If}), vòng lặp (\texttt{While}, \texttt{For}), trả về (\texttt{Return}), hoặc kiểm tra ràng buộc (\texttt{Assert}).
+    \item \textbf{Các nút biểu thức (\texttt{ast.expr}):} Đại diện cho việc tính toán giá trị như biểu thức nhị phân (\texttt{BinOp}), biểu thức logic (\texttt{BoolOp}), so sánh quan hệ (\texttt{Compare}), hằng số (\texttt{Constant}), hoặc tên biến (\texttt{Name}).
+\end{itemize}
+
+Mỗi nút AST được trình phân tích cú pháp gắn kèm siêu dữ liệu tọa độ vị trí thực tế trong mã nguồn: dòng bắt đầu (\texttt{lineno}), cột bắt đầu (\texttt{col\_offset}), dòng kết thúc (\texttt{end\_lineno}), và cột kết thúc (\texttt{end\_col\_offset}). Đây là cơ sở then chốt để xây dựng cơ chế truy xuất nguồn gốc (provenance).
+
+\subsection{Định danh Nút Chính tắc (Canonical NodeId)}
+Để phục vụ việc neo (anchoring) các khẳng định toán học của mô hình trí tuệ nhân tạo vào đúng thành phần cú pháp mà không bị nhầm lẫn giữa các cấu trúc giống nhau, hệ thống đề xuất một chuẩn định danh nút chính tắc, gọi là \texttt{NodeId}.
+
+\begin{definition}[Canonical NodeId]
+Cho nút cây cú pháp trừu tượng $v \in \text{AST}$. Định danh chính tắc $\text{NodeId}(v)$ là một chuỗi ký tự được xác định đơn ánh thông qua bộ ba thuộc tính: Loại nút cú pháp ($\text{Kind}$), Tọa độ dòng bắt đầu ($L$), và Thứ tự xuất hiện tương đối của nút trong cùng dòng ($k$):
+\begin{equation}
+\text{NodeId}(v) = \text{Kind}(v) \text{@L} \cdot \text{lineno}(v) \ [\_k]
+\end{equation}
+Ví dụ: Một câu lệnh gán tại dòng 4 của mã nguồn có định danh là \texttt{Assign@L4}; một nút biểu thức so sánh tại dòng 10 có định danh là \texttt{Compare@L10}.
+\end{definition}
+
+Tính ổn định của \texttt{NodeId} bảo đảm rằng ngay cả khi mã nguồn được định dạng lại khoảng trắng hoặc được dịch chuyển môi trường, các tham chiếu logic vẫn giữ nguyên giá trị ánh xạ đơn ánh.
+
+\subsection{Dạng Gán Tĩnh Duy nhất (Static Single Assignment -- SSA)}
+Trong các chương trình mệnh lệnh, một biến $x$ có thể bị ghi đè giá trị nhiều lần qua các câu lệnh gán liên tiếp (destructive updates). Điều này tạo ra sự mâu thuẫn lớn với logic toán học cổ điển, nơi mà một biến mang tính bất biến trong cùng một ngữ cảnh.
+
+Biểu diễn Static Single Assignment (SSA) \cite{cytron1991ssa} giải quyết triệt để vấn đề này bằng nguyên tắc: \textbf{Mỗi biến chương trình chỉ được gán giá trị đúng một lần duy nhất}. Mỗi khi một biến $x$ xuất hiện ở vế trái của một phép gán, một phiên bản mới của biến $x^{(k)}$ được sinh ra với chỉ số nguyên tăng dần $k \in \mathbb{N}$:
+\begin{align*}
+\text{Chương trình gốc:} \quad & x = 5; \quad x = x + 1; \quad x = x * 2; \\
+\text{Dạng chuyển SSA:} \quad & x^{(1)} = 5; \quad x^{(2)} = x^{(1)} + 1; \quad x^{(3)} = x^{(2)} * 2;
+\end{align*}
+
+Tại các điểm hội tụ luồng điều khiển (join points) như sau khối \texttt{if-else}, một hàm chọn giá trị giả định mang tên $\phi$-function được đưa vào để hợp nhất các phiên bản khác nhau:
+\begin{equation}
+x^{(3)} = \phi(x^{(1)}, x^{(2)})
+\end{equation}
+Trong khuôn khổ lý thuyết SMT tuyến tính (QF-LIA), hàm $\phi$ tương ứng với biểu thức điều kiện ITE (If-Then-Else):
+\begin{equation}
+x^{(3)} = \text{ite}(\text{Condition}, x^{(1)}, x^{(2)})
+\end{equation}
+Việc chuyển đổi sang SSA biến mọi quan hệ cập nhật biến của chương trình thành một hệ phương trình ràng buộc đại số thuần túy, tương thích hoàn hảo với các SMT solver.
+
+\section{Thực thi Ký hiệu (Symbolic Execution) và Đồ thị Luồng Điều khiển (CFG)}
+\label{sec:symbolic_execution_cfg}
+
+\subsection{Khái niệm Thực thi Ký hiệu}
+Thực thi Ký hiệu (Symbolic Execution) \cite{baldoni2018symbolic} là một kỹ thuật phân tích chương trình tĩnh nâng cao. Thay vì chạy chương trình với các giá trị đầu vào cụ thể (concrete inputs như $x = 5, y = 10$), bộ thực thi ký hiệu cung cấp các ký hiệu toán học chưa xác định ($\alpha, \beta \in \mathbb{Z}$) làm đầu vào cho chương trình.
+
+Tại bất kỳ thời điểm nào trong quá trình thực thi, trạng thái của chương trình được biểu diễn bằng một bộ đôi ký hiệu $\mathcal{S} = \langle \Sigma, PC \rangle$:
+\begin{itemize}
+    \item \textbf{Môi trường biến ký hiệu $\Sigma$ (Symbolic Store):} Là một ánh xạ từ tên biến chương trình sang các biểu thức ký hiệu chứa các ký hiệu đầu vào. Ví dụ: $\Sigma = \{x \mapsto \alpha + 1, y \mapsto 2 \cdot \beta\}$.
+    \item \textbf{Điều kiện đường đi $PC$ (Path Condition):} Là một công thức logic bậc nhất không chứa lượng từ biểu diễn tích lũy của tất cả các điều kiện rẽ nhánh mà vết thực thi đã đi qua để đến được trạng thái hiện tại. Ban đầu, $PC_0 \equiv \text{True}$.
+\end{itemize}
+
+Khi gặp một câu lệnh rẽ nhánh điều kiện dạng \texttt{if $B$}:
+\begin{enumerate}
+    \item Bộ thực thi ký hiệu rẽ nhánh thành hai nhánh độc lập.
+    \item Nhánh \textbf{Then} được cập nhật điều kiện đường đi: $PC_{\text{then}} = PC \land \Sigma(B)$.
+    \item Nhánh \textbf{Else} được cập nhật điều kiện đường đi: $PC_{\text{else}} = PC \land \neg \Sigma(B)$.
+\end{enumerate}
+
+Một nhánh chỉ được tiếp tục khám phá nếu solver kết luận điều kiện đường đi tương ứng là khả thỏa (\texttt{SAT}).
+
+\subsection{Quan hệ Chuyển trạng thái Nút và Quan hệ Tiếp cận}
+Cho đồ thị luồng điều khiển (Control Flow Graph -- CFG) $\mathcal{G} = \langle V, E \rangle$ tương ứng với chương trình, với mỗi nút câu lệnh $v \in V$, bộ phân tích ngữ nghĩa xác định một \textit{quan hệ chuyển trạng thái nút} (Node Transition Relation) $T_v(s, s')$ mô tả mối liên hệ giữa trạng thái trước $s$ và trạng thái sau $s'$ khi thực thi câu lệnh tại $v$.
+
+Với một đường thực thi cụ thể $\pi = v_1, v_2, \dots, v_n$ trong CFG, \textit{Quan hệ tiếp cận} (Reachability Relation) từ trạng thái đầu vào $s_0$ tới trạng thái $s_n$ được định nghĩa bằng tích logic của các quan hệ chuyển trạng thái và các guard dọc theo đường đi:
+\begin{equation}
+\label{eq:reachability_relation}
+R_{\pi}(s_0, s_n) \equiv \exists s_1, s_2, \dots, s_{n-1}. \ \bigwedge_{i=1}^{n-1} \Big( T_{v_i}(s_{i-1}, s_i) \land \text{Guard}_{v_i \rightarrow v_{i+1}}(s_i) \Big) \land T_{v_n}(s_{n-1}, s_n)
+\end{equation}
+
+\section{Bản chất Toán học của Hiện tượng Chân lý Rỗng (Vacuous Truth)}
+\label{sec:vacuous_truth_analysis}
+
+Trong lý thuyết kiểm chứng hình thức, việc phát hiện và ngăn chặn các kết luận chân lý rỗng (vacuous truth) là yếu tố mang tính sống còn đối với độ tin cậy của hệ thống.
+
+\begin{definition}[Chân lý Rỗng -- Vacuous Truth]
+Cho một phát biểu logic có dạng kéo theo $\Phi \equiv P \implies Q$. Ta nói $\Phi$ đúng một cách rỗng (vacuously true) trên một miền xác định nếu mệnh đề tiền đề $P$ luôn luôn nhận giá trị Sai (\texttt{False}) trên toàn bộ miền xác định đó:
+\begin{equation}
+\forall s \in \mathcal{S}, \quad P(s) \equiv \text{False} \implies (P(s) \implies Q(s)) \equiv \text{True}
+\end{equation}
+\end{definition}
+
+Khi áp dụng vào việc kiểm chứng một khẳng định $\text{Claim}(s)$ được neo tại vị trí sau một đường thực thi $\pi$, bài toán kiểm chứng tính hợp lệ truyền thống tìm kiếm một phản ví dụ thỏa mãn hệ ràng buộc:
+\begin{equation}
+\label{eq:standard_validity}
+\exists s_0, s. \quad R_{\pi}(s_0, s) \land \neg \text{Claim}(s)
+\end{equation}
+
+\begin{theorem}[Hiểm họa Chứng minh Rỗng trên Nhánh Chết]
+\label{thm:vacuous_hazard}
+Giả sử đường thực thi $\pi$ là một nhánh chết (dead-code / unreachable path), nghĩa là điều kiện tiếp cận là vô nghiệm:
+\begin{equation}
+\forall s_0, s. \quad R_{\pi}(s_0, s) \equiv \text{False}
+\end{equation}
+Khi đó, với \textbf{bất kỳ} khẳng định $\text{Claim}(s)$ nào (kể cả những khẳng định hoàn toàn phi lý như $1 == 0$ hay $x > x + 1$), bài toán tìm phản ví dụ (\ref{eq:standard_validity}) luôn trả về kết quả \texttt{UNSAT}:
+\begin{equation}
+\text{SAT\_Query}\Big( R_{\pi}(s_0, s) \land \neg \text{Claim}(s) \Big) = \text{UNSAT}
+\end{equation}
+Do đó, nếu hệ thống quy ước mù quáng rằng \texttt{UNSAT} đồng nghĩa với \texttt{VERIFIED}, hệ thống sẽ cấp chứng chỉ tính đúng đắn cho một khẳng định rác rưởi.
+\end{theorem}
+
+\begin{proof}
+Vì $R_{\pi}(s_0, s) \equiv \text{False}$, phép hội logic $\text{False} \land \neg \text{Claim}(s) \equiv \text{False}$. Không tồn tại bất kỳ phép gán giá trị nào cho $s_0, s$ làm biểu thức nhận giá trị \texttt{True}. Do đó bộ giải SMT luôn luôn trả về \texttt{UNSAT}.
+\end{proof}
+
+Hệ quả trực tiếp của Định lý \ref{thm:vacuous_hazard} là: **Để bảo đảm tính sound, một hệ thống kiểm chứng bắt buộc phải tách rời việc kiểm tra tính khả đạt của đường đi ra khỏi việc kiểm tra tính hợp lệ của khẳng định.**
+
+\section{Bất biến Vòng lặp và Kỹ thuật $k$-Induction}
+\label{sec:loop_invariants_k_induction}
+
+Vòng lặp là nguồn gốc gây ra sự bùng nổ vô hạn của không gian trạng thái trong các chương trình máy tính. Để chứng minh một thuộc tính giữ nguyên sau một số lần lặp tùy ý mà không thể duỗi vòng lặp đầy đủ, việc tìm kiếm một \textit{Bất biến vòng lặp} (Loop Invariant) là giải pháp toán học duy nhất.
+
+\subsection{Điều kiện của Bất biến Quy nạp (Inductive Invariant)}
+Cho vòng lặp có dạng \texttt{while Guard do Body}, với tiền điều kiện trước vòng lặp là $\text{Pre}$ và hậu điều kiện mong muốn sau vòng lặp là $\text{Post}$. Một vị ngữ $I(s)$ được gọi là một \textit{Bất biến Quy nạp} (Inductive Invariant) nếu nó thỏa mãn ba điều kiện kiểm chứng (Verification Conditions -- VC):
+
+\begin{enumerate}
+    \item \textbf{Điều kiện Khởi tạo (Initiation / Base Step):} Bất biến phải đúng tại trạng thái khởi tạo ngay trước khi bước vào vòng lặp:
+    \begin{equation}
+    \text{Pre}(s) \implies I(s)
+    \end{equation}
+
+    \item \textbf{Điều kiện Bảo toàn (Consecution / Inductive Step):} Nếu bất biến đúng tại trạng thái $s$ và điều kiện lặp $\text{Guard}(s)$ vẫn thỏa mãn, thì sau khi thực thi thân vòng lặp $T_{\text{body}}(s, s')$, bất biến $I$ vẫn phải đúng tại trạng thái mới $s'$:
+    \begin{equation}
+    I(s) \land \text{Guard}(s) \land T_{\text{body}}(s, s') \implies I(s')
+    \end{equation}
+
+    \item \textbf{Điều kiện Hậu suy diễn (Postcondition):} Khi vòng lặp kết thúc (tức là điều kiện lặp bị vi phạm, $\neg \text{Guard}(s)$), bất biến $I$ cùng với sự phủ định của Guard phải đủ mạnh để suy ra hậu điều kiện $\text{Post}$:
+    \begin{equation}
+    I(s) \land \neg \text{Guard}(s) \implies \text{Post}(s)
+    \end{equation}
+\end{enumerate}
+
+\subsection{Kỹ thuật $k$-Induction}
+Trong thực tế, rất nhiều thuộc tính an toàn của vòng lặp là đúng đắn trên mọi vết thực thi khả đạt nhưng lại \textbf{không quy nạp được trong 1 bước} ($k=1$), do không gian trạng thái giả định bao gồm cả những trạng thái không khả đạt làm vi phạm bước bảo toàn.
+
+Kỹ thuật $k$-induction làm suy yếu giả thiết quy nạp bằng cách xem xét một chuỗi gồm $k$ bước lặp liên tiếp:
+\begin{itemize}
+    \item \textbf{Trường hợp Cơ sở ($k$-Base Case):} Chứng minh thuộc tính đúng trong tất cả các bước lặp từ $0$ đến $k-1$:
+    \begin{equation}
+    \bigwedge_{i=0}^{k-1} \Big( \text{Pre}(s_0) \land \bigwedge_{j=0}^{i-1} (T_{\text{body}}(s_j, s_{j+1}) \land \text{Guard}(s_j)) \implies \text{Property}(s_i) \Big)
+    \end{equation}
+    \item \textbf{Bước Quy nạp ($k$-Inductive Step):} Giả sử thuộc tính đã đúng liên tục trong $k$ bước lặp liên tiếp, chứng minh rằng nó bắt buộc phải đúng ở bước lặp thứ $k$:
+    \begin{equation}
+    \left( \bigwedge_{i=0}^{k-1} \text{Property}(s_i) \land \bigwedge_{i=0}^{k-1} (T_{\text{body}}(s_i, s_{i+1}) \land \text{Guard}(s_i)) \right) \implies \text{Property}(s_k)
+    \end{equation}
+\end{itemize}
+
+Nếu cả hai điều kiện trên được solver chứng minh là thỏa mãn, ta kết luận thuộc tính an toàn đúng đắn trên mọi số lần lặp của vòng lặp.
+
+\section{Lý thuyết SMT (Satisfiability Modulo Theories) và Z3 Solver}
+\label{sec:smt_and_z3}
+
+\subsection{Khái niệm SMT và Kiến trúc DPLL(T)}
+Bài toán Thỏa mãn Mệnh đề Boolean (SAT) kiểm tra xem có tồn tại phép gán chân trị (True/False) cho các biến mệnh đề để làm cho một công thức đại số logic nhận giá trị True hay không. Bài toán Thỏa mãn Lý thuyết Modulo (Satisfiability Modulo Theories -- SMT) mở rộng bài toán SAT bằng cách nhúng các vị ngữ thuộc các lý thuyết toán học chuyên biệt vào công thức logic.
+
+Kiến trúc chuẩn của các bộ giải SMT hiện đại dựa trên mô hình \textbf{DPLL(T)}:
+\begin{itemize}
+    \item \textbf{Tầng giải SAT (SAT Engine):} Sử dụng thuật toán CDCL (Conflict-Driven Clause Learning) để trừu tượng hóa các mệnh đề lý thuyết thành các biến Boolean và tìm kiếm một phép gán chân trị thỏa mãn cấu trúc mệnh đề.
+    \item \textbf{Tầng giải Lý thuyết (Theory Solver $T$):} Nhận tập hợp các mệnh đề lý thuyết được gán chân trị True từ SAT engine và kiểm tra xem phép gán đó có mâu thuẫn nội tại trong lý thuyết $T$ hay không. Nếu có mâu thuẫn, Theory Solver tạo ra một mệnh đề xung đột (Conflict Clause) và đẩy ngược lại cho SAT engine để quay lui.
+\end{itemize}
+
+\subsection{Lý thuyết QF-LIA (Quantifier-Free Linear Integer Arithmetic)}
+Tập con toán học mà đề tài tập trung giải quyết là \textbf{QF-LIA} (Quantifier-Free Linear Integer Arithmetic -- Số học nguyên tuyến tính không chứa lượng từ). Ngữ pháp của các công thức trong QF-LIA được định nghĩa hình thức như sau:
+\begin{align}
+\text{Term} \ t &::= c \mid x \mid c \cdot x \mid t_1 + t_2 \mid t_1 - t_2 \\
+\text{Formula} \ \phi &::= t_1 = t_2 \mid t_1 \le t_2 \mid t_1 < t_2 \mid \neg \phi \mid \phi_1 \land \phi_2 \mid \phi_1 \lor \phi_2
+\end{align}
+Trong đó $c \in \mathbb{Z}$ là các hằng số nguyên, và $x \in \mathcal{V}$ là các biến nhận giá trị nguyên.
+
+Đặc tính lý thuyết quan trọng của QF-LIA:
+\begin{itemize}
+    \item \textbf{Tính Quyết định được (Decidable):} Tồn tại thuật toán luôn luôn dừng và đưa ra câu trả lời chính xác (SAT hoặc UNSAT) cho bất kỳ công thức nào thuộc QF-LIA.
+    \item \textbf{Độ phức tạp Tính toán:} Bài toán quyết định tính thỏa mãn của QF-LIA là một bài toán NP-đầy đủ (NP-complete).
+    \item \textbf{Thuật toán Giải quyết:} Z3 giải quyết QF-LIA bằng cách kết hợp thuật toán Dual Simplex trên số thực với các kỹ thuật cắt nhánh số nguyên chuyên sâu như Branch-and-Bound, Gomory's Cutting Planes, và GCD test.
+\end{itemize}
+
+\section{Mô hình Ngôn ngữ Lớn (LLM) và Kỹ thuật Chain-of-Thought}
+\label{sec:llm_and_cot}
+
+\subsection{Cơ chế Sinh Tự hồi quy của Mô hình Ngôn ngữ Lớn}
+Các mô hình ngôn ngữ lớn hiện đại như GPT-4 hay Google Gemini hoạt động dựa trên kiến trúc Transformer chỉ có bộ giải mã (Decoder-only Transformer). Xét về bản chất toán học, mô hình xấp xỉ phân bố xác suất có điều kiện của từ (token) tiếp theo $w_t$ dựa trên chuỗi ngữ cảnh các từ xuất hiện trước đó $w_1, w_2, \dots, w_{t-1}$:
+\begin{equation}
+P(W) = \prod_{t=1}^{N} P(w_t \mid w_1, w_2, \dots, w_{t-1}; \Theta)
+\end{equation}
+Trong đó $\Theta$ là ma trận hàng trăm tỷ tham số trọng số được tối ưu hóa qua giai đoạn tiền huấn luyện tự giám sát (self-supervised pre-training) trên hàng nghìn tỷ token văn bản và mã nguồn.
+
+\subsection{Kỹ thuật Chuỗi Lý luận (Chain-of-Thought -- CoT)}
+Kỹ thuật gợi mở Chuỗi lý luận (Chain-of-Thought Prompting) \cite{wei2022chain} yêu cầu mô hình phát sinh một chuỗi các bước suy luận trung gian bằng ngôn ngữ tự nhiên trước khi đưa ra câu trả lời cuối cùng:
+\begin{equation}
+P(\text{Answer} \mid \text{Prompt}) = \sum_{\text{Trace}} P(\text{Answer} \mid \text{Trace}, \text{Prompt}) \cdot P(\text{Trace} \mid \text{Prompt})
+\end{equation}
+Trong bài toán phân tích chương trình, CoT cho phép mô hình mô phỏng lại từng bước tính toán: giải thích dòng lệnh đang làm gì, biến $x$ nhận giá trị bao nhiêu sau phép tính, và rẽ theo nhánh nào.
+
+Tuy nhiên, như đã phân tích, các bước CoT này hoàn toàn không có ràng buộc ngữ nghĩa hình thức bắt buộc. Mô hình có thể ``lý luận'' ra một bước chuyển trạng thái không hề tồn tại trong mã, hoặc ngộ nhận một điều kiện biên. Do đó, việc cấu trúc hóa CoT thành các bản ghi JSON có lược đồ chặt chẽ và gắn kết từng bước với AST là chìa khóa để thuần hóa LLM thành một công cụ sinh giả thuyết hữu ích.
+
+\section{Hệ thống Độ đo Đánh giá Chất lượng Kiểm chứng}
+\label{sec:metrics_definition}
+
+Để đánh giá toàn diện và khách quan hiệu năng của framework đề xuất cũng như so sánh với các baseline, đề tài thiết lập một hệ thống chỉ số đo lường đa chiều, kết hợp giữa các độ đo học máy cổ điển và các chỉ số đặc thù của kiểm chứng hình thức.
+
+\subsection{Ma trận Nhầm lẫn và Các Độ đo Phân loại Cổ điển}
+Trong bài toán kiểm chứng tính đúng đắn của chương trình, lớp tích cực (Positive Class) được quy ước chuẩn là nhãn \texttt{VERIFIED} (Chương trình an toàn, không có lỗi). Do đó:
+\begin{itemize}
+    \item \textbf{True Positive (TP):} Chương trình thực tế là an toàn và hệ thống kết luận chính xác là \texttt{VERIFIED}.
+    \item \textbf{False Positive (FP):} Chương trình thực tế có chứa lỗi (hoặc vi phạm assertion), nhưng hệ thống kết luận sai lầm là \texttt{VERIFIED}. Đây là lỗi nghiêm trọng nhất trong kiểm chứng hình thức (Soundness violation).
+    \item \textbf{True Negative (TN):} Chương trình thực tế có chứa lỗi và hệ thống phát hiện chính xác lỗi, kết luận là \texttt{COUNTEREXAMPLE}.
+    \item \textbf{False Negative (FN):} Chương trình thực tế là an toàn nhưng hệ thống lại báo động giả là có \texttt{COUNTEREXAMPLE} hoặc không thể kết luận.
+\end{itemize}
+
+Từ ma trận nhầm lẫn, các chỉ số được tính toán như sau:
+\begin{align}
+\text{Accuracy} &= \frac{\text{TP} + \text{TN}}{\text{TP} + \text{TN} + \text{FP} + \text{FN}} \\
+\text{Precision} &= \frac{\text{TP}}{\text{TP} + \text{FP}} \\
+\text{Recall} &= \frac{\text{TP}}{\text{TP} + \text{FN}} \\
+\text{F1-Score} &= 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}} \\
+\text{FDR (False Discovery Rate)} &= \frac{\text{FP}}{\text{TP} + \text{FP}} = 1 - \text{Precision}
+\end{align}
+
+\subsection{Các Chỉ số Đặc thù của Kiểm chứng Neuro-Symbolic}
+
+\begin{enumerate}
+    \item \textbf{Tỷ lệ Ảo giác (Hallucination Rate -- HR):}
+    Đo lường tần suất mô hình LLM phát sinh các khẳng định vô căn cứ, không thể neo được vào cấu trúc AST hoặc chứa các biến không tồn tại trong bảng phạm vi ký hiệu:
+    \begin{equation}
+    \text{HR} = \frac{N_{\text{UNSUPPORTED}} + N_{\text{TRANSLATION\_ERROR}}}{N_{\text{total\_claims}}}
+    \end{equation}
+    Một hệ thống có HR càng thấp chứng tỏ khả năng kiểm soát ảo giác của cơ chế prompt và cổng neo càng tốt. Đối với các baseline không có cổng neo AST, chỉ số này được định danh chính xác là \textbf{N/A} (Not Applicable), không bao giờ được quy ước là 0.
+
+    \item \textbf{Tỷ lệ Phản ví dụ Tái hiện Hợp lệ (Counterexample Replay Validity Rate -- CRVR / Fidelity):}
+    Đo lường mức độ trung thực của các phản ví dụ được báo cáo. Khi hệ thống tuyên bố tìm thấy phản ví dụ, giá trị cụ thể được nạp vào runtime CPython để chạy kiểm tra chéo:
+    \begin{equation}
+    \text{CRVR} = \frac{N_{\text{replay\_confirmed}}}{N_{\text{counterexamples\_reported}}}
+    \end{equation}
+    Nếu $\text{CRVR} = 100\%$, mọi phản ví dụ mà công cụ cảnh báo đều là lỗi thật của mã nguồn, hoàn toàn loại bỏ báo động giả.
+
+    \item \textbf{Tỷ lệ Phát hiện Nhánh Chết (Dead-Code Detection Rate):}
+    Số lượng các claim được định vị chính xác là nằm trên các đường đi không thể đạt (\texttt{UNREACHABLE}) nhờ vào truy vấn Reachability:
+    \begin{equation}
+    \text{DeadCode\_Count} = N_{\text{UNREACHABLE}}
+    \end{equation}
+
+    \item \textbf{Độ đo Chi phí Tài nguyên và Độ trễ (Resource \& Latency Overhead):}
+    \begin{itemize}
+        \item \textbf{Latency (s):} Thời gian thực thi trung bình để hoàn thành phân tích một chương trình.
+        \item \textbf{Token Consumption:} Số lượng token đầu vào (prompt tokens) và token đầu ra (completion tokens) tiêu thụ trung bình trên mỗi chương trình.
+        \item \textbf{API Financial Cost (USD):} Chi phí tài chính ước tính tính trên 1.000 yêu cầu API dựa trên bảng giá chuẩn thương mại của nhà cung cấp mô hình.
+    \end{itemize}
+\end{enumerate}

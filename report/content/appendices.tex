@@ -1,0 +1,347 @@
+\appendix
+
+\chapter{Đặc tả Văn phạm Chi tiết của Tập con An toàn (Safe Subset)}
+\label{app:safe_subset_grammar}
+
+Phụ lục này cung cấp toàn văn đặc tả ngữ pháp hình thức theo dạng Chuẩn Backus-Naur Mở rộng (Extended Backus-Naur Form -- EBNF) của tập con ngôn ngữ Python QF-LIA được hỗ trợ bởi hệ thống, cùng bảng ánh xạ ngữ nghĩa hình thức tương ứng sang lý thuyết SMT.
+
+\section{Ngữ pháp EBNF}
+\begin{lstlisting}[language=Python, caption={Đặc tả EBNF của Safe Subset QF-LIA}]
+program      ::= function_def | stmt_list
+function_def ::= "def" NAME "(" [param_list] ")" ":" NEWLINE INDENT stmt_list DEDENT
+param_list   ::= NAME ("," NAME)*
+
+stmt_list    ::= stmt+
+stmt         ::= simple_stmt | compound_stmt
+
+simple_stmt  ::= (assign_stmt | augassign_stmt | assert_stmt | return_stmt | pass_stmt) NEWLINE
+compound_stmt::= if_stmt | while_stmt | for_stmt
+
+assign_stmt  ::= NAME "=" expr
+augassign_stmt::= NAME ("+=" | "-=") expr
+assert_stmt  ::= "assert" bexpr ["," STRING]
+return_stmt  ::= "return" [expr]
+pass_stmt    ::= "pass"
+
+if_stmt      ::= "if" bexpr ":" suite ("elif" bexpr ":" suite)* ["else" ":" suite]
+while_stmt   ::= "while" bexpr ":" suite
+for_stmt     ::= "for" NAME "in" "range" "(" range_args ")" ":" suite
+suite        ::= NEWLINE INDENT stmt_list DEDENT
+
+range_args   ::= expr | expr "," expr ["," INT_LITERAL]
+
+expr         ::= term (("+" | "-") term)*
+term         ::= factor (("*" | "//" | "%") INT_LITERAL)*
+factor       ::= ["+" | "-"] atom
+atom         ::= INT_LITERAL | NAME | "(" expr ")"
+
+bexpr        ::= bterm ("or" bterm)*
+bterm        ::= bfactor ("and" bfactor)*
+bfactor      ::= ["not"] bfactor | comp_expr | "(" bexpr ")"
+comp_expr    ::= expr comp_op expr
+comp_op      ::= "==" | "!=" | "<" | "<=" | ">" | ">="
+
+INT_LITERAL  ::= ["0" | [1-9][0-9]*]
+NAME         ::= [a-zA-Z_][a-zA-Z0-9_]*
+\end{lstlisting}
+
+\section{Bảng Ánh xạ Ngữ nghĩa sang Lý thuyết SMT (QF-LIA)}
+Bảng \ref{tab:semantic_mapping_smt} mô tả quy tắc dịch tương đương từ các cấu trúc cú pháp của Safe Subset sang các toán tử của logic SMT-LIB2 trong Z3.
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Cấu trúc Python} & \textbf{Biểu thức SMT-LIB2 Tương đương} & \textbf{Ngữ nghĩa Toán học} \\
+\hline
+\texttt{x = e} & \texttt{(= x\_new [[e]])} & Phép gán SSA (Phiên bản mới) \\
+\texttt{x += e} & \texttt{(= x\_new (+ x\_old [[e]]))} & Gán kết hợp tăng \\
+\texttt{x -= e} & \texttt{(= x\_new (- x\_old [[e]]))} & Gán kết hợp giảm \\
+\texttt{e1 + e2} & \texttt{(+ [[e1]] [[e2]])} & Phép cộng số nguyên đại số \\
+\texttt{e1 - e2} & \texttt{(- [[e1]] [[e2]])} & Phép trừ số nguyên đại số \\
+\texttt{c * x} & \texttt{(* c x)} & Nhân vô hướng với hằng số $c \in \mathbb{Z}$ \\
+\texttt{x // c} & \texttt{(div x c)} & Phép chia nguyên (với $c \ne 0$) \\
+\texttt{x \% c} & \texttt{(mod x c)} & Phép lấy phần dư (với $c > 0$) \\
+\texttt{e1 == e2} & \texttt{(= [[e1]] [[e2]])} & Quan hệ đồng nhất \\
+\texttt{e1 != e2} & \texttt{(not (= [[e1]] [[e2]]))} & Quan hệ bất đẳng \\
+\texttt{e1 < e2} & \texttt{(< [[e1]] [[e2]])} & Quan hệ thứ tự nghiêm ngặt \\
+\texttt{e1 <= e2} & \texttt{(<= [[e1]] [[e2]])} & Quan hệ thứ tự không nghiêm ngặt \\
+\texttt{b1 and b2} & \texttt{(and [[b1]] [[b2]])} & Hội logic Boolean \\
+\texttt{b1 or b2} & \texttt{(or [[b1]] [[b2]])} & Tuyển logic Boolean \\
+\texttt{not b} & \texttt{(not [[b]])} & Phủ định logic Boolean \\
+\texttt{if B ...} & \texttt{(ite [[B]] path\_then path\_else)} & Hội tụ luồng điều khiển SSA \\
+\hline
+\end{tabular}
+\caption{Bảng ánh xạ ngữ nghĩa giữa Python Safe Subset và SMT-LIB2}
+\label{tab:semantic_mapping_smt}
+\end{table}
+
+\chapter{Lược đồ Dữ liệu JSON Chuẩn (Data Schemas)}
+\label{app:data_schemas}
+
+Phụ lục này trình bày định nghĩa hình thức lược đồ JSON Schema của các đối tượng dữ liệu trao đổi trong framework.
+
+\section{Lược đồ Khẳng định (Claim Schema)}
+\begin{lstlisting}[language=Python, caption={Lược đồ JSON của đối tượng Claim}]
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claim",
+  "type": "object",
+  "required": ["claim_id", "statement", "expression", "node_id", "line"],
+  "properties": {
+    "claim_id": {"type": "string", "pattern": "^claim_[0-9]+$"},
+    "statement": {"type": "string", "description": "Ma nguon bieu thuc goc"},
+    "expression": {"type": "string", "description": "Bieu thuc toan hoc can kiem chung"},
+    "node_id": {"type": "string", "pattern": "^[A-Za-z]+@L[0-9]+(_[0-9]+)?$"},
+    "line": {"type": "integer", "minimum": 1},
+    "column": {"type": "integer", "minimum": 0},
+    "source": {"type": "string", "enum": ["source_assert", "llm_cot", "invariant_generator"]},
+    "expected_verdict": {"type": "string", "enum": ["VERIFIED", "COUNTEREXAMPLE"]}
+  }
+}
+\end{lstlisting}
+
+\section{Lược đồ Đặc tả Chương trình Đầu vào (ProgramSpec Schema)}
+\begin{lstlisting}[language=Python, caption={Lược đồ JSON của đối tượng ProgramSpec}]
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProgramSpec",
+  "type": "object",
+  "required": ["program_id", "source"],
+  "properties": {
+    "program_id": {"type": "string"},
+    "source": {"type": "string", "description": "Toan van ma nguon Python"},
+    "source_path": {"type": "string"},
+    "claims": {
+      "type": "array",
+      "items": {"$ref": "#/definitions/Claim"}
+    },
+    "precondition": {"type": ["string", "null"], "description": "Tien dieu kien dau vao"},
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "category": {"type": "string"},
+        "ground_truth": {"type": "string", "enum": ["VERIFIED", "COUNTEREXAMPLE"]}
+      }
+    }
+  }
+}
+\end{lstlisting}
+
+\chapter{Đặc tả Chi tiết 14 Phương pháp Baseline (A--N)}
+\label{app:baselines_specification}
+
+Phụ lục này cung cấp tài liệu kỹ thuật chi tiết về cơ chế vận hành, thuật toán, cờ năng lực và các tham số của toàn bộ 14 baseline đối chứng.
+
+\section{Baseline A: SatLM Direct SMT-LIB2}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Prompt trực tiếp yêu cầu mô hình đóng vai trò biên dịch viên ngôn ngữ, chuyển toàn bộ logic của hàm Python và thuộc tính kiểm tra thành mã kịch bản SMT-LIB2 hoàn chỉnh chứa các lệnh \texttt{(declare-const ...)}, \texttt{(assert ...)}, và lệnh kiểm tra phủ định thuộc tính \texttt{(check-sat)}.
+    \item \textbf{Bộ giải:} Script SMT-LIB2 được chuyển thẳng cho Z3 Solver. Nếu kết quả là \texttt{unsat} $\implies$ \texttt{VERIFIED}; nếu là \texttt{sat} $\implies$ \texttt{COUNTEREXAMPLE}.
+    \item \textbf{Đặc tính:} Không có AST trung gian, không có truy vấn Reachability, không sinh input cụ thể để replay CPython.
+\end{itemize}
+
+\section{Baseline B: Execution Grounding}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Hệ thống tự động khởi chạy chương trình trên một lưới gồm 10 vector đầu vào cụ thể (bao gồm các giá trị biên $-1, 0, 1$). Ghi nhận vết thực thi động (dòng lệnh đã chạy và biến sau mỗi dòng).
+    \item \textbf{Prompting:} Vết thực thi được định dạng thành bảng văn bản và đưa vào prompt: \textit{``Dựa trên các vết thực thi đã quan sát được ở trên, hãy xác định xem câu lệnh assert có luôn đúng hay không.''}
+    \item \textbf{Hỗ trợ Replay:} Có. Mọi phản ví dụ được kiểm tra chéo ngay trên runtime.
+
+\end{itemize}
+
+\section{Baseline C: Structural Reasoning (CFG + Python k-induction)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Trích xuất bộ khung điều khiển (CFG) từ AST. Triển khai thuật toán $k$-induction hoàn toàn trong môi trường Python bằng cách duỗi các bước lặp tượng trưng và đánh giá biểu thức mà không gọi Z3.
+    \item \textbf{Ưu nhược điểm:} Độc lập hoàn toàn với solver hình thức bên ngoài, nhưng bị giới hạn về khả năng giải quyết các hệ bất phương trình đa biến phức tạp.
+\end{itemize}
+
+\section{Baseline D: LLM-as-a-Judge}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Đại diện cho phương pháp đánh giá AI zero-shot phổ biến. LLM nhận mã nguồn và claim, sinh chuỗi lý luận CoT bằng ngôn ngữ tự nhiên tự do, tự phân tích các trường hợp biên, và đưa ra câu trả lời theo cấu trúc: \texttt{VERDICT: [VERIFIED | COUNTEREXAMPLE]}.
+    \item \textbf{Phân tích Phản ví dụ:} Nếu mô hình tuyên bố \texttt{COUNTEREXAMPLE}, hệ thống sử dụng biểu thức chính quy (Regex) để trích xuất các giá trị biến do mô hình đề xuất và kích hoạt CPython replay.
+\end{itemize}
+
+\section{Baseline E: Neuro-Symbolic AutoSpec}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Mô phỏng công trình AutoSpec \cite{wen2024autospec}. LLM đề xuất một bộ đặc tả đầy đủ (precondition, postcondition, invariant). Bộ kiểm tra hình thức tĩnh đối chiếu đặc tả với mã nguồn. Nếu phát hiện vi phạm hoặc đặc tả mâu thuẫn, thông báo lỗi được phản hồi lại để LLM tinh chỉnh trong tối đa 3 vòng lặp.
+\end{itemize}
+
+\section{Baseline F: Agentic Multi-Step (ReAct-style)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Tác tử hoạt động theo chu trình tự hành ReAct:
+    \begin{enumerate}
+        \item \texttt{PLAN:} Lập kế hoạch kiểm chứng các trường hợp rẽ nhánh.
+        \item \texttt{ANALYZE:} Phân tích logic chuyển trạng thái của biến.
+        \item \texttt{TEST:} Tác tử chủ động gọi công cụ Tool để chạy thử chương trình trên CPython với một vector đầu vào nghi ngờ.
+        \item \texttt{VERIFY:} Dựa trên kết quả chạy thật, xác nhận hoặc bác bỏ giả thuyết.
+        \item \texttt{REFINE:} Tinh chỉnh kết luận cuối cùng.
+    \end{enumerate}
+\end{itemize}
+
+\section{Baseline G: Self-Consistency}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Khai thác kỹ thuật Self-Consistency \cite{wang2022self}. Khởi tạo 5 phiên lấy mẫu CoT độc lập từ Gemini với nhiệt độ $T = 0.7$. Trích xuất phán quyết từ cả 5 phiên và áp dụng luật bỏ phiếu đa số tuyệt đối (Majority Voting). Nếu tỷ lệ phiếu hòa (ví dụ 2 VERIFIED, 2 COUNTEREXAMPLE, 1 UNKNOWN), hệ thống trả về \texttt{UNKNOWN\_TIMEOUT}.
+\end{itemize}
+
+\section{Baseline H: Self-Refine}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Khai thác kỹ thuật Self-Refine \cite{madaan2024self}. Mô hình thực hiện quy trình tự phản biện nội tâm qua 3 vòng lặp liên tiếp:
+    \begin{itemize}
+        \item Vòng 1: Đưa ra phán quyết ban đầu và lời giải thích.
+        \item Vòng 2: Tự đóng vai một chuyên gia phản biện khắt khe, tìm kiếm các lỗi ngụy biện hoặc ca biên bị bỏ sót trong lời giải của Vòng 1.
+        \item Vòng 3: Dựa trên lời tự phê bình, cập nhật lại phán quyết và lời giải thích cuối cùng.
+    \end{itemize}
+\end{itemize}
+
+\section{Baseline I: LLM-Guided Property-Based Testing (PBT)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} LLM phân tích mã nguồn và tự động sinh mã kiểm thử dựa trên thuộc tính sử dụng thư viện Hypothesis của Python. Mô hình định nghĩa các chiến lược sinh dữ liệu (Strategies như \texttt{st.integers(min\_value=0, max\_value=100)}). Thư viện Hypothesis chạy 200 ca kiểm thử ngẫu nhiên có thu nhỏ (shrinking) để tìm phản ví dụ tối thiểu.
+\end{itemize}
+
+\section{Baseline J: Deterministic Fuzzing (0 Token, Offline)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Phương pháp kiểm thử tự động cổ điển, tiêu thụ đúng 0 token. Bộ fuzzing sinh 256 vector thử nghiệm dựa trên phân tích giá trị biên (Boundary Value Analysis): tập các số cực tiểu/cực đại, $0, 1, -1, 2, -2$, các lũy thừa của 2 ($2^8, 2^{16}, 2^{31}-1$), và các số giả ngẫu nhiên từ seed 42. Chạy toàn bộ trên CPython.
+\end{itemize}
+
+\section{Baseline K: Mutation Testing (0 Token, Offline)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Tạo ra 50 biến thể đột biến cú pháp (mutants) của chương trình gốc:
+    \begin{itemize}
+        \item Hoán đổi toán tử quan hệ: $<$ thành $\le$, $==$ thành $!=$, v.v.
+        \item Hoán đổi toán tử số học: $+$ thành $-$, $*$ thành $/$.
+        \item Dịch chuyển hằng số: $c$ thành $c + 1$ hoặc $c - 1$.
+    \end{itemize}
+    Chạy claim đối chiếu với các mutant để đo điểm đột biến (Mutation Score).
+\end{itemize}
+
+\section{Baseline L: Pure Symbolic Execution (0 Token, Offline)}
+\begin{itemize}
+    \item \textbf{Cơ chế:} Thực thi ký hiệu thuần túy không dùng LLM dựa trên Z3 và thuật toán PDR/Spacer. Liệt kê toàn bộ các đường đi khả đạt tới câu lệnh \texttt{assert}. Hỗ trợ cờ \texttt{supports\_reachability = True}.
+\end{itemize}
+
+\section{Baseline M: Hoare Triple Natural Language Verification}
+\begin{itemize}
+    \item \textbf{Cơ chế:} LLM được hướng dẫn phân rã toàn bộ hàm thành chuỗi các bộ ba Hoare $\{P\} \; C \; \{Q\}$ bằng văn bản tự nhiên, phân tích tính đúng đắn của từng bộ ba theo các tiên đề Hoare và tổng hợp kết luận.
+\end{itemize}
+
+\section{Baseline N: Invariant Synthesis with SMT}
+\begin{itemize}
+    \item \textbf{Cơ chế:} LLM chỉ làm nhiệm vụ duy nhất là đề xuất từ 1 đến 3 ứng viên bất biến vòng lặp. Z3 solver đóng vai trò thẩm định viên độc lập, kiểm tra Base Case và Inductive Step. Nếu bất biến được chứng minh, Z3 dùng nó để xác minh assertion.
+\end{itemize}
+
+\chapter{Toàn văn Mẫu Nhắc lệnh (Prompt Templates)}
+\label{app:prompt_templates}
+
+Phụ lục này lưu trữ toàn văn các mẫu nhắc nhở (Prompt Templates) chính được sử dụng để tương tác với mô hình ngôn ngữ lớn Gemini trong framework.
+
+\section{System Prompt cho Bộ Sinh Trace (Reasoning Trace Generator)}
+\begin{lstlisting}[language=TeX, caption={System Prompt chuẩn cho Structured Trace Generation}]
+You are an expert formal program verifier and static analysis engine.
+Your task is to analyze a given Python program written in a safe QF-LIA subset and construct a strictly verified, step-by-step reasoning trace.
+
+CRITICAL ARCHITECTURAL CONSTRAINTS:
+1. Strict Single Static Assignment (SSA): Every variable update MUST introduce a strictly monotonically increasing integer version (e.g., x_1 = 5, x_2 = x_1 + 1). Never reuse an existing variable version on the LHS of an assignment.
+2. Canonical AST Anchoring: Every reasoning step MUST explicitly anchor to a valid AST node ID present in the provided source code (e.g., Assign@L4, If@L6, While@L10).
+3. Zero-Hallucination Policy: You are strictly forbidden from referencing variables that do not exist in the lexical scope of the program. Out-of-scope variable references will cause immediate gate rejection.
+4. Output Format: You MUST reply with a single valid JSON object adhering strictly to the ReasoningTrace JSON schema. Do not enclose your output in conversational markdown fluff outside the JSON block.
+\end{lstlisting}
+
+\section{Prompt cho Vòng Phản hồi Hồi cứu (Retrospective Feedback Prompt)}
+\begin{lstlisting}[language=TeX, caption={Prompt mẫu cho Vòng phản hồi hồi cứu}]
+[DIAGNOSTIC FAILURE CONTEXT - CPYTHON RUNTIME EXECUTION ERROR]
+A physical runtime execution in CPython sandbox has CONFIRMED that your previous reasoning trace and asserted claim failed with a concrete counterexample.
+
+- Target AST Node: {node_id} at line {crash_line}
+- Input Concrete Vector: {concrete_inputs}
+- Concrete Variable State at Crash: {state_at_crash}
+- Failed Claim Expression: {failed_claim}
+- Runtime Exception: AssertionError physically triggered at line {crash_line}
+
+YOUR TASK:
+1. Analyze the exact mathematical reason why the program violated the assertion under the given input vector.
+2. Identify whether the error stems from an invalid loop invariant, boundary case oversight, or incorrect branch guard propagation.
+3. Propose a REVISED, mathematically sound claim or inductive loop invariant that correctly characterizes the true semantics of the program.
+4. Output your revised step in the standard JSON format.
+\end{lstlisting}
+
+\chapter{Các Ca Nghiên cứu Thực tế Điển hình (Case Studies)}
+\label{app:case_studies}
+
+Phụ lục này trình bày ba ca nghiên cứu thực tế được trích xuất trực tiếp từ các phiên chạy benchmark của framework, minh họa sinh động năng lực của phương pháp đề xuất.
+
+\section{Ca Nghiên cứu 1: Kiểm chứng Vòng lặp với Bất biến Quy nạp}
+\begin{lstlisting}[language=Python, caption={Mã nguồn bài toán loop\_sum\_safe}]
+def loop_sum(n: int) -> int:
+    # Precondition: n >= 0
+    s = 0
+    i = 0
+    while i < n:
+        s = s + 1
+        i = i + 1
+    assert s == n
+    return s
+\end{lstlisting}
+
+\begin{itemize}
+    \item \textbf{Cổng neo AST:} Neo thành công các bước: \texttt{Assign@L3} ($s_1 = 0$), \texttt{Assign@L4} ($i_1 = 0$), \texttt{While@L5} (Guard: $i < n$), và \texttt{Assert@L9} ($s == n$).
+    \item \textbf{Tổng hợp Bất biến:} LLM đề xuất ứng viên bất biến:
+    \begin{equation*}
+    I(s, i, n) \equiv (s == i) \land (0 \le i \le n)
+    \end{equation*}
+    \item \textbf{Kiểm chứng Z3:}
+    \begin{enumerate}
+        \item \textit{Khởi tạo:} $(n \ge 0 \land s = 0 \land i = 0) \implies (s == i \land 0 \le i \le n)$ $\implies$ \texttt{UNSAT} cho phủ định $\implies$ Đúng.
+        \item \textit{Bảo toàn:} $(s == i \land 0 \le i \le n \land i < n \land s' = s + 1 \land i' = i + 1) \implies (s' == i' \land 0 \le i' \le n)$ $\implies$ \texttt{UNSAT} cho phủ định $\implies$ Đúng.
+        \item \textit{Hậu điều kiện:} Khi vòng lặp kết thúc, $\neg (i < n) \implies i \ge n$. Kết hợp với $i \le n$ từ bất biến suy ra $i == n$. Vì $s == i$, suy ra $s == n$.
+    \end{enumerate}
+    \item \textbf{Phán quyết Cuối cùng:} \texttt{VERIFIED}.
+\end{itemize}
+
+\section{Ca Nghiên cứu 2: Phát hiện Phản ví dụ và Tự Sửa sai Thành công}
+\begin{lstlisting}[language=Python, caption={Mã nguồn bài toán bước nhảy step\_two\_buggy}]
+def step_two(n: int) -> int:
+    # Precondition: n >= 0
+    x = 0
+    while x < n:
+        x = x + 2
+    assert x == n
+    return x
+\end{lstlisting}
+
+\begin{itemize}
+    \item \textbf{Phân tích Ban đầu của LLM:} LLM ngây thơ tuyên bố assertion luôn đúng vì $x$ tăng dần tới $n$.
+    \item \textbf{Z3 Validity Query:} Solver tìm được nghiệm phản ví dụ: $n = 1$.
+    \begin{itemize}
+        \item Khởi tạo: $x = 0$. Vòng lặp kiểm tra: $0 < 1$ (True).
+        \item Thân vòng lặp: $x = 0 + 2 = 2$.
+        \item Vòng lặp kiểm tra tiếp: $2 < 1$ (False) $\implies$ Thoát vòng lặp.
+        \item Tại dòng assert: kiểm tra $x == n \iff 2 == 1 \implies$ Sai!
+    \end{itemize}
+    \item \textbf{CPython Replay:} Nạp $n = 1$ vào CPython. Runtime ném ngoại lệ \texttt{AssertionError} tại dòng 6. Replay thành công 100\% (\texttt{CRVR = True}).
+    \item \textbf{Vòng Phản hồi Hồi cứu (Round 1):} Ngữ cảnh chẩn đoán với $n = 1, x = 2$ được gửi lại cho LLM. LLM nhận ra rằng $x == n$ chỉ đúng khi $n$ là số chẵn.
+    \item \textbf{Khẳng định Đã Sửa đổi:} LLM đề xuất lại claim có điều kiện:
+    \begin{equation*}
+    \text{Revised Claim:} \quad (n \% 2 == 0 \implies x == n) \land (n \% 2 == 1 \implies x == n + 1)
+    \end{equation*}
+    \item \textbf{Z3 Kiểm chứng Lại:} Claim mới được Z3 chứng minh thành công. Hệ thống ghi nhận: \textbf{Tự sửa sai thành công sau 1 vòng phản hồi}.
+\end{itemize}
+
+\section{Ca Nghiên cứu 3: Ngăn chặn Chứng minh Rỗng trên Nhánh Chết}
+\begin{lstlisting}[language=Python, caption={Mã nguồn chứa nhánh chết unfeasible\_branch}]
+def dead_code_demo(a: int):
+    # Precondition: True
+    if a > 10:
+        if a < 5:
+            # Nhanh chet: a > 10 and a < 5 la vo nghiem
+            assert 1 == 0
+\end{lstlisting}
+
+\begin{itemize}
+    \item \textbf{SatLM:} Bỏ qua reachability, gửi $(a > 10 \land a < 5) \land \neg (1 == 0)$ cho Z3. Solver trả về \texttt{unsat} vì tiền đề mâu thuẫn. SatLM kết luận sai lầm: \textbf{\texttt{VERIFIED}} cho khẳng định $1 == 0$!
+    \item \textbf{Proposed Pipeline:} Giao thức Hai Truy vấn thực thi Truy vấn 1 (Reachability):
+    \begin{equation*}
+    \Phi_{\text{reach}} \equiv \exists a. \ (a > 10 \land a < 5) \implies \texttt{UNSAT}
+    \end{equation*}
+    Hệ thống phát hiện đường đi không thể đạt. Phán quyết phát ra: \textbf{\texttt{UNREACHABLE}}. Khẳng định rỗng $1 == 0$ bị loại bỏ, hoàn toàn bảo vệ tính Soundness của hệ thống.
+\end{itemize}
