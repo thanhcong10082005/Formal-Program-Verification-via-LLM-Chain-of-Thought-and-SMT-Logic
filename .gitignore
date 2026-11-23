@@ -73,4 +73,5 @@ report/*.fls
 report/*.fdb_latexmk
 report/*.run.xml
 report/*.synctex.gz
+report/*.log
 report/prism-uploads/

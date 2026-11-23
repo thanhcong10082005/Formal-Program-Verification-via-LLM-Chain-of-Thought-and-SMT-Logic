@@ -396,12 +396,12 @@ Hợp lệ & \texttt{SAT} & Timeout/Unknown & \texttt{UNKNOWN\_TIMEOUT} (Solver 
 Đối với các chương trình chứa vòng lặp không thể xác định cận lặp tĩnh, việc duỗi vòng lặp sẽ dẫn đến kết quả \texttt{UNKNOWN\_TIMEOUT}. Để đạt được kết luận \texttt{VERIFIED} đầy đủ, mô-đun \texttt{LoopInvariantGenerator} kích hoạt quy trình sinh và kiểm chứng bất biến:
 
 \begin{enumerate}
-    \item \textbf{Đề xuất Ứng viên Bất biến (Candidate Proposal):} Trích xuất trạng thái trước vòng lặp, biểu thức Guard, và thân vòng lặp. Yêu cầu LLM đóng vai trò là một chuyên gia toán học, đề xuất từ 1 đến 3 biểu thức ứng viên bất biến $I_1, I_2, I_3 \in \text{QF-LIA}$.
+    \item \textbf{Đề xuất Ứng viên Bất biến (Candidate Proposal):} Trích xuất trạng thái trước vòng lặp, biểu thức Guard, và thân vòng lặp. Yêu cầu LLM đóng vai trò là một chuyên gia toán học, đề xuất từ 1 đến 3 biểu thức ứng viên bất biến $I_1, I_2, I_3 \in \text{QF-LIA}$. Song song với LLM, hệ thống luôn sinh sẵn các mẫu bất biến tương đối (relational) theo dạng $(x \geq 0)$, $(x \leq y)$ để bảo đảm cơ chế hoạt động khi không có khoá API.
     \item \textbf{Kiểm chứng Tính Khởi tạo:} Với mỗi ứng viên $I$, thiết lập truy vấn Z3:
     \begin{equation}
     \Phi_{\text{init}} \equiv \text{Precondition}(s_0) \land \neg I(s_0)
     \end{equation}
-    Nếu $\text{Check}(\Phi_{\text{init}}) \ne \texttt{UNSAT}$, loại bỏ ứng viên $I$.
+    Trạng thái $s_0$ được ràng buộc bằng \emph{trạng thái thực tế tại đầu vòng lặp} do bộ thực thi ký hiệu tin cậy cung cấp. Nếu $\text{Check}(\Phi_{\text{init}}) \ne \texttt{UNSAT}$, loại bỏ ứng viên $I$.
     \item \textbf{Kiểm chứng Bước Quy nạp (Inductive Step):} Thiết lập truy vấn Z3:
     \begin{equation}
     \Phi_{\text{step}} \equiv I(s) \land \text{Guard}(s) \land T_{\text{body}}(s, s') \land \neg I(s')
@@ -410,6 +410,16 @@ Hợp lệ & \texttt{SAT} & Timeout/Unknown & \texttt{UNKNOWN\_TIMEOUT} (Solver 
     \item \textbf{Mở rộng $k$-Induction:} Nếu bước quy nạp thất bại ở $k=1$, hệ thống tự động tăng bậc quy nạp lên $k=2$ và $k=3$ theo công thức ở Mục \ref{sec:loop_invariants_k_induction}.
     \item \textbf{Suy luận Hậu điều kiện:} Sử dụng bất biến đã chứng minh $I$ làm tiên đề bổ sung để chứng minh các câu lệnh \texttt{assert} sau vòng lặp.
 \end{enumerate}
+
+\textbf{Phạm vi hiện thực.}
+Bước quy nạp chỉ được mã hoá cho thân vòng lặp gồm các cập nhật cộng hằng số thuần tuý, ví dụ $x \leftarrow x + c$ hoặc $x \leftarrow x - c$. Một thân vòng lặp chứa \texttt{break}, \texttt{return}, một lệnh gán giá trị mới, hoặc một cập nhật phụ thuộc biến khác (ví dụ $s \leftarrow s + i$ với $i$ là bộ đếm vòng lặp) \emph{không} thể mã hoá được bước quy nạp. Trong các trường hợp đó, ứng viên bất biến bị loại bỏ và hệ thống giữ nguyên phán quyết \texttt{UNKNOWN\_TIMEOUT}. Thiết kế này bảo đảm tính \emph{đúng đắn} (soundness): chỉ khi bước quy nạp thực sự được chứng minh bằng Z3 thì bất biến mới được hợp nhất vào quan hệ trạng thái, nếu không một mệnh đề hằng đối (tautology) sẽ có thể "chứng minh" một claim bất kỳ.
+
+\textbf{Đưa bất biến vào giao thức hai truy vấn.}
+Bất biến đã được chứng minh được hợp nhất (conjunct) trực tiếp vào quan hệ trạng thái $R_\pi$ của đường tới claim, trước khi dựng hai bộ giải Z3. Cụ thể:
+\begin{equation}
+R'_\pi = R_\pi \land I(s)
+\end{equation}
+Nhờ vậy, hai truy vấn \emph{reachability} và \emph{validity} suy luận trên tập trạng thái đã được tóm lược bởi bất biến thay vì trên một tiền tố giới hạn của các lần lặp, cho phép phán quyết \texttt{VERIFIED} thay cho \texttt{UNKNOWN\_TIMEOUT} đối với các claim nằm trong hoặc sau vòng lặp.
 
 \section{Giai đoạn 8: Replay Phản ví dụ trong Sandbox CPython \& Vòng Phản hồi Hồi cứu}
 \label{sec:replay_and_retrospective_feedback}

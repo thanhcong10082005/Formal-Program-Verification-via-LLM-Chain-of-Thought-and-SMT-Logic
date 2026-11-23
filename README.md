@@ -103,6 +103,14 @@ prototype/
 │
 ├── dataset_temp_200/                # Bộ phát triển harness 200 mẫu (đã backup)
 │
+├── report/                          # ★ BÁO CÁO (Đồ án chuyên ngành CO4029)
+│   ├── main.tex                     # File gốc, \input các preamble + content
+│   ├── citations.bib                # 30 tài liệu tham khảo (biblatex)
+│   ├── hcmut.pdf                    # Logo HCMUT dùng ở header/titlepage
+│   ├── preamble/                    # packages.tex / format.tex / header_footer.tex
+│   ├── content/                     # 7 chương + frontmatter + appendices + references
+│   └── dataset_curated/manifest.json
+│
 ├── tools/                           # Script dòng lệnh
 │   ├── build_ground_truth.py        # Gán nhãn GT: CPython oracle + Z3 (2 tầng)
 │   ├── extract_preconditions.py     # Trích precondition từ nhánh if
@@ -306,7 +314,7 @@ exception ra ngoài.
 | 2    | `assign_ids` + `extract_asserts` + `bind_llm_claims`      | tree         | `list[Claim]`              | Claim không neo → `UNSUPPORTED` (đếm vào HR)         |
 | 3    | `TrustedSymbolicExecutor.build_all_transitions`           | tree + ids   | `dict[NodeId, Transition]` | Trả `TRANSLATION_ERROR` cho toàn chương trình        |
 | 4    | `generate_cot_and_claims`                                 | source       | `LLMResult`                | Lỗi → claim `TRANSLATION_ERROR` (không làm hỏng run) |
-| 5    | `LoopInvariantGenerator`                                  | loop state   | `InvariantVerification`    | Không có → bỏ qua, không chặn pipeline               |
+| 5    | `LoopInvariantGenerator`                                  | loop state   | `InvariantVerification`    | Có invariant verified → hợp nhất vào `R_π`, claim trong loop đạt `VERIFIED` |
 | 6    | `build_obligations` + `run_reachability` + `run_validity` | claim + path | `TwoQueryObligations`      | Z3 `unknown` → `UNKNOWN_TIMEOUT`                     |
 | 7    | `RetrospectiveFeedbackLoop.run_loop`                      | CE + replay  | claim đã sửa               | Lỗi → giữ nguyên CE (fail-safe)                      |
 
@@ -314,6 +322,25 @@ exception ra ngoài.
 > **Nguyên tắc "fail-safe":** bước 5 và bước 7 là **tùy chọn**. Thiếu API key
 > hoặc LLM lỗi thì pipeline vẫn chạy và vẫn trả kết quả hợp lệ — chỉ mất
 > đi lớp cải thiện, không mất đi kết quả chính.
+
+### 5.0. Loop invariant: từ "duỗi hữu hạn" sang "suy luận quy nạp"
+
+Executor chỉ duỗi vòng lặp **một lần**, nên mọi claim nằm trong hoặc sau
+vòng lặp đều bị đánh dấu `complete=False` → `UNKNOWN_TIMEOUT`. Bước 5 thay
+thế tiền tố hữu hạn bằng **bất biến quy nạp** đã được Z3 chứng minh:
+
+| Bước | Nội dung |
+| ---- | -------- |
+| **Base case** | `entry_state ⊨ I` — trạng thái thực tế tại đầu vòng lặp ràng buộc `I` |
+| **Inductive step** | `I(s) ∧ T_body(s, s') ⊨ I(s')` — thân vòng lặp bảo toàn `I` |
+| **Mở rộng k** | Nếu `k=1` fail, thử `k=2`, `k=3` (extended k-induction) |
+| **Hợp nhất** | `R'π = Rπ ∧ I(s)` — claim và bất biến dùng **chung symbol**, nên giao thức hai truy vấn suy luận được trên mọi lần lặp, không chỉ một tiền tố |
+
+**Soundness:** chỉ khi bước quy nạp **thực sự được mã hoá và chứng minh** thì
+bất biến mới được dùng. Thân vòng lặp chứa `break`/`return`, gán giá trị mới,
+hoặc cập nhật phụ thuộc biến khác (`s = s + i`) ⇒ không mã hoá được ⇒ bất
+biến bị loại ⇒ giữ nguyên `UNKNOWN_TIMEOUT`. Một tautology không bao giờ có
+thể "chứng minh" một claim bất kỳ.
 
 ### 5.1. Ba cơ chế cốt lõi
 
@@ -540,7 +567,6 @@ python -m compileall -q src tools tests
 | **Bất biến**  | Baseline **không** được import từ `core/`; `core/` **không** được import từ `baselines/` |
 | **Fail-safe** | Lỗi ở bước tùy chọn (feedback, invariants) **không** được làm hỏng run chính             |
 | **Metric**    | Không đo được → `None` → in `N/A`. **Không bao giờ** in `0` thay cho `N/A`               |
-
 
 ---
 

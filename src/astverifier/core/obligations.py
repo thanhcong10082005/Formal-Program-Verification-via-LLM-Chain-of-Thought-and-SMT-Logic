@@ -69,8 +69,16 @@ def build_obligations(
     executor: TrustedSymbolicExecutor,
     *,
     precondition: ast.expr | str | None = None,
+    state_symbols: dict[str, z3.ExprRef] | None = None,
 ) -> TwoQueryObligations:
-    """Construct the two Z3 solvers around a claim and its path reachability."""
+    """Construct the two Z3 solvers around a claim and its path reachability.
+
+    ``state_symbols`` maps a variable name to the free symbol the relation
+    uses for it.  When it is supplied, the claim is translated over those
+    symbols, so a loop invariant stated over the same symbols can constrain
+    the claim.  Without it the claim is translated against the concrete
+    state values, which is the classic behaviour.
+    """
     reach_solver = z3.Solver()
     reach_solver.set("timeout", Z3_TIMEOUT_MS)
     reach_solver.add(reachability.relation)
@@ -81,8 +89,15 @@ def build_obligations(
     # The claim is translated against `reachability.state`, so Z3 checks the
     # state at the target rather than a fresh unconstrained local.
     valid_solver.add(reachability.relation)
-    valid_solver.add(z3.Not(_claim_to_z3(claim.expr_node, executor, state=reachability.state)))
-
+    if state_symbols:
+        claim_state = SymState(dict(state_symbols))
+        valid_solver.add(
+            z3.Not(_claim_to_z3(claim.expr_node, executor, state=claim_state))
+        )
+    else:
+        valid_solver.add(
+            z3.Not(_claim_to_z3(claim.expr_node, executor, state=reachability.state))
+        )
     if precondition is not None:
         if isinstance(precondition, str):
             pre_str = precondition.strip()
@@ -97,7 +112,13 @@ def build_obligations(
             pre_node = precondition
 
         if pre_node is not None:
-            pre_z3 = _claim_to_z3(pre_node, executor, state=None)
+            # The precondition is evaluated in the target state so that every
+            # parameter of the function is in scope.  Using a fresh state
+            # here would leave the parameters undefined and turn a valid
+            # precondition into a translation error.
+            pre_z3 = _claim_to_z3(
+                pre_node, executor, state=reachability.state
+            )
             reach_solver.add(pre_z3)
             valid_solver.add(pre_z3)
 

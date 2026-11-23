@@ -15,6 +15,7 @@ Method.
 from __future__ import annotations
 
 import ast
+import contextlib
 import logging
 import time
 from collections.abc import Iterable, Sequence
@@ -35,6 +36,7 @@ from ..shared.schemas import (
 from ..shared.subset import check_and_normalize
 from .binding import Claim, bind_llm_claims, extract_asserts
 from .executor import Reachability, TrustedSymbolicExecutor
+from .invariants import InvariantVerification
 from .obligations import build_obligations, run_reachability, run_validity
 
 log = logging.getLogger(__name__)
@@ -287,7 +289,13 @@ def _resolve_feedback_loop(feedback_loop, enable_feedback: bool, api_key):
 def _resolve_invariant_generator(
     invariant_generator, enable_invariants: bool, api_key
 ):
-    """Return an invariant generator instance, or ``None``."""
+    """Return an invariant generator instance, or ``None``.
+
+    When an API key is available the generator proposes candidates with the
+    LLM.  Without a key it still runs, relying on the cheap deterministic
+    fallback templates, so the invariant path is exercised offline and in
+    tests.
+    """
     if invariant_generator is not None or not enable_invariants:
         return invariant_generator
     try:
@@ -299,6 +307,7 @@ def _resolve_invariant_generator(
                 llm_client=make_client(key),
                 use_llm=True,
             )
+        return LoopInvariantGenerator(llm_client=None, use_llm=False)
     except Exception as exc:  # noqa: BLE001 - invariants are strictly optional
         log.warning("Failed to init invariant generator: %s", exc)
     return None
@@ -334,6 +343,192 @@ def _llm_error_claim(error: object) -> Claim:
         anchor=None,
         status="TRANSLATION_ERROR",
     )
+
+
+def _loops_in_function(
+    executor: TrustedSymbolicExecutor, anchor
+) -> list[ast.AST]:
+    """Return the loops whose result the claim depends on.
+
+    Two kinds of loop matter for a claim:
+
+    * a loop that *contains* the anchor -- the claim is inside the loop body;
+    * a loop that *precedes* the anchor in the same function -- the claim
+      constrains a variable that the loop has already modified, so the loop's
+      invariant is exactly what summarises the claim's state.
+
+    A loop that runs after the anchor is irrelevant and is ignored.
+    """
+    if anchor is None:
+        return []
+    func = executor._enclosing_function_node(anchor)
+    if func is None:
+        return []
+    anchor_line = getattr(anchor, "lineno", -1)
+    loops: list[ast.AST] = []
+    for node in ast.walk(func):
+        if not isinstance(node, (ast.While, ast.For)):
+            continue
+        loop_line = getattr(node, "lineno", -1)
+        contains_anchor = any(child is anchor for child in ast.walk(node))
+        precedes_anchor = loop_line < anchor_line
+        if contains_anchor or precedes_anchor:
+            loops.append(node)
+    # A loop that contains the anchor comes first in source order.
+    loops.sort(key=lambda node: getattr(node, "lineno", 0))
+    return loops
+
+
+def _loop_entry_state(
+    executor: TrustedSymbolicExecutor, loop_node: ast.AST
+) -> dict[str, z3.ExprRef]:
+    """Return the symbolic state at the head of ``loop_node``.
+
+    The trusted executor records the pre-state of every statement, so the
+    loop's entry state is exactly the values the program really has when it
+    reaches the loop.  Constraining the base case with it is what makes the
+    base case meaningful -- otherwise every variable would be free at loop
+    entry and only tautologies could survive.
+    """
+    nid = executor.ids.get(loop_node)
+    if nid is None:
+        return {}
+    transition = executor.transitions.get(nid)
+    if transition is None:
+        return {}
+    return dict(transition.pre.bindings)
+
+
+def _state_dict_for_invariant(
+    executor: TrustedSymbolicExecutor,
+    reachability: Reachability,
+    loop_node: ast.AST | None = None,
+) -> dict[str, z3.ExprRef]:
+    """Build the name -> Z3 value map used to parse an invariant formula.
+
+    The map must describe the state *at the loop head*, not the state at the
+    claim's target node.  The target state has already been unrolled once by
+    the executor, so its values are nested ``If(...)`` terms that no longer
+    look like the program's variables.  The loop-entry state, by contrast,
+    is the program's real state at the loop head, expressed directly in the
+    function's parameters.
+
+    Variables that exist at the target but not at the loop head are added
+    as free integers so the LLM can still mention them.
+    """
+    state: dict[str, z3.ExprRef] = {}
+    if loop_node is not None:
+        state.update(_loop_entry_state(executor, loop_node))
+    for name, value in reachability.state.bindings.items():
+        state.setdefault(name, value)
+    func = executor._enclosing_function_node(
+        reachability.path[-1] if reachability.path else None
+    )
+    if func is not None:
+        for arg in (
+            list(func.args.posonlyargs)
+            + list(func.args.args)
+            + list(func.args.kwonlyargs)
+        ):
+            name = getattr(arg, "arg", None) or getattr(arg, "name", None)
+            if name and name not in state:
+                state[name] = z3.Int(name)
+    return state
+
+
+def _conjoin_invariant(
+    reachability: Reachability, invariant: z3.BoolRef
+) -> Reachability:
+    """Return a copy of ``reachability`` whose relation carries the invariant.
+
+    The invariant is an *assumption* about the states that reach the target,
+    so it is conjoined into the relation.  Both Z3 solvers then reason over
+    the strengthened relation.
+
+    The invariant is first rewritten over the free symbols the relation
+    already uses (``_state_<suffix>_<name>``).  Without this rewrite the
+    invariant would talk about the program's variables while the relation
+    talks about the target-state symbols, and the two would never meet.
+    """
+    symbols = reachability.state_symbols
+    if symbols:
+        pairs = [
+            (z3.Int(name), value)
+            for name, value in symbols.items()
+            if not z3.is_bool(value) and z3.is_expr(value)
+        ]
+        pairs += [
+            (z3.Bool(name), value)
+            for name, value in symbols.items()
+            if z3.is_bool(value) and z3.is_expr(value)
+        ]
+        if pairs:
+            with contextlib.suppress(z3.Z3Exception):
+                invariant = z3.substitute(invariant, *pairs)
+    return Reachability(
+        path=reachability.path,
+        relation=z3.And(reachability.relation, invariant),
+        path_condition=reachability.path_condition,
+        state=reachability.state,
+        complete=reachability.complete,
+        state_symbols=reachability.state_symbols,
+    )
+
+
+def _invariant_assisted_paths(
+    *,
+    claim: Claim,
+    executor: TrustedSymbolicExecutor,
+    reachability_list: list[Reachability],
+    source: str,
+    invariant_generator,
+) -> tuple[list[Reachability], InvariantVerification | None]:
+    """Try to strengthen the paths of a claim with a verified loop invariant.
+
+    This is the bridge between :mod:`astverifier.core.invariants` and the
+    two-query protocol.  It is only invoked for claims whose control-flow
+    coverage is incomplete because of a loop.
+
+    Returns the (possibly strengthened) path list and the verification that
+    produced the invariant, if any.
+    """
+    if invariant_generator is None or not reachability_list:
+        return reachability_list, None
+
+    # Only attempt this for claims that a loop made incomplete.
+    if all(item.complete for item in reachability_list):
+        return reachability_list, None
+
+    loops = _loops_in_function(executor, claim.anchor)
+    if not loops:
+        return reachability_list, None
+
+    for loop_node in loops:
+        entry_state = _loop_entry_state(executor, loop_node)
+        state = _state_dict_for_invariant(
+            executor, reachability_list[0], loop_node
+        )
+        if not state:
+            continue
+        try:
+            verification = invariant_generator.generate_and_verify(
+                source=source,
+                loop_node=loop_node,
+                post_assertion=claim.expr_node,
+                state=state,
+                entry_state=entry_state,
+            )
+        except Exception as exc:  # noqa: BLE001 - invariants are strictly optional
+            log.warning("Invariant generation failed: %s", exc)
+            continue
+        if verification is None or verification.z3_expr is None:
+            continue
+        strengthened = [
+            _conjoin_invariant(item, verification.z3_expr)
+            for item in reachability_list
+        ]
+        return strengthened, verification
+    return reachability_list, None
 
 
 def _process_claim(
@@ -379,10 +574,39 @@ def _process_claim(
     valid_ms = 0.0
     reachable_paths = 0
 
+    # --- Loop-invariant assistance ------------------------------------------
+    # A claim that lives under a loop cannot be settled by bounded unrolling
+    # alone: the executor marks the path incomplete, so the run would end as
+    # UNKNOWN_TIMEOUT.  When a loop invariant can be synthesized and verified
+    # by Z3, it is conjoined into the path relation so that the two-query
+    # protocol can reason over all iterations instead of a bounded prefix.
+    invariant_verification: InvariantVerification | None = None
+    if invariant_generator is not None and any(
+        not item.complete for item in reachability_list
+    ):
+        reachability_list, invariant_verification = _invariant_assisted_paths(
+            claim=claim,
+            executor=executor,
+            reachability_list=reachability_list,
+            source=source,
+            invariant_generator=invariant_generator,
+        )
+
     for reachability in reachability_list:
         try:
             obligation = build_obligations(
-                claim, reachability, executor, precondition=precondition
+                claim,
+                reachability,
+                executor,
+                precondition=precondition,
+                # When an invariant was verified, the claim is translated over
+                # the same free symbols the invariant constrains, so the two
+                # meet inside the solver.
+                state_symbols=(
+                    reachability.state_symbols
+                    if invariant_verification is not None
+                    else None
+                ),
             )
         except Exception as exc:
             return ClaimResult(
@@ -463,7 +687,26 @@ def _process_claim(
 
     # A bounded loop approximation is not a proof over every concrete
     # execution. Surface that limitation instead of claiming VERIFIED.
+    #
+    # The exception is the invariant-assisted path: when Z3 has verified an
+    # inductive loop invariant, the loop's iterations are summarised by that
+    # invariant rather than by a bounded prefix, so the claim really does
+    # hold on every execution that reaches the target node.
     if not all(item.complete for item in reachability_list):
+        if invariant_verification is not None and invariant_verification.is_valid:
+            return ClaimResult(
+                claim_id=claim.claim_id,
+                claim_text=claim.expr_source,
+                status=StatusEnum.VERIFIED,
+                anchor=anchor_info,
+                z3_stats={"reach_ms": reach_ms, "valid_ms": valid_ms},
+                reason=(
+                    "claim holds on every path to its target node, with the "
+                    "loop summarised by the Z3-verified inductive invariant "
+                    f"{invariant_verification.candidate.formula!r} "
+                    f"(k={invariant_verification.k_bound})"
+                ),
+            )
         return ClaimResult(
             claim_id=claim.claim_id,
             claim_text=claim.expr_source,

@@ -21,6 +21,7 @@ from astverifier.core.feedback import (
     _parse_feedback_json,
 )
 from astverifier.core.invariants import (
+    InvariantCandidate,
     LoopInvariantGenerator,
     _linear_candidate_templates,
     parse_smt2_formula,
@@ -404,5 +405,332 @@ def test_pipeline_precondition_filters_counterexamples():
     )
     res_comment = run_pipeline(source_comment, do_replay=True)
     assert res_comment.claim_results[0].status == StatusEnum.VERIFIED
+
+
+# ---------------------------------------------------------------------------
+# Loop-invariant assistance: the invariant must reach the two-query protocol
+# ---------------------------------------------------------------------------
+
+
+def test_pipeline_verifies_loop_claim_with_verified_invariant():
+    """A loop claim is settled by a Z3-verified inductive invariant.
+
+    The invariant ``i >= 0`` holds at loop entry and is preserved by the
+    increment, so the claim ``i >= 0`` after the loop must be VERIFIED
+    instead of falling back to UNKNOWN_TIMEOUT.
+    """
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i >= 0\n"
+        "    return i\n"
+    )
+    result = run_pipeline(
+        source,
+        program_id="test_loop_invariant",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+    )
+    claim = result.claim_results[0]
+    assert claim.status == StatusEnum.VERIFIED
+    assert "invariant" in (claim.reason or "").lower()
+
+
+def test_pipeline_invariant_does_not_break_failing_loop_claim():
+    """A loop claim that is actually false must stay a COUNTEREXAMPLE.
+
+    The invariant must not be used to "prove" a false claim: the solver has
+    to find a violating model on a reachable path.
+    """
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i <= 0\n"
+        "    return i\n"
+    )
+    result = run_pipeline(
+        source,
+        program_id="test_loop_invariant_false",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+    )
+    claim = result.claim_results[0]
+    assert claim.status in (StatusEnum.COUNTEREXAMPLE, StatusEnum.UNKNOWN_TIMEOUT)
+    assert claim.status != StatusEnum.VERIFIED
+
+
+def test_pipeline_without_invariants_keeps_unknown_timeout():
+    """Disabling the invariant generator restores the previous behaviour."""
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i >= 0\n"
+        "    return i\n"
+    )
+    result = run_pipeline(
+        source,
+        program_id="test_loop_no_invariant",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+        enable_invariants=False,
+    )
+    assert result.claim_results[0].status == StatusEnum.UNKNOWN_TIMEOUT
+
+
+def test_verify_reports_k_induction_bound():
+    """The verification reports the k at which the inductive step succeeded."""
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i >= 0\n"
+        "    return i\n"
+    )
+    tree = ast.parse(source)
+    ids = assign_ids(tree)
+    executor = TrustedSymbolicExecutor(tree, ids)
+    executor.build_all_transitions()
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    entry_state = dict(executor.transitions[ids[loop]].pre.bindings)
+    state = {"i": z3.Int("i"), "n": z3.Int("n")}
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    verification = generator.generate_and_verify(
+        source, loop, None, state, entry_state=entry_state
+    )
+    assert verification is not None
+    assert verification.is_valid
+    assert verification.k_bound >= 1
+    assert verification.candidate.formula == "(>= i 0)"
+
+
+def test_verify_rejects_invariant_that_fails_base_case():
+    """An invariant that does not hold at loop entry is rejected."""
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i >= 0\n"
+        "    return i\n"
+    )
+    tree = ast.parse(source)
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    state = {"i": z3.Int("i"), "n": z3.Int("n")}
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    candidate = InvariantCandidate(
+        formula="(>= i 100)",
+        kind="relational",
+        z3_expr=z3.Int("i") >= 100,
+    )
+    verification = generator.verify(
+        candidate,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+    )
+    assert not verification.is_valid
+    assert verification.base_holds is False
+
+
+def test_verify_rejects_loop_body_with_break():
+    """A loop body with ``break`` yields no usable invariant.
+
+    The loop can be left early, so the invariant would say nothing about
+    the state after the loop.  Accepting it would let a tautology prove an
+    arbitrary claim, so the verification must fail.
+    """
+    source = (
+        "def f(n):\n"
+        "    while n > 0:\n"
+        "        break\n"
+        "    assert n <= 0\n"
+    )
+    tree = ast.parse(source)
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    state = {"n": z3.Int("n")}
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    candidate = InvariantCandidate(
+        formula="(= n n)",
+        kind="constant",
+        z3_expr=z3.BoolVal(True),
+    )
+    verification = generator.verify(
+        candidate,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+    )
+    assert not verification.is_valid
+    assert verification.step_holds is False
+
+
+def test_pipeline_break_loop_is_not_verified_by_invariant():
+    """A claim that a ``break``-loop can violate must not become VERIFIED."""
+    source = (
+        "def f(n):\n"
+        "    while n > 0:\n"
+        "        break\n"
+        "    assert n <= 0\n"
+    )
+    result = run_pipeline(
+        source,
+        program_id="test_break_loop_invariant",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+    )
+    assert result.claim_results[0].status != StatusEnum.VERIFIED
+
+
+def test_pipeline_invariant_proves_claim_that_needs_the_relation():
+    """A claim that is only true thanks to the invariant becomes VERIFIED.
+
+    ``s == i - 1`` cannot be derived from the bounded unrolling (the
+    executor unrolls the body only once), but it is exactly the relation
+    that the loop preserves.  This is the case the invariant path exists
+    for.
+    """
+    source = (
+        "def f(n: int) -> int:\n"
+        "    s = 0\n"
+        "    i = 1\n"
+        "    while i <= n:\n"
+        "        s = s + 1\n"
+        "        i = i + 1\n"
+        "    assert s == i - 1\n"
+        "    return s\n"
+    )
+    with_inv = run_pipeline(
+        source,
+        program_id="test_loop_invariant_relation",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+    )
+    assert with_inv.claim_results[0].status == StatusEnum.VERIFIED
+
+    without_inv = run_pipeline(
+        source,
+        program_id="test_loop_invariant_relation_off",
+        source_path="<inline>",
+        baseline="AST_ANCHORED",
+        do_replay=False,
+        use_llm=False,
+        enable_invariants=False,
+    )
+    assert without_inv.claim_results[0].status == StatusEnum.UNKNOWN_TIMEOUT
+
+
+def test_verify_accepts_relational_offset_invariant():
+    """A relational invariant ``s == i - 1`` is accepted by k-induction.
+
+    This is the invariant that actually summarises an accumulator loop, and
+    it is strictly stronger than the per-variable bound ``s >= 0``.
+    """
+    source = (
+        "def f(n: int) -> int:\n"
+        "    s = 0\n"
+        "    i = 1\n"
+        "    while i <= n:\n"
+        "        s = s + 1\n"
+        "        i = i + 1\n"
+        "    assert s == i - 1\n"
+        "    return s\n"
+    )
+    tree = ast.parse(source)
+    ids = assign_ids(tree)
+    executor = TrustedSymbolicExecutor(tree, ids)
+    executor.build_all_transitions()
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    entry_state = dict(executor.transitions[ids[loop]].pre.bindings)
+    state = {"i": z3.Int("i"), "s": z3.Int("s"), "n": z3.Int("n")}
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    candidate = InvariantCandidate(
+        formula="(= s (- i 1))",
+        kind="relational",
+        z3_expr=parse_smt2_formula("(= s (- i 1))", state),
+    )
+    verification = generator.verify(
+        candidate,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+        entry_state=entry_state,
+    )
+    assert verification.is_valid
+    assert verification.base_holds
+    assert verification.step_holds
+
+
+def test_verify_rejects_invariant_that_is_not_preserved():
+    """An invariant that the body breaks must be rejected."""
+    source = (
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    while i < n:\n"
+        "        i = i + 1\n"
+        "    assert i <= 0\n"
+        "    return i\n"
+    )
+    tree = ast.parse(source)
+    ids = assign_ids(tree)
+    executor = TrustedSymbolicExecutor(tree, ids)
+    executor.build_all_transitions()
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    entry_state = dict(executor.transitions[ids[loop]].pre.bindings)
+    state = {"i": z3.Int("i"), "n": z3.Int("n")}
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    candidate = InvariantCandidate(
+        formula="(<= i 0)",
+        kind="relational",
+        z3_expr=z3.Int("i") <= 0,
+    )
+    verification = generator.verify(
+        candidate,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+        entry_state=entry_state,
+    )
+    assert not verification.is_valid
+    assert verification.step_holds is False
+
+
+def test_parser_handles_nested_arithmetic_terms():
+    """A nested arithmetic term such as ``(= s (- i 1))`` is parsed."""
+    state = {"i": z3.Int("i"), "s": z3.Int("s")}
+    expr = parse_smt2_formula("(= s (- i 1))", state)
+    assert expr is not None
+    # The parsed formula must be exactly the expected relation over the very
+    # same symbols.  ``z3.simplify`` on both sides gives a canonical form.
+    assert z3.simplify(expr).sexpr() == z3.simplify(
+        state["s"] == state["i"] - 1
+    ).sexpr()
+
+
+def test_parser_handles_negative_numbers():
+    """A negative literal is tokenized as one number."""
+    state = {"x": z3.Int("x")}
+    expr = parse_smt2_formula("(>= x -1)", state)
+    assert expr is not None
+    # ``-1`` must be read as the number minus one, not as a subtraction.
+    solver = z3.Solver()
+    solver.add(z3.Xor(expr, state["x"] >= -1))
+    assert solver.check() == z3.unsat
 
 

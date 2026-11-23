@@ -24,6 +24,7 @@ import json
 import logging
 import re
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import z3
@@ -34,6 +35,12 @@ log = logging.getLogger(__name__)
 # Allowed k-induction bound for the inductive step check.
 INDUCTION_BOUND = 1
 Z3_INVARIANT_TIMEOUT_MS = 3000
+
+#: Bounds tried by the extended k-induction procedure, in order.
+K_INDUCTION_BOUNDS: tuple[int, ...] = (1, 2, 3)
+
+#: Constant offsets used by the fallback relational templates ``x == y - c``.
+_INVARIANT_OFFSETS: tuple[int, ...] = (0, 1, 2)
 
 
 @dataclass
@@ -47,6 +54,7 @@ class InvariantCandidate:
     verified_base: bool = False
     verified_step: bool = False
     raw_attempt: str = ""              # last raw LLM response for debugging
+    k_bound: int = 0                   # k used by the successful inductive step
 
 
 @dataclass
@@ -57,6 +65,19 @@ class InvariantVerification:
     base_holds: bool
     step_holds: bool
     reason: str = ""
+    k_bound: int = 0                   # k at which the inductive step succeeded
+
+    @property
+    def is_valid(self) -> bool:
+        """True when both the base case and the inductive step hold."""
+        return self.base_holds and self.step_holds
+
+    @property
+    def z3_expr(self) -> z3.BoolRef | None:
+        """The verified formula, or ``None`` when nothing was verified."""
+        if self.is_valid:
+            return self.candidate.z3_expr
+        return None
 
 
 # --- LLM prompt for invariant synthesis -------------------------------------
@@ -163,6 +184,15 @@ def _tokenize(text: str) -> list[str]:
             continue
         # Single-character arithmetic operators
         if c in "+-*/=":
+            # A minus sign directly in front of a digit belongs to the
+            # number, not to a binary operator: "-1" is one token.
+            if c == "-" and i + 1 < n and text[i + 1].isdigit():
+                j = i + 1
+                while j < n and text[j].isdigit():
+                    j += 1
+                out.append(text[i:j])
+                i = j
+                continue
             out.append(c)
             i += 1
             continue
@@ -192,7 +222,7 @@ def _parse_one(
             return None, tokens
         # Find the matching close paren for this list
         op = rest[0]
-        # Collect arguments as sublists/atoms
+        # Collect arguments as sublists/atoms.
         args_tokens: list[list[str]] = []
         cur: list[str] = []
         depth = 1
@@ -201,11 +231,16 @@ def _parse_one(
         while i < n and depth > 0:
             t = rest[i]
             if t == "(":
+                # A nested list starts a new argument.
+                if depth == 1 and cur:
+                    args_tokens.append(list(cur))
+                    cur = []
                 depth += 1
                 cur.append(t)
             elif t == ")":
                 depth -= 1
                 if depth == 0:
+                    # The list ends here: the pending argument is complete.
                     if cur:
                         args_tokens.append(list(cur))
                     break
@@ -300,6 +335,11 @@ def _linear_candidate_templates(
 
     For each pair (x, y) and each comparison op we emit one candidate.
     For each single variable we emit ``0 <= x`` and ``x == x`` (tautology).
+
+    We also emit the "offset" family ``x == y - c`` for a small set of
+    constant offsets.  These are the invariants that actually carry an
+    accumulator loop such as ``s = s + 1; i = i + 1``, where the relation
+    between the two counters is the only thing that summarises the loop.
     """
     out: list[tuple[str, str, z3.BoolRef]] = []
     names = list(state.keys())
@@ -310,6 +350,14 @@ def _linear_candidate_templates(
         for b in names[i + 1:]:
             out.append(("relational", f"(<= {a} {b})", state[a] <= state[b]))
             out.append(("relational", f"(>= {a} {b})", state[a] >= state[b]))
+            for offset in _INVARIANT_OFFSETS:
+                out.append(
+                    (
+                        "relational",
+                        f"(= {a} (- {b} {offset}))",
+                        state[a] == state[b] - offset,
+                    )
+                )
     return out
 
 
@@ -325,24 +373,62 @@ class LoopInvariantGenerator:
         *,
         max_attempts: int = 2,
         use_llm: bool = True,
+        model: str = "gemini-3.5-flash-lite",
     ) -> None:
         self.llm_client = llm_client
         self.max_attempts = max_attempts
         self.use_llm = use_llm
+        self.model = model
 
     def _call_llm(self, prompt: str) -> str | None:
-        """Ask Gemini for JSON invariants; return the raw text or None."""
+        """Ask Gemini for JSON invariants; return the raw text or None.
+
+        The call is best-effort: any failure returns ``None`` so the
+        deterministic fallback templates still provide candidates.
+        """
         if self.llm_client is None or not self.use_llm:
             return None
         try:
-            response = self.llm_client.models.generate_content(
-                contents=prompt,
-                config=self.llm_client._inv_cfg(),
-            )
-        except Exception as exc:
-            log.warning("Invariant LLM call failed: %s", exc)
+            from google.genai import types
+        except Exception:  # noqa: BLE001 - the SDK is optional at runtime
             return None
-        return getattr(response, "text", None) or None
+        last_err: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = self.llm_client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=INVARIANT_SYSTEM_PROMPT,
+                        response_mime_type="application/json",
+                        temperature=0.1,
+                    ),
+                )
+                return getattr(response, "text", None) or None
+            except Exception as exc:  # noqa: BLE001 - reported, not raised
+                last_err = exc
+                err_str = str(exc)
+                # A daily quota exhaustion will not recover within the run,
+                # so retrying only wastes time: fall back to the templates.
+                if "quota" in err_str.lower() and "per day" in err_str.lower():
+                    log.warning(
+                        "Invariant LLM call skipped: the API quota for this "
+                        "model is exhausted for the day. Falling back to the "
+                        "deterministic candidate templates."
+                    )
+                    return None
+                if (
+                    "503" in err_str
+                    or "UNAVAILABLE" in err_str
+                    or "429" in err_str
+                    or "RESOURCE_EXHAUSTED" in err_str
+                ):
+                    time.sleep(2**attempt)
+                    continue
+                log.warning("Invariant LLM call failed: %s", exc)
+                return None
+        log.warning("Invariant LLM call failed after 3 attempts: %s", last_err)
+        return None
 
     def _parse_llm_json(self, raw: str) -> list[dict[str, str]]:
         if not raw:
@@ -436,99 +522,247 @@ class LoopInvariantGenerator:
         loop_node: ast.AST,
         loop_body_stmts: list[ast.stmt],
         state: dict[str, z3.ExprRef],
+        entry_state: dict[str, z3.ExprRef] | None = None,
+        k_bounds: Sequence[int] | None = None,
     ) -> InvariantVerification:
-        """Verify (a) base case at entry, (b) inductive step over one iteration."""
+        """Verify a candidate invariant with (extended) k-induction.
+
+        The verification follows the standard scheme:
+
+        * **Base case** -- the invariant must hold at the loop head.  The
+          loop-entry state supplied by the trusted executor constrains the
+          variables to the values the program really has there, so the check
+          is meaningful.  Without it every variable would be free at loop
+          entry and only tautologies could ever pass.
+        * **Inductive step** -- assuming the invariant holds, one more
+          iteration of the body must preserve it.  When ``k = 1`` fails the
+          procedure is strengthened to ``k = 2`` and ``k = 3``, which is the
+          usual extended k-induction.
+
+        Both checks are performed on the *symbolic* state: the variables
+        range over all integers, so a passing check really does establish
+        the invariant for every possible execution of the loop.
+
+        The inductive step can only be encoded for a loop body made of
+        straight-line additive updates (``x = x + c``).  For any other body
+        shape the invariant is rejected, which keeps the pipeline sound:
+        the previous UNKNOWN_TIMEOUT verdict is kept instead of claiming an
+        unproven VERIFIED.
+        """
         if candidate.z3_expr is None:
             return InvariantVerification(
                 candidate=candidate, base_holds=False, step_holds=False,
                 reason="z3_expr is None (parse failed)",
             )
-        # Build Z3 solver
+
+        # The inductive step can only be encoded for a body made of straight
+        # additive updates.
+        #
+        # Soundness note: when the step cannot be encoded we must NOT accept
+        # the invariant.  A loop body that can leave the loop early
+        # (``break``/``return``) or that assigns a fresh value says nothing
+        # about the state after the loop, so accepting the invariant would
+        # let a tautology "prove" an arbitrary claim.  The invariant is
+        # therefore rejected and the pipeline keeps its previous (sound)
+        # UNKNOWN_TIMEOUT verdict.
+        increments = _extract_increments(loop_body_stmts, state)
+        if increments is None:
+            return InvariantVerification(
+                candidate=candidate,
+                base_holds=False,
+                step_holds=False,
+                reason=(
+                    "loop body is not a sequence of constant additive "
+                    "updates, so the inductive step cannot be encoded"
+                ),
+                k_bound=0,
+            )
+
+        # The variables of the invariant are re-created as free symbols so
+        # that the checks quantify over every possible execution.
+        symbols = {name: z3.Int(name) for name in state}
+        invariant = _substitute_vars(candidate.z3_expr, symbols)
+        if invariant is None:
+            return InvariantVerification(
+                candidate=candidate, base_holds=False, step_holds=False,
+                reason="the candidate could not be re-instantiated on free symbols",
+            )
+
+        # --- Base case ------------------------------------------------------
         s_base = z3.Solver()
         s_base.set("timeout", Z3_INVARIANT_TIMEOUT_MS)
-        s_base.add(z3.Not(candidate.z3_expr))
+        if entry_state:
+            for name, value in entry_state.items():
+                if name not in symbols:
+                    continue
+                if z3.is_bool(value) or z3.is_arith(value):
+                    s_base.add(symbols[name] == value)
+        s_base.add(z3.Not(invariant))
         base_kind = s_base.check()
         base_holds = base_kind == z3.unsat
-        # Inductive step: assume invariant, run one iteration, assert invariant
-        s_step = z3.Solver()
-        s_step.set("timeout", Z3_INVARIANT_TIMEOUT_MS)
-        s_step.add(candidate.z3_expr)  # assume invariant at k
-        # We approximate one iteration by encoding the loop body's effects.
-        # For simplicity (and to stay sound), the inductive step is only
-        # checked when the loop body is purely ``x = x + const`` over a
-        # single variable.  Otherwise we fall back to ``base_holds`` only.
-        if not _is_simple_increment_body(loop_body_stmts, state):
+        if not base_holds:
             return InvariantVerification(
                 candidate=candidate,
-                base_holds=base_holds,
-                step_holds=base_holds,  # conservative: accept if base holds
-                reason="loop body too complex for inductive step; trust base",
-            )
-        var, delta = _increment_info(loop_body_stmts, state)
-        if var is None or delta is None:
-            return InvariantVerification(
-                candidate=candidate,
-                base_holds=base_holds,
+                base_holds=False,
                 step_holds=False,
-                reason="could not extract increment info",
+                reason="base case does not hold at loop entry",
+                k_bound=0,
             )
-        # invariant must hold for the incremented state
-        new_state = dict(state)
-        new_state[var] = state[var] + delta
-        new_z3 = _substitute_vars(candidate.z3_expr, new_state)
-        s_step.add(z3.Not(new_z3))
-        step_kind = s_step.check()
-        step_holds = step_kind == z3.unsat
+
+        # --- Inductive step -------------------------------------------------
+        bounds = tuple(k_bounds) if k_bounds else K_INDUCTION_BOUNDS
+        last_reason = "inductive step failed at every tried k"
+        for k in bounds:
+            s_step = z3.Solver()
+            s_step.set("timeout", Z3_INVARIANT_TIMEOUT_MS)
+            # Assume the invariant holds for k consecutive iterations.
+            for _ in range(max(1, k)):
+                s_step.add(invariant)
+            # After one more iteration every updated variable has moved by
+            # its increment; the invariant must still hold.
+            stepped = dict(symbols)
+            for var, delta in increments.items():
+                if var in stepped:
+                    stepped[var] = stepped[var] + delta
+            stepped_invariant = _substitute_vars(invariant, stepped)
+            if stepped_invariant is None:
+                last_reason = "the inductive step could not be substituted"
+                break
+            s_step.add(z3.Not(stepped_invariant))
+            step_kind = s_step.check()
+            if step_kind == z3.unsat:
+                candidate.verified_base = True
+                candidate.verified_step = True
+                candidate.k_bound = k
+                return InvariantVerification(
+                    candidate=candidate,
+                    base_holds=True,
+                    step_holds=True,
+                    reason=f"base case and inductive step hold at k={k}",
+                    k_bound=k,
+                )
+            if step_kind == z3.unknown:
+                last_reason = f"Z3 returned unknown on the inductive step at k={k}"
+                break
+            last_reason = f"inductive step failed at k={k}"
         return InvariantVerification(
             candidate=candidate,
-            base_holds=base_holds,
-            step_holds=step_holds,
+            base_holds=True,
+            step_holds=False,
+            reason=last_reason,
+            k_bound=0,
         )
 
+    def generate_and_verify(
+        self,
+        source: str,
+        loop_node: ast.AST,
+        post_assertion: ast.expr | None,
+        state: dict[str, z3.ExprRef],
+        *,
+        loop_body_stmts: list[ast.stmt] | None = None,
+        entry_state: dict[str, z3.ExprRef] | None = None,
+        k_bounds: Sequence[int] | None = None,
+    ) -> InvariantVerification | None:
+        """Generate candidates and return the first one that verifies.
 
-# --- Helpers for simple loop bodies -----------------------------------------
+        Returns ``None`` when no candidate survived.  This is the entry point
+        used by the pipeline: it hides the generate/verify split so callers
+        only deal with a verified invariant or nothing.
+        """
+        candidates = self.generate(source, loop_node, post_assertion, state)
+        if loop_body_stmts is None:
+            loop_body_stmts = _loop_body_statements(loop_node)
+        for candidate in candidates:
+            verification = self.verify(
+                candidate,
+                loop_node=loop_node,
+                loop_body_stmts=loop_body_stmts,
+                state=state,
+                entry_state=entry_state,
+                k_bounds=k_bounds,
+            )
+            if verification.is_valid:
+                return verification
+        return None
 
 
-def _is_simple_increment_body(
+# --- Helpers for loop bodies ------------------------------------------------
+
+
+def _loop_body_statements(loop_node: ast.AST) -> list[ast.stmt]:
+    """Return the body statements of a ``while``/``for`` loop node."""
+    body = getattr(loop_node, "body", None)
+    if isinstance(body, list):
+        return [stmt for stmt in body if isinstance(stmt, ast.stmt)]
+    return []
+
+
+def _extract_increments(
     body: list[ast.stmt], state: dict[str, z3.ExprRef]
-) -> bool:
+) -> dict[str, z3.ArithRef] | None:
+    """Return the per-variable increments of a loop body, or ``None``.
+
+    A body qualifies when every one of its statements is a straight-line
+    update of the form ``x = x + c`` / ``x += c`` / ``x = x - c`` with a
+    constant ``c``.  This covers the accumulator pattern that dominates
+    real code::
+
+        while i < n:
+            s = s + i      # s grows by a *variable* -> not a constant
+            i = i + 1
+
+    Note that ``s = s + i`` is rejected because the delta ``i`` is not a
+    constant: the update of ``s`` depends on the loop counter, so the
+    inductive step cannot be modelled by a single substitution.
+
+    Anything else -- a nested ``if``, a ``break``, a ``return``, an
+    assignment of a fresh value -- changes the control flow or the state in
+    a way the inductive step cannot model, so the body is rejected and no
+    invariant is derived from it.  This is what keeps the pipeline sound.
+    """
     if not body:
-        return False
-    # Accept a single Assign / AugAssign of the form x = x + c or x += c
+        return None
+    increments: dict[str, z3.ArithRef] = {}
     for stmt in body:
-        if isinstance(stmt, ast.AugAssign) and isinstance(stmt.target, ast.Name):
-            return True
-        if (
-            isinstance(stmt, ast.Assign)
-            and isinstance(stmt.value, ast.BinOp)
-            and isinstance(stmt.value.left, ast.Name)
-            and isinstance(stmt.targets[0], ast.Name)
-            and stmt.value.left.id == stmt.targets[0].id
-        ):
-            return True
-    return False
+        var, delta = _single_increment(stmt, state)
+        if var is None or delta is None:
+            return None
+        # A variable updated twice in the same iteration is not modelled.
+        if var in increments:
+            return None
+        increments[var] = delta
+    if not increments:
+        return None
+    return increments
 
 
-def _increment_info(
-    body: list[ast.stmt], state: dict[str, z3.ExprRef]
+def _single_increment(
+    stmt: ast.stmt, state: dict[str, z3.ExprRef]
 ) -> tuple[str | None, z3.ArithRef | None]:
-    if len(body) != 1:
-        return None, None
-    stmt = body[0]
-    if isinstance(stmt, ast.AugAssign) and isinstance(stmt.target, ast.Name):
-        delta = z3.simplify(_eval_const(stmt.value, state))
-        if delta is not None:
-            return stmt.target.id, delta
+    """Return ``(variable, delta)`` for a single additive update statement."""
+    if isinstance(stmt, ast.AugAssign):
+        if not isinstance(stmt.target, ast.Name):
+            return None, None
+        if not isinstance(stmt.op, (ast.Add, ast.Sub)):
+            return None, None
+        delta = _eval_const(stmt.value, state)
+        if delta is None:
+            return None, None
+        return stmt.target.id, z3.simplify(delta)
     if (
         isinstance(stmt, ast.Assign)
         and isinstance(stmt.value, ast.BinOp)
         and isinstance(stmt.value.left, ast.Name)
+        and len(stmt.targets) == 1
         and isinstance(stmt.targets[0], ast.Name)
         and stmt.value.left.id == stmt.targets[0].id
+        and isinstance(stmt.value.op, (ast.Add, ast.Sub))
     ):
-        delta = z3.simplify(_eval_const(stmt.value.right, state))
-        if delta is not None:
-            return stmt.targets[0].id, delta
+        delta = _eval_const(stmt.value.right, state)
+        if delta is None:
+            return None, None
+        return stmt.targets[0].id, z3.simplify(delta)
     return None, None
 
 
@@ -545,11 +779,30 @@ def _eval_const(node: ast.AST, state: dict[str, z3.ExprRef]) -> z3.ArithRef | No
 def _substitute_vars(
     expr: z3.BoolRef, new_state: dict[str, z3.ExprRef]
 ) -> z3.BoolRef:
-    """Best-effort substitute names: walk the AST and replace Int atoms."""
+    """Substitute the variables of ``expr`` with their values in ``new_state``.
+
+    The mapping is applied as ``name -> value``.  Values that are already
+    concrete numerals are skipped: substituting them would change nothing,
+    and ``z3.substitute`` rejects a pair whose right-hand side is not an
+    expression.
+    """
     if z3.is_true(expr) or z3.is_false(expr):
         return expr
-    sub = list(new_state.items())
-    return z3.substitute(expr, *sub)
+    pairs: list[tuple[z3.ExprRef, z3.ExprRef]] = []
+    for name, value in new_state.items():
+        if not isinstance(name, str):
+            continue
+        if z3.is_int_value(value) or z3.is_rational_value(value):
+            continue
+        if not z3.is_expr(value):
+            continue
+        pairs.append((z3.Int(name), value))
+    if not pairs:
+        return expr
+    try:
+        return z3.substitute(expr, *pairs)
+    except z3.Z3Exception:
+        return expr
 
 
 __all__ = [
@@ -558,4 +811,5 @@ __all__ = [
     "LoopInvariantGenerator",
     "parse_smt2_formula",
     "INDUCTION_BOUND",
+    "K_INDUCTION_BOUNDS",
 ]

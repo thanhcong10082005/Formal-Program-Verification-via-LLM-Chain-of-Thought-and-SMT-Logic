@@ -54,6 +54,11 @@ class Reachability:
     path_condition: z3.BoolRef
     state: SymState = field(default_factory=SymState)
     complete: bool = True
+    #: The free symbols used in ``relation`` for each state variable, i.e.
+    #: ``_state_<suffix>_<name>``.  They are exposed so that an extra
+    #: assumption (such as a loop invariant) can be stated over the very
+    #: same variables the relation talks about.
+    state_symbols: dict[str, z3.ExprRef] = field(default_factory=dict)
 
 
 # --- Trusted branch exceptions ---------------------------------------------------
@@ -195,12 +200,14 @@ class TrustedSymbolicExecutor:
         path_cond = z3.And(*guards) if guards else z3.BoolVal(True)
 
         equations: list[z3.BoolRef] = []
+        state_symbols: dict[str, z3.ExprRef] = {}
         suffix = abs(hash(tuple(path)))
         for name, value in target_state.bindings.items():
             if z3.is_bool(value):
                 state_var = z3.Bool(f"_state_{suffix}_{name}")
             else:
                 state_var = z3.Int(f"_state_{suffix}_{name}")
+            state_symbols[name] = state_var
             equations.append(state_var == value)
         relation = z3.And(path_cond, *equations)
         return Reachability(
@@ -209,6 +216,7 @@ class TrustedSymbolicExecutor:
             path_condition=path_cond,
             state=target_state,
             complete=self.last_path_enumeration_complete,
+            state_symbols=state_symbols,
         )
 
     def enumerate_target_paths(
