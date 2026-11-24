@@ -2,7 +2,7 @@
 
 The raw dataset carries a ``duplicates`` field in its manifest, but that field
 points at *upstream archive members* -- it does not mean two files in the
-working tree are identical. Verified facts about ``Dataset/filtered``:
+working tree are identical. Verified facts about ``dataset``:
 
 * raw byte hash: 14,785 / 14,785 unique
 * ``normalized_sha256`` from the manifest: 14,785 / 14,785 unique

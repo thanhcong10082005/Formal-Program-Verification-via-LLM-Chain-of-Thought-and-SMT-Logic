@@ -28,8 +28,8 @@ The selection is deterministic: the same manifest always yields the same
 Run with::
 
     python tools/select_stratified_sample.py \
-        --manifest data/bench_v1/manifest.json \
-        --out-dir data/bench_v1
+        --manifest dataset/manifest.json \
+        --out-dir dataset
 """
 
 from __future__ import annotations
@@ -570,10 +570,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--manifest",
-        default=str(ROOT / "data" / "bench_v1" / "manifest.json"),
+        default=str(ROOT / "dataset" / "manifest.json"),
     )
-    parser.add_argument("--dataset", default=str(ROOT.parent / "Dataset" / "filtered"))
-    parser.add_argument("--out-dir", default=str(ROOT / "data" / "bench_v1"))
+    parser.add_argument("--dataset", default=str(ROOT / "dataset"))
+    parser.add_argument("--out-dir", default=str(ROOT / "dataset"))
     parser.add_argument("--size", type=int, default=TARGET_SIZE)
     parser.add_argument("--seed", type=int, default=SEED)
     args = parser.parse_args(argv)

@@ -13,7 +13,7 @@ while baselines and the shared tooling talk about the pool-level claim.
 Run with::
 
     python -c "from astverifier.shared.claims import load_claim_pool; \\
-        pool = load_claim_pool('data/bench_v1/claim_pool.json')"
+        pool = load_claim_pool('dataset/claim_pool.json')"
 """
 
 from __future__ import annotations

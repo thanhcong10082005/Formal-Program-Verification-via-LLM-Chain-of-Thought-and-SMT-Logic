@@ -398,7 +398,7 @@ class LoopInvariantGenerator:
         *,
         max_attempts: int = 2,
         use_llm: bool = True,
-        model: str = "gemini-2.5-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
     ) -> None:
         self.llm_client = llm_client
         self.max_attempts = max_attempts

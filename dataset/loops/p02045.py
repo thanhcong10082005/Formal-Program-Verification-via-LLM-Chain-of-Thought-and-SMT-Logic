@@ -1,0 +1,13 @@
+def main(_initial_x, _initial_y):
+    x = _initial_x
+    y = _initial_y
+    junk_0 = 4
+    junk_1 = 6
+    junk_2 = 1
+    x = -15000
+    while x < 0:
+        x = x + y
+        junk_1 = 853
+        y = y + 1
+        junk_0 = junk_2 + junk_1
+    assert y > 0

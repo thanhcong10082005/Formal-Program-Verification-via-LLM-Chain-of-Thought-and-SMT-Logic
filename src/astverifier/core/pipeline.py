@@ -572,6 +572,7 @@ def _invariant_assisted_paths(
     reachability_list: list[Reachability],
     source: str,
     invariant_generator,
+    precondition: str | None = None,
 ) -> tuple[list[Reachability], InvariantVerification | None]:
     """Try to strengthen the paths of a claim with a verified loop invariant.
 
@@ -607,6 +608,16 @@ def _invariant_assisted_paths(
             if pre_paths:
                 pre_reach = executor.build_reachability(*pre_paths[0])
                 pre_cond = pre_reach.path_condition
+        if precondition and precondition.strip().lower() != "none":
+            from .invariants import _as_z3_bool, _eval_ast_expr
+
+            try:
+                pre_ast = ast.parse(precondition.strip(), mode="eval").body
+                pre_eval = _eval_ast_expr(pre_ast, {k: z3.Int(k) for k in state})
+                if pre_eval is not None:
+                    pre_cond = z3.And(pre_cond, _as_z3_bool(pre_eval))
+            except Exception:
+                pass
         post_guard = _post_loop_branch_guard(executor, loop_node, claim, state)
         try:
             verification = invariant_generator.generate_and_verify(
@@ -706,6 +717,7 @@ def _process_claim(
             reachability_list=reachability_list,
             source=source,
             invariant_generator=invariant_generator,
+            precondition=precondition,
         )
 
     for reachability in reachability_list:

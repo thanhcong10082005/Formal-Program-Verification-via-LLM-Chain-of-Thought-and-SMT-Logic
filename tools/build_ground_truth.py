@@ -1,6 +1,6 @@
 """Phase 0.5.1 -- Execution Oracle & Z3 Ground Truth Labeling.
 
-Turns the raw ``Dataset/filtered`` manifest into a labeled manifest by
+Turns the raw ``dataset`` manifest into a labeled manifest by
 assigning every claim-carrying program an ``expected_verdict``.
 
 Two independent layers produce the label:
@@ -27,8 +27,8 @@ manifest are skipped, so an interrupted run can simply be restarted.
 Run with::
 
     python tools/build_ground_truth.py \
-        --dataset ..\\Dataset\\filtered \
-        --out data/bench_v1/manifest.json
+        --dataset dataset \
+        --out dataset/manifest.json
 """
 
 from __future__ import annotations
@@ -343,8 +343,8 @@ def load_manifest(dataset_dir: Path) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", default=str(ROOT.parent / "Dataset" / "filtered"))
-    parser.add_argument("--out", default=str(ROOT / "data" / "bench_v1" / "manifest.json"))
+    parser.add_argument("--dataset", default=str(ROOT / "dataset"))
+    parser.add_argument("--out", default=str(ROOT / "dataset" / "manifest.json"))
     parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 1))
     parser.add_argument("--limit", type=int, default=0, help="0 = all")
     parser.add_argument("--label", default="", help="only label this claim text")

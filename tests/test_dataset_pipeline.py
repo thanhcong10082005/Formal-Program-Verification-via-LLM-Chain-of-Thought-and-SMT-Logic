@@ -11,7 +11,7 @@ The tests check the four properties the benchmark depends on:
 4. **Claim-pool integrity** -- every claim in the pool matches an ``assert``
    in its source file and resolves to a valid AST anchor.
 
-The tests run against the artefacts in ``data/bench_v1``. If those files
+The tests run against the artefacts in ``dataset``. If those files
 are missing, the tests skip rather than fail, so the suite stays usable
 before the pipeline has been run.
 """
@@ -34,8 +34,8 @@ from astverifier.shared.hashing import fingerprint  # noqa: E402
 from astverifier.shared.oracle import replay_witness  # noqa: E402
 from astverifier.shared.structure import analyze  # noqa: E402
 
-DATA = ROOT / "data" / "bench_v1"
-DATASET = ROOT.parent / "Dataset" / "filtered"
+DATA = ROOT / "dataset"
+DATASET = ROOT / "dataset"
 
 MANIFEST = DATA / "manifest.json"
 SAMPLE = DATA / "sample_1000.txt"
@@ -334,14 +334,14 @@ def test_sampling_is_deterministic():
             "--dataset",
             str(DATASET),
             "--out-dir",
-            str(ROOT / "data" / "bench_v1" / "_determinism_check"),
+            str(ROOT / "dataset" / "_determinism_check"),
         ],
         capture_output=True,
         text=True,
         cwd=str(ROOT),
     )
     assert result.returncode == 0, result.stderr
-    check = ROOT / "data" / "bench_v1" / "_determinism_check" / "sample_1000.txt"
+    check = ROOT / "dataset" / "_determinism_check" / "sample_1000.txt"
     try:
         again = [
             line.strip()

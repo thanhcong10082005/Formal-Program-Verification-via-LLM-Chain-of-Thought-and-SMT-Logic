@@ -21,8 +21,8 @@ from astverifier.core.pipeline import run_pipeline
 from astverifier.shared.schemas import StatusEnum
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SAMPLE = ROOT / "data" / "bench_v1" / "sample_1000.txt"
-DEFAULT_DATASET = ROOT.parent / "Dataset" / "filtered"
+DEFAULT_SAMPLE = ROOT / "dataset" / "sample_1000.txt"
+DEFAULT_DATASET = ROOT / "dataset"
 
 
 def _parse_args() -> argparse.Namespace:

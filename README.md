@@ -94,22 +94,20 @@ prototype/
 │   │   └── a_direct_smt.py … n_invariant_smt.py 
 │   └── llm/gemini.py                # Adapter Gemini (chỉ gọi, không quyết định)
 │
-├── data/bench_v1/                   # ★ BỘ 1.000 MẪU CHUẨN + Shared Claim Pool
+├── dataset/                         # ★ BỘ 1.000 MẪU CHUẨN + Shared Claim Pool
+│   ├── arithmetic/                  # 3 chương trình số học tuyến tính (.py)
+│   ├── loops/                       # 997 chương trình vòng lặp (.py)
 │   ├── manifest.json                # Schema thống nhất + GT + precondition
-│   ├── manifest_full.json           # Manifest trước khi gắn precondition
 │   ├── claim_pool.json              # 1.000 claim dùng chung cho MỌI phương pháp
 │   ├── sample_1000.txt              # Danh sách 1.000 path
 │   └── sampling_report.json         # Phân bố claim × verdict + lịch sử lọc
-│
-├── dataset_temp_200/                # Bộ phát triển harness 200 mẫu (đã backup)
 │
 ├── report/                          # ★ BÁO CÁO (Đồ án chuyên ngành CO4029)
 │   ├── main.tex                     # File gốc, \input các preamble + content
 │   ├── citations.bib                # 30 tài liệu tham khảo (biblatex)
 │   ├── hcmut.pdf                    # Logo HCMUT dùng ở header/titlepage
 │   ├── preamble/                    # packages.tex / format.tex / header_footer.tex
-│   ├── content/                     # 7 chương + frontmatter + appendices + references
-│   └── dataset_curated/manifest.json
+│   └── content/                     # 7 chương + frontmatter + appendices + references
 │
 ├── tools/                           # Script dòng lệnh
 │   ├── build_ground_truth.py        # Gán nhãn GT: CPython oracle + Z3 (2 tầng)
@@ -399,7 +397,7 @@ thực sự sai) · `False` (CE không tái hiện → CE của Z3 không đáng
 
 ---
 
-## 6. Bộ dữ liệu chuẩn `data/bench_v1/`
+## 6. Bộ dữ liệu chuẩn `dataset/`
 
 1.000 chương trình được chọn có hệ thống từ 14.785 chương trình QF-LIA, có ground
 truth kiểm chứng bằng **hai tầng độc lập** (CPython execution oracle + Z3/Spacer).
@@ -484,9 +482,9 @@ from pathlib import Path
 from astverifier.baselines import get_baseline, ProgramSpec
 from astverifier.shared.claims import load_claim_pool
 
-pool = load_claim_pool('data/bench_v1/claim_pool.json')
+pool = load_claim_pool('dataset/claim_pool.json')
 program_id, claims = next(iter(pool.items()))
-source = (Path('../Dataset/filtered') / program_id).read_text(encoding='utf-8')
+source = (Path('dataset') / program_id).read_text(encoding='utf-8')
 
 cls = get_baseline('L')          # Symbolic Execution — không cần LLM
 result = cls().run(ProgramSpec(program_id=program_id, source=source, claims=claims))
@@ -516,12 +514,12 @@ from pathlib import Path
 from astverifier.core.pipeline import run_pipeline
 from astverifier.shared.metrics import aggregate
 
-manifest = json.loads(Path("data/bench_v1/manifest.json").read_text(encoding="utf-8"))
+manifest = json.loads(Path("dataset/manifest.json").read_text(encoding="utf-8"))
 # Chỉ entry có claim mới mang expected_verdict.
 labelled = [e for e in manifest["programs"] if e.get("expected_verdict")]
 
 results = [
-    run_pipeline((Path("../Dataset/filtered") / e["path"]).read_text(encoding="utf-8"),
+    run_pipeline((Path("dataset") / e["path"]).read_text(encoding="utf-8"),
                  program_id=e["path"])
     for e in labelled
 ]

@@ -1,6 +1,6 @@
 """Phase 0.5.4 -- Shared Claim Pool Generation.
 
-Builds ``data/bench_v1/claim_pool.json``: the single, shared source of
+Builds ``dataset/claim_pool.json``: the single, shared source of
 claims that every method -- the proposed method and every baseline -- reads.
 
 The claims come from the programs' own ``assert`` statements, so building
@@ -18,9 +18,9 @@ extraction or by better wording.
 Run with::
 
     python tools/build_claim_pool.py \
-        --sample data/bench_v1/sample_1000.txt \
-        --manifest data/bench_v1/manifest.json \
-        --out data/bench_v1/claim_pool.json
+        --sample dataset/sample_1000.txt \
+        --manifest dataset/manifest.json \
+        --out dataset/claim_pool.json
 """
 
 from __future__ import annotations
@@ -103,15 +103,15 @@ def _claim_entries(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", default=str(ROOT.parent / "Dataset" / "filtered"))
+    parser.add_argument("--dataset", default=str(ROOT / "dataset"))
     parser.add_argument(
-        "--sample", default=str(ROOT / "data" / "bench_v1" / "sample_1000.txt")
+        "--sample", default=str(ROOT / "dataset" / "sample_1000.txt")
     )
     parser.add_argument(
-        "--manifest", default=str(ROOT / "data" / "bench_v1" / "manifest.json")
+        "--manifest", default=str(ROOT / "dataset" / "manifest.json")
     )
     parser.add_argument(
-        "--out", default=str(ROOT / "data" / "bench_v1" / "claim_pool.json")
+        "--out", default=str(ROOT / "dataset" / "claim_pool.json")
     )
     args = parser.parse_args(argv)
 
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pool = {
         "version": "2.0",
-        "dataset": "Dataset/filtered",
+        "dataset": "dataset",
         "sample_size": len(sample_paths),
         "n_claims": len(claims),
         "n_programs": programs_covered,

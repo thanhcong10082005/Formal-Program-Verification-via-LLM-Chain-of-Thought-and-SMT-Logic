@@ -1,6 +1,6 @@
 """Structural analysis of the dataset's programs.
 
-Every program in ``Dataset/filtered`` has the same shape::
+Every program in ``dataset`` has the same shape::
 
     def main(<params>):
         <parameter bindings>

@@ -13,9 +13,9 @@ unless ``--force`` is given.
 Run with::
 
     python tools/extract_preconditions.py \
-        --dataset ..\\Dataset\\filtered \
-        --manifest data/bench_v1/manifest_full.json \
-        --out data/bench_v1/manifest.json
+        --dataset dataset \
+        --manifest dataset/manifest.json \
+        --out dataset/manifest.json
 """
 
 from __future__ import annotations
@@ -90,15 +90,15 @@ def _process_entry(args: tuple) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", default=str(ROOT.parent / "Dataset" / "filtered"))
+    parser.add_argument("--dataset", default=str(ROOT / "dataset"))
     parser.add_argument(
         "--manifest",
-        default=str(ROOT / "data" / "bench_v1" / "manifest_full.json"),
+        default=str(ROOT / "dataset" / "manifest_full.json"),
         help="the manifest to read the programs from",
     )
     parser.add_argument(
         "--out",
-        default=str(ROOT / "data" / "bench_v1" / "manifest.json"),
+        default=str(ROOT / "dataset" / "manifest.json"),
         help="the manifest to write the preconditions into",
     )
     parser.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 4) - 1))

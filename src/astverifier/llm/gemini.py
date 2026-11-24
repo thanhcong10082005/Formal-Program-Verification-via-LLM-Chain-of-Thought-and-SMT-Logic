@@ -29,7 +29,10 @@ class SuggestedClaim(BaseModel):
     """One claim proposed by the LLM, tied to a source line."""
 
     line: int = Field(
-        description="The source code line number where this claim holds."
+        description=(
+            "The source code line number where this claim holds in the PRE-STATE "
+            "(immediately BEFORE the statement on that line executes)."
+        )
     )
     expression: str = Field(
         description="The Python boolean expression for the claim, e.g. 'x >= 0'."
@@ -71,7 +74,19 @@ Rules:
 variables (e.g., 'x >= 0', 'y == x + 1', 'i <= n').
 2. Do not use string, list, float, or library calls in claims. Only use \
 basic arithmetic (+, -, *, //, %) and comparisons (==, !=, <, <=, >, >=).
-3. Specify the exact line number where each claim should hold.
+3. PRE-STATE SEMANTICS: A claim attached to line L is evaluated immediately \
+BEFORE the statement at line L executes (exactly as if `assert <expression>` \
+were inserted right before line L). Therefore:
+   - Only reference variables that have ALREADY been defined on lines < L \
+(or function parameters). Never attach a claim referencing variable `v` to \
+the very first line that assigns `v`.
+   - If line L updates a variable (e.g., line 2 is `x = n + 3`), the resulting \
+property (`x == n + 3`) holds in the pre-state of line L + 1 (line 3), NOT at \
+line L.
+   - Claims at a `while` header line L represent loop invariants that hold \
+at loop entry and before each condition test.
+   - Claims at an `assert` or `return` line L represent properties that hold \
+immediately before that `assert` or `return` executes.
 4. Output valid JSON matching the requested schema.
 """
 
@@ -156,7 +171,8 @@ def generate_cot_and_claims(
 
 Please analyze the function, provide your Chain-of-Thought reasoning trace about \
 its state transitions and invariants, and suggest verification claims tied to \
-the correct line numbers."""
+the correct line numbers (remembering that a claim on line L holds in the \
+PRE-STATE immediately before line L executes)."""
 
     client = make_client(key)
     response = None
