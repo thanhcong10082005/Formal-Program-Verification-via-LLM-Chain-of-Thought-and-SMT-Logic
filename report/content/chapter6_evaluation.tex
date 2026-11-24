@@ -54,14 +54,22 @@ Bộ dữ liệu \texttt{dataset\_curated} gồm 68 chương trình được ch�
 \section{Kết quả Thực nghiệm Tổng thể và So sánh Định lượng}
 \label{sec:overall_benchmark_results}
 
-Bảng \ref{tab:benchmark-overall-expanded} trình bày kết quả so sánh định lượng toàn diện trên 22 chỉ số vận hành giữa phương pháp đề xuất (\textbf{Proposed Pipeline}) và hai trường phái đối chứng tiêu biểu: \textbf{SatLM Direct SMT-LIB2} (đại diện cho trường phái biên dịch trực tiếp sang SMT) và \textbf{LLM-as-a-Judge} (đại diện cho trường phái suy luận AI thuần túy).
+Để bảo đảm việc đánh giá được toàn diện, khoa học và trực quan, hệ thống độ đo được cấu trúc thành các nhóm trụ cột rõ ràng:
+\begin{enumerate}
+    \item \textbf{Trụ cột I -- Hiệu năng Phân loại (Classification Performance):} Phản ánh chất lượng đưa ra phán quyết tổng thể dựa trên ma trận nhầm lẫn (Accuracy, F1-Score, FDR, Precision, Recall).
+    \item \textbf{Trụ cột II -- Độ Tin cậy Hình thức \& Kiểm soát Ảo giác (Formal Verification Quality):} Trọng tâm khoa học của đề tài, đo lường năng lực chống ảo giác (HR), độ trung thực của phản ví dụ qua chạy thực tế (CRVR), và khả năng phát hiện nhánh chết (\texttt{UNREACHABLE}).
+    \item \textbf{Cơ chế Hỗ trợ -- Vòng Phản hồi Hồi cứu (Retrospective Feedback Loop):} Đánh giá năng lực tự sửa sai đóng kín khi nhận chẩn đoán sụp đổ từ sandbox.
+    \item \textbf{Trụ cột III -- Hiệu năng Vận hành \& Chi phí (Operational Efficiency \& Cost):} Đo lường độ trễ thực thi (Latency), tiêu thụ token và chi phí tài chính thực tế trên mỗi bài toán.
+\end{enumerate}
+
+Bảng \ref{tab:benchmark-overall-expanded} trình bày kết quả so sánh định lượng đối đầu giữa phương pháp đề xuất (\textbf{Proposed Pipeline}) và hai trường phái đối chứng tiêu biểu: \textbf{SatLM Direct SMT-LIB2} (biên dịch trực tiếp sang SMT) và \textbf{LLM-as-a-Judge} (suy luận AI thuần túy).
 
 \begingroup
 \small
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|>{\raggedright\arraybackslash}p{0.36\textwidth}|>{\centering\arraybackslash}p{0.20\textwidth}|>{\centering\arraybackslash}p{0.20\textwidth}|>{\centering\arraybackslash}p{0.20\textwidth}|}
-\caption{Bảng so sánh hiệu năng tổng thể trên bộ dữ liệu 68 chương trình}\label{tab:benchmark-overall-expanded}\\
+\begin{longtable}{|>{\raggedright\arraybackslash}p{0.37\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|}
+\caption{Bảng so sánh hiệu năng tổng thể theo các trụ cột độ đo trên bộ dữ liệu 68 chương trình}\label{tab:benchmark-overall-expanded}\\
 \hline
 \textbf{Chỉ số Đo lường} & \textbf{Proposed Pipeline} & \textbf{SatLM Direct} & \textbf{LLM-as-a-Judge} \\
 \hline
@@ -72,6 +80,8 @@ Bảng \ref{tab:benchmark-overall-expanded} trình bày kết quả so sánh đ�
 \endhead
 \hline
 \endfoot
+\multicolumn{4}{|l|}{\textbf{Trụ cột I: Phán quyết \& Hiệu năng Phân loại (Classification)}} \\
+\hline
 Số chương trình đánh giá & 68 & 68 & 68 \\
 \hline
 Phán quyết \texttt{VERIFIED} & 43 (63.2\%) & 47 (69.1\%) & 54 (79.4\%) \\
@@ -80,6 +90,16 @@ Phán quyết \texttt{COUNTEREXAMPLE} & 23 (33.8\%) & 21 (30.9\%) & 8 (11.8\%) \
 \hline
 Phán quyết \texttt{UNKNOWN\_TIMEOUT} & 2 (2.9\%) & 0 (0.0\%) & 6 (8.8\%) \\
 \hline
+Độ chính xác (\textbf{Accuracy}) & --$^{*}$ & --$^{*}$ & --$^{*}$ \\
+\hline
+\textbf{F1-Score (\texttt{VERIFIED})} & \textbf{--$^{*}$} & \textbf{--$^{*}$} & \textbf{--$^{*}$} \\
+\hline
+Tỷ lệ Khám phá Sai (\textbf{FDR}) & \textbf{--$^{*}$} & \textbf{--$^{*}$} & \textbf{--$^{*}$} \\
+\hline
+Precision / Recall (\texttt{VERIFIED}) & --$^{*}$ / --$^{*}$ & --$^{*}$ / --$^{*}$ & --$^{*}$ / --$^{*}$ \\
+\hline
+\hline
+\multicolumn{4}{|l|}{\textbf{Trụ cột II: Độ Tin cậy Hình thức \& Chống Ảo giác (Formal Verification)}} \\
 \hline
 Tổng số claim được kiểm chứng & \textbf{443} & 90 & 81 \\
 \hline
@@ -89,7 +109,6 @@ Claim bị Cổng neo từ chối (\texttt{UNSUPPORTED}) & 8 (1.81\%) & 0 & Khô
 \hline
 Tỷ lệ Ảo giác (\textbf{Hallucination Rate -- HR}) & \textbf{1.81\%} & 5.56\% & \textbf{N/A}$^{\dagger}$ \\
 \hline
-\hline
 Phản ví dụ được CPython replay xác nhận & \textbf{66 / 75} & Không hỗ trợ & 8 / 20 \\
 \hline
 Phản ví dụ giả mạo (Replay thất bại) & \textbf{9 (12.0\%)} & N/A & \textbf{12 (60.0\%)} \\
@@ -97,10 +116,14 @@ Phản ví dụ giả mạo (Replay thất bại) & \textbf{9 (12.0\%)} & N/A & 
 Độ trung thực phản ví dụ (\textbf{CRVR / Fidelity}) & \textbf{88.0\%} & \textbf{N/A}$^{\ddagger}$ & \textbf{40.0\%} \\
 \hline
 \hline
+\multicolumn{4}{|l|}{\textbf{Cơ chế Bổ trợ: Vòng Phản hồi Hồi cứu (Retrospective Feedback)}} \\
+\hline
 Số vòng phản hồi hồi cứu kích hoạt & 92 & 0 & 0 \\
 \hline
 Số ca tự sửa sai thành công qua phản hồi & \textbf{22 (23.9\%)} & 0 & 0 \\
 \hline
+\hline
+\multicolumn{4}{|l|}{\textbf{Trụ cột III: Hiệu năng Vận hành \& Chi phí Tài nguyên (Efficiency \& Cost)}} \\
 \hline
 Thời gian trung bình mỗi bài (Latency) & 7.71 giây & \textbf{1.41 giây} & 1.92 giây \\
 \hline
@@ -115,7 +138,7 @@ Tổng chi phí tài chính toàn bộ benchmark & \$0.0093 & \textbf{\$0.0061} 
 \end{longtable}
 \endgroup
 
-\noindent\footnotesize{$^{\dagger}$LLM-as-a-Judge không có cổng neo AST, do đó chỉ số HR là N/A theo nguyên tắc khoa học. $^{\ddagger}$SatLM không sinh vector đầu vào cụ thể để chạy CPython, nên chỉ số CRVR là N/A.}
+\noindent\footnotesize{$^{*}$Các chỉ số phân loại (Accuracy, F1-Score, FDR, Precision, Recall) trên tập 68 bài đang chờ hoàn tất bảng ánh xạ nhãn ground-truth chi tiết từng bài (per-program label) để đối soát và điền số liệu chính thức; logic và công thức tính toán đã được cài đặt sẵn trong mô-đun \texttt{metrics.py}. $^{\dagger}$LLM-as-a-Judge không có cổng neo AST, do đó chỉ số HR là N/A theo nguyên tắc khoa học. $^{\ddagger}$SatLM không sinh vector đầu vào cụ thể để chạy CPython, nên chỉ số CRVR là N/A.}
 
 \subsection{Kết quả Phân rã theo Danh mục Chương trình}
 Bảng \ref{tab:benchmark-categories-detail} trình bày sự phân bổ các phán quyết (\texttt{VERIFIED} / \texttt{COUNTEREXAMPLE} / \texttt{UNKNOWN}) trên từng nhóm cấu trúc chương trình cụ thể.

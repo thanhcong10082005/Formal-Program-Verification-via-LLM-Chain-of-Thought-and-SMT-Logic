@@ -734,3 +734,271 @@ def test_parser_handles_negative_numbers():
     assert solver.check() == z3.unsat
 
 
+
+
+def test_parser_handles_implies_div_mod_ite():
+    """The SMT-LIB2 parser handles implies, =>, div, mod, ite, and !=."""
+    state = {
+        "x": z3.Int("x"),
+        "y": z3.Int("y"),
+        "i": z3.Int("i"),
+        "s": z3.Int("s"),
+        "n": z3.Int("n"),
+    }
+    # 1. implies
+    expr_imp = parse_smt2_formula("(implies (>= i 0) (<= s 100))", state)
+    assert expr_imp is not None
+    s = z3.Solver()
+    expected_imp = z3.Implies(state["i"] >= 0, state["s"] <= 100)
+    s.add(z3.Xor(expr_imp, expected_imp))
+    assert s.check() == z3.unsat
+
+    # 2. => symbol
+    expr_arrow = parse_smt2_formula("(=> (>= i 0) (<= s 100))", state)
+    assert expr_arrow is not None
+    s2 = z3.Solver()
+    s2.add(z3.Xor(expr_arrow, expected_imp))
+    assert s2.check() == z3.unsat
+
+    # 3. div and mod
+    expr_mod = parse_smt2_formula("(= (mod i 3) 0)", state)
+    assert expr_mod is not None
+    s3 = z3.Solver()
+    s3.add(z3.Xor(expr_mod, (state["i"] % 3) == 0))
+    assert s3.check() == z3.unsat
+
+    expr_div = parse_smt2_formula("(= s (div n 3))", state)
+    assert expr_div is not None
+    s4 = z3.Solver()
+    s4.add(z3.Xor(expr_div, state["s"] == (state["n"] / 3)))
+    assert s4.check() == z3.unsat
+
+    # 4. ite
+    expr_ite = parse_smt2_formula("(ite (> x 0) (= y 1) (= y 0))", state)
+    assert expr_ite is not None
+    s5 = z3.Solver()
+    expected_ite = z3.If(state["x"] > 0, state["y"] == 1, state["y"] == 0)
+    s5.add(z3.Xor(expr_ite, expected_ite))
+    assert s5.check() == z3.unsat
+
+    # 5. !=
+    expr_ne = parse_smt2_formula("(!= x 0)", state)
+    assert expr_ne is not None
+    s6 = z3.Solver()
+    s6.add(z3.Xor(expr_ne, state["x"] != 0))
+    assert s6.check() == z3.unsat
+
+
+def test_dataset_multiples_program_with_mod_and_implies():
+    """Verify a dataset-style loop program with mod and step increments."""
+    # Program style from dataset_temp_200/programs/g3_loops/g3_multiples_01.py
+    source = (
+        "# precondition: n >= 0\n"
+        "def f(n: int) -> int:\n"
+        "    i = 0\n"
+        "    s = 0\n"
+        "    while i < n:\n"
+        "        i = i + 2\n"
+        "        s = s + 1\n"
+        "    assert s >= 0\n"
+        "    return s\n"
+    )
+    tree = ast.parse(source)
+    ids = assign_ids(tree)
+    executor = TrustedSymbolicExecutor(tree, ids)
+    executor.build_all_transitions()
+    loop = next(stmt for stmt in ast.walk(tree) if isinstance(stmt, ast.While))
+    entry_state = dict(executor.transitions[ids[loop]].pre.bindings)
+    state = {"i": z3.Int("i"), "s": z3.Int("s"), "n": z3.Int("n")}
+
+    # Candidate with mod: (mod i 2) == 0
+    mod_formula = "(= (mod i 2) 0)"
+    cand_mod = InvariantCandidate(
+        formula=mod_formula,
+        kind="relational",
+        z3_expr=parse_smt2_formula(mod_formula, state),
+    )
+    generator = LoopInvariantGenerator(llm_client=None, use_llm=False)
+    ver_mod = generator.verify(
+        cand_mod,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+        entry_state=entry_state,
+    )
+    assert ver_mod.is_valid
+    assert ver_mod.base_holds
+    assert ver_mod.step_holds
+
+    # Candidate with relational mod: (= (mod (- (* 2 s) i) 2) 0)
+    rel_mod_formula = "(= (mod (- (* 2 s) i) 2) 0)"
+    cand_rel_mod = InvariantCandidate(
+        formula=rel_mod_formula,
+        kind="relational",
+        z3_expr=parse_smt2_formula(rel_mod_formula, state),
+    )
+    ver_rel_mod = generator.verify(
+        cand_rel_mod,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+        entry_state=entry_state,
+    )
+    assert ver_rel_mod.is_valid
+    assert ver_rel_mod.base_holds
+    assert ver_rel_mod.step_holds
+
+    # Candidate with implies: (implies (and (>= s 0) (>= i 0)) (>= (+ s i) 0))
+    imp_formula = "(implies (and (>= s 0) (>= i 0)) (>= (+ s i) 0))"
+    cand_imp = InvariantCandidate(
+        formula=imp_formula,
+        kind="relational",
+        z3_expr=parse_smt2_formula(imp_formula, state),
+    )
+    ver_imp = generator.verify(
+        cand_imp,
+        loop_node=loop,
+        loop_body_stmts=loop.body,
+        state=state,
+        entry_state=entry_state,
+    )
+    assert ver_imp.is_valid
+    assert ver_imp.base_holds
+    assert ver_imp.step_holds
+
+
+def test_verify_handles_general_linear_assignments_and_if_branches():
+    """General linear assignments (y = 10 - x, x = x + x) and if/else branches verify."""
+    # 1. p00060-style: y = 10 - x; x = x + 1
+    src_p00060 = (
+        "def main(_initial_y: int) -> int:\n"
+        "    x = 1\n"
+        "    y = 9\n"
+        "    while x <= 10:\n"
+        "        y = 10 - x\n"
+        "        x = x + 1\n"
+        "    assert y < 10\n"
+        "    return y\n"
+    )
+    tree1 = ast.parse(src_p00060)
+    ids1 = assign_ids(tree1)
+    ex1 = TrustedSymbolicExecutor(tree1, ids1)
+    ex1.build_all_transitions()
+    loop1 = next(s for s in ast.walk(tree1) if isinstance(s, ast.While))
+    entry1 = dict(ex1.transitions[ids1[loop1]].pre.bindings)
+    state1 = {"x": z3.Int("x"), "y": z3.Int("y"), "_initial_y": z3.Int("_initial_y")}
+    gen = LoopInvariantGenerator(llm_client=None, use_llm=False)
+
+    cand1 = InvariantCandidate(
+        formula="(and (>= x 1) (< y 10))",
+        kind="relational",
+        z3_expr=parse_smt2_formula("(and (>= x 1) (< y 10))", state1),
+    )
+    ver1 = gen.verify(
+        cand1,
+        loop_node=loop1,
+        loop_body_stmts=loop1.body,
+        state=state1,
+        entry_state=entry1,
+    )
+    assert ver1.is_valid
+
+    # 2. p00050-style: if inside loop body merged with z3.If
+    src_p00050 = (
+        "def main(_initial_y: int) -> int:\n"
+        "    x = 0\n"
+        "    y = _initial_y\n"
+        "    z = _initial_y\n"
+        "    while x < 5:\n"
+        "        x += 1\n"
+        "        if z <= y:\n"
+        "            y = z\n"
+        "    assert z >= y\n"
+        "    return y\n"
+    )
+    tree2 = ast.parse(src_p00050)
+    ids2 = assign_ids(tree2)
+    ex2 = TrustedSymbolicExecutor(tree2, ids2)
+    ex2.build_all_transitions()
+    loop2 = next(s for s in ast.walk(tree2) if isinstance(s, ast.While))
+    entry2 = dict(ex2.transitions[ids2[loop2]].pre.bindings)
+    state2 = {
+        "x": z3.Int("x"),
+        "y": z3.Int("y"),
+        "z": z3.Int("z"),
+        "_initial_y": z3.Int("_initial_y"),
+    }
+    cand2 = InvariantCandidate(
+        formula="(>= z y)",
+        kind="relational",
+        z3_expr=parse_smt2_formula("(>= z y)", state2),
+    )
+    ver2 = gen.verify(
+        cand2,
+        loop_node=loop2,
+        loop_body_stmts=loop2.body,
+        state=state2,
+        entry_state=entry2,
+    )
+    assert ver2.is_valid
+
+    # 3. p00038-style: x = x + x
+    src_p00038 = (
+        "def main(y: int) -> int:\n"
+        "    x = 1\n"
+        "    while x < y:\n"
+        "        x = x + x\n"
+        "    assert x >= 1\n"
+        "    return x\n"
+    )
+    tree3 = ast.parse(src_p00038)
+    ids3 = assign_ids(tree3)
+    ex3 = TrustedSymbolicExecutor(tree3, ids3)
+    ex3.build_all_transitions()
+    loop3 = next(s for s in ast.walk(tree3) if isinstance(s, ast.While))
+    entry3 = dict(ex3.transitions[ids3[loop3]].pre.bindings)
+    state3 = {"x": z3.Int("x"), "y": z3.Int("y")}
+    cand3 = InvariantCandidate(
+        formula="(>= x 1)",
+        kind="relational",
+        z3_expr=parse_smt2_formula("(>= x 1)", state3),
+    )
+    ver3 = gen.verify(
+        cand3,
+        loop_node=loop3,
+        loop_body_stmts=loop3.body,
+        state=state3,
+        entry_state=entry3,
+    )
+    assert ver3.is_valid
+
+
+def test_pipeline_hoare_loop_exit_guard_and_havoc():
+    """Hoare loop-exit abstraction (I AND ~Guard => Post) proves post-loop claims without infinite unrolling."""
+    # 1. p00014.py: without ~Guard and havoc, 1-step unrolling falsely hits x=1 != n for n=2
+    src_p00014 = (
+        "def main(_initial_n: int, _initial_x: int) -> None:\n"
+        "    n = _initial_n\n"
+        "    x = _initial_x\n"
+        "    x = 0\n"
+        "    while x < n:\n"
+        "        x = x + 1\n"
+        "    if x != n:\n"
+        "        assert n < 0\n"
+    )
+    res_with = run_pipeline(src_p00014, do_replay=False, use_llm=False, enable_invariants=True)
+    assert res_with.claim_results[0].status == StatusEnum.VERIFIED
+
+    # 2. p00237.py: conserved linear relation i + 2*j == 41 with exit guard ~(j >= i) => j == 13
+    src_p00237 = (
+        "def main(_initial_i: int, _initial_j: int) -> None:\n"
+        "    i = 1\n"
+        "    j = 20\n"
+        "    while j >= i:\n"
+        "        i = i + 2\n"
+        "        j = j - 1\n"
+        "    assert j == 13\n"
+    )
+    res_237 = run_pipeline(src_p00237, do_replay=False, use_llm=False, enable_invariants=True)
+    assert res_237.claim_results[0].status == StatusEnum.VERIFIED
+

@@ -437,18 +437,22 @@ def _state_dict_for_invariant(
 
 
 def _conjoin_invariant(
-    reachability: Reachability, invariant: z3.BoolRef
+    reachability: Reachability,
+    invariant: z3.BoolRef,
+    *,
+    executor: TrustedSymbolicExecutor | None = None,
+    loop_node: ast.AST | None = None,
+    entry_state: dict[str, z3.ExprRef] | None = None,
+    pre_condition: z3.BoolRef | None = None,
+    post_condition_guard: z3.BoolRef | None = None,
 ) -> Reachability:
     """Return a copy of ``reachability`` whose relation carries the invariant.
 
-    The invariant is an *assumption* about the states that reach the target,
-    so it is conjoined into the relation.  Both Z3 solvers then reason over
-    the strengthened relation.
-
-    The invariant is first rewritten over the free symbols the relation
-    already uses (``_state_<suffix>_<name>``).  Without this rewrite the
-    invariant would talk about the program's variables while the relation
-    talks about the target-state symbols, and the two would never meet.
+    When ``loop_node`` is supplied, applies Hoare loop-exit abstraction
+    (*havoc + assume*): variables modified by the loop are unconstrained by
+    the 1-step unrolling equations and are instead governed by
+    ``I(s) AND ~Guard(s)``, while unmodified variables retain their
+    ``entry_state`` values.
     """
     symbols = reachability.state_symbols
     if symbols:
@@ -465,6 +469,55 @@ def _conjoin_invariant(
         if pairs:
             with contextlib.suppress(z3.Z3Exception):
                 invariant = z3.substitute(invariant, *pairs)
+
+    if (
+        loop_node is not None
+        and isinstance(loop_node, ast.While)
+        and symbols
+        and entry_state is not None
+    ):
+        from .invariants import _as_z3_bool, _eval_ast_expr, _loop_written_vars
+
+        written = _loop_written_vars(loop_node)
+        sym_env: dict[str, z3.ExprRef] = dict(symbols)
+        equations: list[z3.BoolRef] = []
+        for name, sym_var in symbols.items():
+            if name not in written and name in entry_state:
+                val = entry_state[name]
+                if z3.is_bool(val) or z3.is_arith(val):
+                    equations.append(sym_var == val)
+
+        raw_guard = _eval_ast_expr(loop_node.test, dict(sym_env))
+        exit_guard = (
+            z3.Not(_as_z3_bool(raw_guard))
+            if raw_guard is not None
+            else z3.BoolVal(True)
+        )
+        parts: list[z3.BoolRef] = []
+        if pre_condition is not None:
+            parts.append(pre_condition)
+        parts.extend(equations)
+        parts.append(invariant)
+        parts.append(exit_guard)
+        if post_condition_guard is not None:
+            pg = post_condition_guard
+            if pairs:
+                with contextlib.suppress(z3.Z3Exception):
+                    pg = z3.substitute(pg, *pairs)
+            parts.append(pg)
+        hoare_relation = z3.And(*parts)
+        return Reachability(
+            path=reachability.path,
+            relation=hoare_relation,
+            path_condition=z3.And(
+                pre_condition if pre_condition is not None else z3.BoolVal(True),
+                exit_guard,
+            ),
+            state=reachability.state,
+            complete=reachability.complete,
+            state_symbols=reachability.state_symbols,
+        )
+
     return Reachability(
         path=reachability.path,
         relation=z3.And(reachability.relation, invariant),
@@ -473,6 +526,43 @@ def _conjoin_invariant(
         complete=reachability.complete,
         state_symbols=reachability.state_symbols,
     )
+
+
+def _post_loop_branch_guard(
+    executor: TrustedSymbolicExecutor,
+    loop_node: ast.AST,
+    claim: Claim,
+    state: dict[str, z3.ExprRef],
+) -> z3.BoolRef | None:
+    """If the claim lies inside an ``if`` statement after ``loop_node``, return its branch condition."""
+    if claim.anchor is None:
+        return None
+    func = executor._enclosing_function_node(claim.anchor)
+    if func is None:
+        return None
+    anchor_node = executor._node_for_id(claim.anchor)
+    if anchor_node is None:
+        return None
+    from .invariants import _as_z3_bool, _eval_ast_expr
+
+    sym_env = {k: z3.Int(k) for k in state}
+    loop_seen = False
+    for stmt in func.body:
+        if stmt is loop_node:
+            loop_seen = True
+            continue
+        if not loop_seen:
+            continue
+        if isinstance(stmt, ast.If):
+            in_body = any(ch is anchor_node for ch in ast.walk( ast.Module(body=stmt.body, type_ignores=[]) ))
+            in_else = any(ch is anchor_node for ch in ast.walk( ast.Module(body=stmt.orelse, type_ignores=[]) ))
+            if in_body or in_else:
+                raw = _eval_ast_expr(stmt.test, dict(sym_env))
+                if raw is None:
+                    return None
+                cond = _as_z3_bool(raw)
+                return cond if in_body else z3.Not(cond)
+    return None
 
 
 def _invariant_assisted_paths(
@@ -510,7 +600,25 @@ def _invariant_assisted_paths(
         )
         if not state:
             continue
+        loop_nid = executor.ids.get(loop_node)
+        pre_cond = z3.BoolVal(True)
+        if loop_nid is not None:
+            pre_paths = executor.enumerate_target_paths(loop_nid)
+            if pre_paths:
+                pre_reach = executor.build_reachability(*pre_paths[0])
+                pre_cond = pre_reach.path_condition
+        post_guard = _post_loop_branch_guard(executor, loop_node, claim, state)
         try:
+            verification = invariant_generator.generate_and_verify(
+                source=source,
+                loop_node=loop_node,
+                post_assertion=claim.expr_node,
+                state=state,
+                entry_state=entry_state,
+                pre_condition=pre_cond,
+                post_condition_guard=post_guard,
+            )
+        except TypeError:
             verification = invariant_generator.generate_and_verify(
                 source=source,
                 loop_node=loop_node,
@@ -524,7 +632,15 @@ def _invariant_assisted_paths(
         if verification is None or verification.z3_expr is None:
             continue
         strengthened = [
-            _conjoin_invariant(item, verification.z3_expr)
+            _conjoin_invariant(
+                item,
+                verification.z3_expr,
+                executor=executor,
+                loop_node=loop_node,
+                entry_state=entry_state,
+                pre_condition=pre_cond,
+                post_condition_guard=post_guard,
+            )
             for item in reachability_list
         ]
         return strengthened, verification
