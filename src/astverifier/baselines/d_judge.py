@@ -149,7 +149,7 @@ class LLMJudgeBaseline(BaseBaseline):
                 claim_text=claim.text,
                 status=StatusEnum.COUNTEREXAMPLE,
                 anchor=self.anchor_info(claim),
-                counterexample=self._counterexample(spec, witness),
+                counterexample=self._counterexample(spec, claim, witness),
                 reason=reason or "the judge reported a counterexample",
             )
 
@@ -170,12 +170,14 @@ class LLMJudgeBaseline(BaseBaseline):
             reason=reason or "the judge could not decide",
         )
 
-    def _counterexample(self, spec: ProgramSpec, witness: dict[str, int]):
+    def _counterexample(self, spec: ProgramSpec, claim, witness: dict[str, int]):
         """Build the counterexample record, replayed on real CPython."""
         replay = replay_counterexample(
             spec.source,
             spec.function_name,
             witness,
+            target_line=claim.source_line or None,
+            claim_expression=claim.text or None,
         )
         return CounterexampleInfo(
             z3_model=dict(witness),

@@ -36,7 +36,15 @@ from . import (
     n_invariant_smt,  # noqa: F401
 )
 from .base import BaseBaseline, ProgramSpec
-from .llm import GeminiClient, LLMClient, LLMReply, StubClient, TokenBudget
+from .llm import (
+    GeminiClient,
+    LLMClient,
+    LLMReply,
+    OpenAICompatibleClient,
+    RateLimitedClient,
+    StubClient,
+    TokenBudget,
+)
 from .registry import (
     EXPECTED_IDS,
     all_baselines,
@@ -51,7 +59,9 @@ __all__ = [
     "GeminiClient",
     "LLMClient",
     "LLMReply",
+    "OpenAICompatibleClient",
     "ProgramSpec",
+    "RateLimitedClient",
     "StubClient",
     "TokenBudget",
     "all_baselines",

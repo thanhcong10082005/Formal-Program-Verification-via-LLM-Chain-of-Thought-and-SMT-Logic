@@ -5,18 +5,18 @@
   "labeling": "tier 1 = CPython execution oracle over a deterministic input grid; tier 2 = exact Z3/Spacer proof of the survivors. No LLM in the labeling loop.",
   "n_programs": 1000,
   "counts_by_verdict": {
-    "COUNTEREXAMPLE": 500,
-    "VERIFIED": 500
+    "COUNTEREXAMPLE": 501,
+    "VERIFIED": 499
   },
   "counts_by_gt_confidence": {
-    "high": 913,
-    "medium": 87
+    "high": 914,
+    "medium": 86
   },
   "counts_by_gt_source": {
-    "execution": 575,
-    "execution+z3": 425
+    "execution": 574,
+    "execution+z3": 426
   },
-  "n_ambiguous": 87,
+  "n_ambiguous": 86,
   "elapsed_seconds": 0.0,
   "programs": [
     {
@@ -11229,13 +11229,18 @@
       "precondition_guarded": false,
       "precondition_qf_lia": true,
       "precondition_error": null,
-      "expected_verdict": "VERIFIED",
-      "gt_source": "execution",
-      "gt_confidence": "medium",
-      "counterexample_input": null,
+      "expected_verdict": "COUNTEREXAMPLE",
+      "gt_source": "execution+z3",
+      "gt_confidence": "high",
+      "counterexample_input": {
+        "_initial_a": 0,
+        "_initial_j": 0,
+        "_initial_k": 0,
+        "_initial_m": 1
+      },
       "oracle_inputs_tried": 19,
-      "oracle_error": "prover candidate counterexample did not replay: a reachable state violates the claim",
-      "ambiguous": true
+      "oracle_error": null,
+      "ambiguous": false
     },
     {
       "archive_member": "gen_c/106-j1-s77.c",

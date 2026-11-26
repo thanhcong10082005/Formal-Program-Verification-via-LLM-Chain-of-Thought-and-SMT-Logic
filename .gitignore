@@ -48,6 +48,7 @@ logs/
 # --- Generated result files -----------------------------------------------
 # Kết quả benchmark sẽ ghi ra đầy đụ; không commit.
 results/
+results_*/
 
 # --- Misc local files -------------------------------------------------------
 geminiapi.txt

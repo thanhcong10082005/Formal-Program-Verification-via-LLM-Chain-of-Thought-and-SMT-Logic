@@ -64,12 +64,27 @@ class SymbolicExecutionBaseline(BaseBaseline):
 
     def _decide(self, spec: ProgramSpec, claim) -> ClaimResult:
         """Decide one claim with the two-query protocol."""
+        precondition = claim.precondition or spec.precondition
         try:
             proof = prove(
                 spec.source,
                 claim.text,
-                precondition=claim.precondition or spec.precondition,
+                precondition=precondition,
             )
+            # In the benchmark claim pool, ``claim.precondition`` may hold a
+            # post-loop branch guard referencing local variables rather than
+            # function parameters; the AST prover already encodes in-source
+            # ``if`` guards directly, so retry without an entry assumption.
+            if (
+                precondition
+                and proof.verdict == VERDICT_INCONCLUSIVE
+                and "precondition does not parse" in (proof.reason or "")
+            ):
+                proof = prove(
+                    spec.source,
+                    claim.text,
+                    precondition=None,
+                )
         except Exception as exc:  # noqa: BLE001 - a baseline never crashes
             return ClaimResult(
                 claim_id=claim.claim_id,
@@ -95,7 +110,7 @@ class SymbolicExecutionBaseline(BaseBaseline):
                 claim_text=claim.text,
                 status=StatusEnum.COUNTEREXAMPLE,
                 anchor=self.anchor_info(claim),
-                counterexample=self._counterexample(spec, proof.witness or {}),
+                counterexample=self._counterexample(spec, claim, proof.witness or {}),
                 reason=proof.reason,
             )
 
@@ -132,12 +147,14 @@ class SymbolicExecutionBaseline(BaseBaseline):
             reason=proof.reason or f"prover was {VERDICT_INCONCLUSIVE}",
         )
 
-    def _counterexample(self, spec: ProgramSpec, witness: dict[str, int]):
+    def _counterexample(self, spec: ProgramSpec, claim, witness: dict[str, int]):
         """Build the counterexample record, replayed on real CPython."""
         replay = replay_counterexample(
             spec.source,
             spec.function_name,
             witness,
+            target_line=claim.source_line or None,
+            claim_expression=claim.text or None,
         )
         return CounterexampleInfo(
             z3_model=dict(witness),

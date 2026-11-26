@@ -17,8 +17,8 @@
     "n_problems": 0
   },
   "by_verdict": {
-    "COUNTEREXAMPLE": 500,
-    "VERIFIED": 500
+    "COUNTEREXAMPLE": 501,
+    "VERIFIED": 499
   },
   "by_claim": {
     "_contract_result == ((a == b + c or b == a + c) or c == a + b)": 1,
@@ -2801,8 +2801,8 @@
       "source_line": 22,
       "ast_anchor": "main@Assert:L22:C4#0",
       "precondition": "a <= m and j < 1",
-      "expected_verdict": "VERIFIED",
-      "gt_confidence": "medium",
+      "expected_verdict": "COUNTEREXAMPLE",
+      "gt_confidence": "high",
       "provenance": "assert@L22",
       "validated": {
         "syntax_ok": true,

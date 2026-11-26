@@ -136,6 +136,8 @@ class DeterministicFuzzingBaseline(BaseBaseline):
             spec.source,
             spec.function_name,
             witness,
+            target_line=claim.source_line or None,
+            claim_expression=claim.text or None,
         )
         return CounterexampleInfo(
             z3_model=witness,
