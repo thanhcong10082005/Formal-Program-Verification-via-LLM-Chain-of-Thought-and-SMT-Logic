@@ -20,7 +20,7 @@ Toàn bộ các phiên thực nghiệm được tiến hành trên một môi tr
 \begin{itemize}
     \item \textbf{Phần cứng:} Hệ thống máy trạm Apple Silicon kiến trúc ARM64, CPU 12-core, 36 GB Unified Memory, hệ điều hành macOS 15.1.
     \item \textbf{Môi trường Phần mềm:} Trình thông dịch CPython 3.12.1; Bộ giải hình thức Z3 SMT Solver phiên bản 4.13.0 (xây dựng kèm hỗ trợ Spacer PDR engine); Thư viện phân tích cú pháp AST chuẩn của Python; Framework kiểm thử tự động Pytest 8.3.
-    \item \textbf{Mô hình Ngôn ngữ Lớn:} Mô hình thương mại Google Gemini thế hệ mới nhất (\texttt{gemini-2.5-flash} và \texttt{gemini-2.5-flash-lite}) được truy cập thông qua Google Generative AI API chính thức. Nhiệt độ lấy mẫu (temperature) được thiết lập cố định ở mức $0.0$ cho các tác vụ suy luận hình thức để bảo đảm tính tất định cao nhất, ngoại trừ Baseline G (Self-Consistency) sử dụng nhiệt độ $0.7$ để lấy mẫu phân tán đa dạng.
+    \item \textbf{Mô hình Ngôn ngữ Lớn:} Mô hình thương mại Google Gemini thế hệ mới nhất (\texttt{gemini-3.5-flash-lite}) được truy cập thông qua Google Generative AI API chính thức. Nhiệt độ lấy mẫu (temperature) được thiết lập cố định ở mức $0.0$ cho các tác vụ suy luận hình thức để bảo đảm tính tất định cao nhất, ngoại trừ Baseline G (Self-Consistency) sử dụng nhiệt độ $0.7$ để lấy mẫu phân tán đa dạng.
     \item \textbf{Giới hạn Giám sát (Limits):} Hard timeout cho Z3 solver được ấn định là $5{,}000$ ms; timeout cho tiến trình con CPython replay là $3{,}000$ ms.
 \end{itemize}
 

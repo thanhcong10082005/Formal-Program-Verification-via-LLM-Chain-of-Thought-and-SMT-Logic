@@ -52,3 +52,9 @@ known-first-party = ["astverifier"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "pipeline: unit and regression tests for the proposed AST-anchored pipeline",
+    "baseline: contract and independence tests for the 14 baselines (A-N)",
+    "dataset: tests for the 1,000-program benchmark dataset and claim pool",
+    "slow: slow integration tests over the 1,000-program dataset and Z3/Spacer prover",
+]

@@ -26,11 +26,6 @@ from astverifier.core.invariants import (
     _eval_ast_expr,
     _loop_written_vars,
 )
-from astverifier.core.obligations import (
-    build_obligations,
-    run_reachability,
-    run_validity,
-)
 from astverifier.core.pipeline import run_pipeline
 from astverifier.llm.gemini import (
     generate_cot_and_claims,
@@ -173,7 +168,7 @@ def run_pipeline_demo(
             print("  * [LLM Output - Giai đoạn 5] Raw JSON ứng viên bất biến từ Gemini:")
             for ln in raw_inv_json.strip().splitlines():
                 print(f"      {ln}")
-            print(f"\n  * [Pipeline Output - Giai đoạn 5] Kiểm chứng k-Induction từng ứng viên LLM:")
+            print("\n  * [Pipeline Output - Giai đoạn 5] Kiểm chứng k-Induction từng ứng viên LLM:")
             for cand in llm_cands:
                 ver = generator.verify(
                     cand,

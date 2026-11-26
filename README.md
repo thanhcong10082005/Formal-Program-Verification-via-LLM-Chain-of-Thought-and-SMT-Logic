@@ -115,11 +115,16 @@ prototype/
 │   ├── select_stratified_sample.py  # Lọc trùng + lấy 1.000 mẫu phân tầng
 │   └── build_claim_pool.py          # Trích claim từ assert (0 token)
 │
-├── tests/                           # 109 test (pytest)
-│   ├── test_baselines.py            # Contract test cho 14 baseline
-│   ├── test_dataset_pipeline.py     # Tính đúng của pipeline dataset
-│   ├── test_extensions.py
-│   └── test_regressions.py
+├── tests/                           # 125 test (pytest, chia 3 nhóm + markers)
+│   ├── conftest.py                  # Chặn gọi Gemini API thật + tự gắn marker
+│   ├── pipeline/                    # Proposal Pipeline test (46 tests, ~0.4s)
+│   │   ├── test_extensions.py       # Invariants, Hoare exit, Feedback, Metrics
+│   │   └── test_regressions.py      # Anchor Gate, Two-Query Z3, Replay regressions
+│   ├── baselines/                   # Baseline test (50 tests)
+│   │   └── test_baselines.py        # Registry, độc lập core/, contract 14 baselines
+│   └── dataset/                     # Dataset test (24 fast + 5 slow)
+│       ├── test_dataset_pipeline.py # Schema, sample 1.000, claim pool, anchors
+│       └── test_dataset_slow.py     # (@pytest.mark.slow) Full replay, idempotency, Spacer
 │
 ├── pyproject.toml                   # Metadata + cấu hình ruff/pytest
 └── README.md                        # File này
@@ -156,7 +161,7 @@ Shared Claim Pool, trả về cùng một schema `ProgramResult` mà Proposed Me
 | Kết quả                            | Giá trị                                                                |
 | ---------------------------------- | ---------------------------------------------------------------------- |
 | Baseline đã hiện thực              | **14 / 14** (A–N) — 19 file, 2.956 dòng trong `astverifier/baselines/` |
-| Contract test                      | **50 / 50 pass** (`tests/test_baselines.py`)                           |
+| Contract test                      | **50 / 50 pass** (`tests/baselines/test_baselines.py`)                           |
 | Toàn bộ test suite                 | **109 pass** · `ruff` **0 lỗi**                                        |
 | Baseline chạy offline (0 token)    | **3** — J, K, L · còn 11 baseline cần LLM                              |
 | Token Gemini đã tiêu khi hiện thực | **0** (contract test dùng `StubClient`)                                |
@@ -195,7 +200,7 @@ không còn là phương pháp độc lập nữa.
 Bất biến này được **cài đặt thành test tự động**, không phải bằng quy ước:
 
 ```python
-# tests/test_baselines.py::test_no_baseline_imports_core
+# tests/baselines/test_baselines.py::test_no_baseline_imports_core
 # Quét AST mọi file trong baselines/: mọi ast.Import / ast.ImportFrom
 # chạm "core" đều bị flag. Import relative bị bỏ qua (vì relative
 # trong baselines/ không thể với tới core/).
@@ -533,21 +538,35 @@ print(f"F1={m.f1:.3f} FDR={m.fdr:.3f} HR={m.hr} CRVR={m.crvr}")
 
 ## 9. Kiểm thử
 
-```powershell
-$env:PYTHONPATH = "src"
+Bộ kiểm thử gồm **125 test** được tổ chức thành 3 nhóm độc lập (kèm `conftest.py` tự động chặn gọi live Gemini API để đảm bảo chạy offline 100%):
 
-python -m pytest tests -q          # 109 test
-python -m ruff check src tools tests
+```bash
+# 1. Proposal Pipeline Test (46 tests, ~0.4s)
+pytest tests/pipeline           # hoặc: pytest -m pipeline
+
+# 2. Baseline Test (50 tests)
+pytest tests/baselines          # hoặc: pytest -m baseline
+
+# 3. Dataset Test (24 tests nhanh ~3.8s / 29 tests đầy đủ)
+pytest tests/dataset -m "not slow"
+pytest tests/dataset            # hoặc: pytest -m dataset
+
+# 4. Full Test (toàn bộ 125 tests)
+pytest
+
+# Lint & compile check
+ruff check src tools tests
 python -m compileall -q src tools tests
 ```
 
 
-| Tệp test                   | Phủ                                                                                                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `test_baselines.py`        | Registry đủ 14 ID · quét AST chặn import `core/` · contract: mỗi baseline chạy 1 chương trình mẫu → `ProgramResult` đúng schema · chương trình hỏng & claim list rỗng không crash · token khai báo đúng |
-| `test_dataset_pipeline.py` | Tính đúng của pipeline dataset: idempotency, replay counterexample, reachability                                                                                                                        |
-| `test_extensions.py`       | Subset gate, anchor binding, Z3 obligations, replay, metric                                                                                                                                             |
-| `test_regressions.py`      | Các lỗi đã từng xảy ra (cache, undefined name, zip strictness…)                                                                                                                                         |
+| Nhóm / Tệp test                             | Marker     | Phủ                                                                                                                                                                                                     |
+| ------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/pipeline/test_extensions.py`         | `pipeline` | Subset gate, anchor binding, Z3 obligations, loop invariants (Houdini + Hoare), feedback loop, replay, metrics                                                                                          |
+| `tests/pipeline/test_regressions.py`        | `pipeline` | Các lỗi hồi quy đã từng xảy ra (cache, undefined name, zip strictness, replay target line…)                                                                                                             |
+| `tests/baselines/test_baselines.py`         | `baseline` | Registry đủ 14 ID · quét AST chặn import `core/` · contract: mỗi baseline chạy 1 chương trình mẫu → `ProgramResult` đúng schema · chương trình hỏng & claim list rỗng không crash · token khai báo đúng |
+| `tests/dataset/test_dataset_pipeline.py`    | `dataset`  | Tính đúng của bộ 1.000 mẫu `dataset/`: schema, preconditions, sampling phân tầng, claim pool, AST anchors                                                                                               |
+| `tests/dataset/test_dataset_slow.py`        | `dataset`, `slow` | Kiểm thử tích hợp nặng: replay toàn bộ 500 phản ví dụ, idempotency trên 1.000 file, soundness của Z3/Spacer prover                                                                               |
 
 
 ---

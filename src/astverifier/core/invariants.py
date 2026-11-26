@@ -20,6 +20,7 @@ results worse than Phase 0.
 from __future__ import annotations
 
 import ast
+import contextlib
 import json
 import logging
 import re
@@ -777,7 +778,7 @@ class LoopInvariantGenerator:
 
         written = _loop_written_vars(loop_node)
         entry_map = dict(entry_state or {})
-        rich_exprs = _hoare_candidate_Pool(
+        rich_exprs = _hoare_candidate_pool(
             loop_node=loop_node,
             post_assertion=post_assertion,
             post_condition_guard=post_condition_guard,
@@ -808,12 +809,24 @@ class LoopInvariantGenerator:
                 s_base.add(symbols[name] == val)
 
         base_ok: list[tuple[InvariantCandidate, z3.BoolRef]] = []
+        seen_invs: set[str] = set()
         for cand in all_candidates:
             if cand.z3_expr is None:
                 continue
             inv = _substitute_vars(cand.z3_expr, symbols, skip_literals=True)
-            if inv is None or z3.is_true(inv):
+            if inv is None:
                 continue
+            with contextlib.suppress(z3.Z3Exception):
+                inv = z3.simplify(inv)
+            if z3.is_true(inv) or z3.is_false(inv):
+                continue
+            try:
+                key = z3.simplify(inv, arith_lhs=True).sexpr()
+            except z3.Z3Exception:
+                key = inv.sexpr()
+            if key in seen_invs:
+                continue
+            seen_invs.add(key)
             s_base.push()
             s_base.add(z3.Not(inv))
             ok = s_base.check() == z3.unsat
@@ -1230,7 +1243,7 @@ def _loop_written_vars(loop_node: ast.AST) -> set[str]:
     return written
 
 
-def _hoare_candidate_Pool(
+def _hoare_candidate_pool(
     *,
     loop_node: ast.AST,
     post_assertion: ast.expr,
@@ -1284,7 +1297,7 @@ def _hoare_candidate_Pool(
             consts.add(n.value)
     for k in active:
         ek = to_sym(entry_state.get(k))
-        if ek is not None:
+        if ek is not None and not symbols[k].eq(ek):
             out.append((f"(>= {k} {ek})", symbols[k] >= ek))
             out.append((f"(<= {k} {ek})", symbols[k] <= ek))
         for c in consts:

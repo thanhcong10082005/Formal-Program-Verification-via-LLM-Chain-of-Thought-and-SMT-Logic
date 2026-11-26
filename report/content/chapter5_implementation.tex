@@ -52,7 +52,7 @@ src/astverifier/
 |   |-- m_hoare_nl.py            # Baseline M: Hoare Triple Natural Language
 |   \-- n_invariant_smt.py       # Baseline N: Invariant Synthesis with SMT
 \-- llm/                         # ADAPTER KET NOI MO HINH NGON NGU
-    \-- gemini.py                # Wrapper cho Google Gemini API (gemini-2.5-flash)
+    \-- gemini.py                # Wrapper cho Google Gemini API (gemini-3.5-flash-lite)
 \end{verbatim}
 \vspace{-6pt}
 \captionof{figure}{Cấu trúc tổ chức thư mục của package \texttt{astverifier}}
@@ -204,7 +204,7 @@ Trong số 14 baseline, có 3 baseline chạy hoàn toàn ngoại tuyến, tiêu
 \end{enumerate}
 
 \subsection{Bộ 11 Baseline Sử dụng Mô hình Ngôn ngữ}
-11 baseline còn lại sử dụng LLM thông qua giao diện \texttt{LLMClient}. Trong quá trình kiểm thử contract test, các baseline nhận \texttt{StubClient} (trả về các câu trả lời giả lập cố định) để kiểm tra tính toàn vẹn của mã nguồn mà không tiêu tốn bất kỳ chi phí API nào. Khi chạy thực tế, chúng nhận \texttt{GeminiClient} kết nối với mô hình \texttt{gemini-2.5-flash}.
+11 baseline còn lại sử dụng LLM thông qua giao diện \texttt{LLMClient}. Trong quá trình kiểm thử contract test, các baseline nhận \texttt{StubClient} (trả về các câu trả lời giả lập cố định) để kiểm tra tính toàn vẹn của mã nguồn mà không tiêu tốn bất kỳ chi phí API nào. Khi chạy thực tế, chúng nhận \texttt{GeminiClient} kết nối với mô hình \texttt{gemini-3.5-flash-lite}.
 
 \section{Cơ chế An toàn, Chịu lỗi và Quản lý Tài nguyên}
 \label{sec:safety_fault_tolerance}

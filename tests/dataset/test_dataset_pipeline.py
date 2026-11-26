@@ -27,7 +27,7 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from astverifier.shared.hashing import fingerprint  # noqa: E402
@@ -156,22 +156,6 @@ def test_counterexamples_replay():
             source, func, entry["counterexample_input"]
         )
         assert confirmed, f"{entry['path']}: the witness no longer fails"
-
-
-def test_all_counterexamples_replay():
-    """Every counterexample's witness fails the claim again."""
-    counterexamples = [
-        e
-        for e in _claim_programs()
-        if e["expected_verdict"] == "COUNTEREXAMPLE"
-    ]
-    failures = []
-    for entry in counterexamples:
-        source = (DATASET / entry["path"]).read_text(encoding="utf-8")
-        func = entry.get("function_name") or "main"
-        if not replay_witness(source, func, entry["counterexample_input"]):
-            failures.append(entry["path"])
-    assert not failures, f"{len(failures)} counterexamples did not replay"
 
 
 # ---------------------------------------------------------------------------
@@ -416,108 +400,6 @@ def test_claim_pool_carries_ground_truth():
 
 
 # ---------------------------------------------------------------------------
-# 5. Idempotency
-# ---------------------------------------------------------------------------
-
-
-def test_pipeline_idempotent():
-    """Re-running the labelling does not change any label."""
-    if not MANIFEST.exists():
-        pytest.skip("the manifest has not been generated yet")
-
-    before = {
-        e["path"]: (
-            e.get("expected_verdict"),
-            e.get("gt_confidence"),
-            e.get("gt_source"),
-        )
-        for e in _programs()
-        if e.get("expected_verdict")
-    }
-    if not before:
-        pytest.skip("nothing has been labelled yet")
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(ROOT / "tools" / "build_ground_truth.py"),
-            "--dataset",
-            str(DATASET),
-            "--out",
-            str(MANIFEST),
-            "--workers",
-            "2",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=str(ROOT),
-    )
-    assert result.returncode == 0, result.stderr
-
-    after = {
-        e["path"]: (
-            e.get("expected_verdict"),
-            e.get("gt_confidence"),
-            e.get("gt_source"),
-        )
-        for e in _programs()
-        if e.get("expected_verdict")
-    }
-    assert after == before, "the labels changed on a re-run"
-
-
-# ---------------------------------------------------------------------------
-# 6. The prover's own soundness
-# ---------------------------------------------------------------------------
-
-
-def test_prover_agrees_with_execution():
-    """The prover never proves a claim that execution contradicts."""
-    from astverifier.shared.oracle import observe
-    from astverifier.shared.prover import prove
-
-    programs = _claim_programs()[:40]
-    if not programs:
-        pytest.skip("no programs to check")
-
-    for entry in programs:
-        source = (DATASET / entry["path"]).read_text(encoding="utf-8")
-        func = entry.get("function_name") or "main"
-        params = analyze(source).params
-
-        proof = prove(source, entry["claims"][0], tag="t")
-        if proof.verdict != "VERIFIED":
-            continue
-        outcome = observe(source, func, list(params))
-        assert outcome.observation != "COUNTEREXAMPLE", (
-            f"{entry['path']}: the prover says VERIFIED but execution found a "
-            f"counterexample"
-        )
-
-
-def test_prover_never_guesses():
-    """The prover only ever returns one of its four verdicts."""
-    from astverifier.shared.prover import (
-        VERDICT_COUNTEREXAMPLE,
-        VERDICT_INCONCLUSIVE,
-        VERDICT_UNREACHABLE,
-        VERDICT_VERIFIED,
-        prove,
-    )
-
-    allowed = {
-        VERDICT_VERIFIED,
-        VERDICT_COUNTEREXAMPLE,
-        VERDICT_UNREACHABLE,
-        VERDICT_INCONCLUSIVE,
-    }
-    for entry in _claim_programs()[:40]:
-        source = (DATASET / entry["path"]).read_text(encoding="utf-8")
-        proof = prove(source, entry["claims"][0], tag="t")
-        assert proof.verdict in allowed, proof.verdict
-
-
-# ---------------------------------------------------------------------------
 # 7. The exact reachability decision
 # ---------------------------------------------------------------------------
 
@@ -564,45 +446,3 @@ def test_reachability_verdict_is_exact():
         source = (DATASET / entry["path"]).read_text(encoding="utf-8")
         result = prove_reachability(source, entry["claims"][0], tag="t")
         assert result.verdict in allowed, result.verdict
-
-
-def test_verified_programs_are_not_contradicted_by_reachability():
-    """The exact reachability query agrees with the manifest's verdict.
-
-    The execution oracle and the exact query must not contradict each
-    other. A program the oracle *reached* -- one whose assert actually
-    ran -- is necessarily reachable, so the query must not call it
-    unreachable.
-
-    Note that the converse does not hold: a program whose assert never
-    runs is labelled ``UNREACHABLE``, but a program that *is* reachable
-    can still be ``VERIFIED`` (the claim holds) or ``COUNTEREXAMPLE``.
-    """
-    from astverifier.shared.oracle import observe
-    from astverifier.shared.prover import (
-        VERDICT_UNREACHABLE,
-        prove_reachability,
-    )
-
-    candidates = [
-        e
-        for e in _claim_programs()
-        if e["expected_verdict"] in ("VERIFIED", "COUNTEREXAMPLE")
-    ]
-    if not candidates:
-        pytest.skip("no verified program in the manifest")
-
-    wrong = []
-    for entry in candidates[:30]:
-        source = (DATASET / entry["path"]).read_text(encoding="utf-8")
-        func = entry.get("function_name") or "main"
-        params = analyze(source).params
-        outcome = observe(source, func, list(params))
-        if not outcome.assert_reached:
-            # The assert never ran, so the oracle says nothing about
-            # reachability.
-            continue
-        result = prove_reachability(source, entry["claims"][0], tag="t")
-        if result.verdict == VERDICT_UNREACHABLE:
-            wrong.append(entry["path"])
-    assert not wrong, f"{len(wrong)} reachable programs are unreachable"
