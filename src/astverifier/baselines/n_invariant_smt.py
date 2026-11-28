@@ -28,14 +28,11 @@ from .common import ask_json, program_prompt
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are an invariant synthesis assistant.
-
-You are given a program and a claim. Propose one to three candidate loop
-invariants, each a Python boolean expression over the program's integer
-variables that holds at the head of the loop.
-
-Answer with a JSON object of the form:
-{"invariants": ["<invariant>", ...], "reason": "<why>"}
+SYSTEM = """Propose up to three inductive Python Boolean expressions over
+integer variables in scope at the loop head. Each candidate must hold before
+the first iteration, survive the loop update, and imply the claim when the
+loop guard is false. Combine needed facts with and. Return one JSON object
+only, for example {"invariants":["0 <= i and i <= n"],"reason":"Bounds hold at the head."}.
 """
 
 #: How many candidate invariants are requested.
@@ -91,12 +88,12 @@ class InvariantSynthesisBaseline(BaseBaseline):
         )
 
         candidates: list[str] = []
-        if isinstance(payload, dict):
+        if isinstance(payload, dict) and isinstance(payload.get("invariants"), list):
             candidates = [
-                str(item).strip()
-                for item in payload.get("invariants", [])
-                if str(item).strip()
-            ]
+                item.strip()
+                for item in payload["invariants"]
+                if isinstance(item, str) and item.strip()
+            ][:N_CANDIDATES]
 
         claim_results = [
             self._decide(spec, claim, candidates) for claim in spec.claims
@@ -134,6 +131,7 @@ class InvariantSynthesisBaseline(BaseBaseline):
             claim.text,
             candidates,
             precondition=claim.precondition or spec.precondition,
+            source_line=claim.source_line,
         )
 
         return ClaimResult(
@@ -152,64 +150,16 @@ def check_invariant_with_z3(
     candidates: list[str],
     *,
     precondition: str | None = None,
+    source_line: int = 0,
 ) -> tuple[StatusEnum, str]:
-    """Check candidate invariants with Z3 (base case + inductive step).
+    """Check the candidate expressions in the loop's entry, step and exit states."""
+    from ..shared.prover import VERDICT_VERIFIED, validate_loop_invariants
 
-    The loop is encoded as a Datalog relation and Z3's Spacer engine
-    synthesises the exact characterization of the loop-head states. The
-    base case is then ``psi AND NOT invariant`` and the inductive step is
-    checked by asking whether the invariant implies the claim at the exit.
-
-    Returns:
-        ``(status, detail)``.
-    """
-    from ..shared.structure import StructureError, analyze
-
-    try:
-        analyze(source)
-    except (SyntaxError, StructureError) as exc:
-        return StatusEnum.UNKNOWN_TIMEOUT, f"analysis failed: {exc}"
-
-    # The Datalog-backed prover already performs the base case and the
-    # inductive step over the exact loop-head characterization. It is used
-    # here with the candidate invariant as an extra assumption, so that the
-    # accepted invariant is the one that carries the proof.
-    for candidate in candidates:
-        verdict, detail = _check_one(source, claim_text, candidate, precondition)
-        if verdict == StatusEnum.VERIFIED:
-            return verdict, detail
-    return (
-        StatusEnum.UNKNOWN_TIMEOUT,
-        "no candidate invariant survived the base case and the inductive step",
+    proof = validate_loop_invariants(
+        source, claim_text, candidates, precondition=precondition, source_line=source_line
     )
-
-
-def _check_one(
-    source: str, claim_text: str, candidate: str, precondition: str | None
-) -> tuple[StatusEnum, str]:
-    """Check a single candidate invariant."""
-    from ..shared.prover import prove
-
-    combined = precondition or ""
-    try:
-        proof = prove(source, claim_text, precondition=combined or None)
-    except Exception as exc:  # noqa: BLE001 - a baseline never crashes
-        return StatusEnum.UNKNOWN_TIMEOUT, f"the prover failed: {exc!r}"
-
-    if proof.verdict == "VERIFIED":
-        return (
-            StatusEnum.VERIFIED,
-            f"the invariant {candidate!r} is valid and implies the claim",
-        )
-    if proof.verdict == "COUNTEREXAMPLE":
-        return (
-            StatusEnum.COUNTEREXAMPLE,
-            f"the claim is violated; the invariant {candidate!r} does not hold",
-        )
-    return (
-        StatusEnum.UNKNOWN_TIMEOUT,
-        f"the invariant {candidate!r} could not be confirmed: {proof.reason}",
-    )
+    verdict = StatusEnum.VERIFIED if proof.verdict == VERDICT_VERIFIED else StatusEnum.UNKNOWN_TIMEOUT
+    return verdict, proof.reason
 
 
 __all__ = ["InvariantSynthesisBaseline", "check_invariant_with_z3"]

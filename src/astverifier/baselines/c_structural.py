@@ -2,21 +2,17 @@
 
 The protocol: the program is summarised as a control-flow skeleton with a
 loop summary, the model writes a natural-language proof sketch plus
-candidate loop invariants, and a Python-level k-induction check decides
-whether the invariants actually hold.
-
-The k-induction check is **not** a solver call: it is a direct evaluation
-of the invariant over the concrete states the program reaches, plus the
-inductive step over the symbolic transition relation. No Z3 is involved, so
-this baseline is a genuinely different instrument from L.
-
-It never calls Z3, so the "UNREACHABLE detected" metric is ``N/A`` for it.
+candidate loop invariants. Z3 checks the candidates and their implication
+of the claim over the symbolic states reaching its assertion.
 """
 
 from __future__ import annotations
 
+import ast
 import time
 from typing import Any
+
+import z3
 
 from ..shared.schemas import ClaimResult, StatusEnum
 from .base import BaseBaseline, ProgramSpec
@@ -24,15 +20,11 @@ from .common import ask_json, program_prompt, program_shape_summary
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are a structural verification assistant.
-
-You are given a control-flow skeleton of a program and one claim. Reason
-about the loop's invariant and about whether the claim holds.
-
-Answer with a JSON object of the form:
-{"invariants": ["<invariant over the loop variables>"],
- "proof": "<the natural-language proof sketch>",
- "verdict": "VERIFIED" | "COUNTEREXAMPLE" | "UNKNOWN"}
+SYSTEM = """Use the control-flow skeleton to propose inductive Python Boolean
+expressions over variables in scope at the loop head. Include the facts
+needed for the claim when the guard is false. Return one JSON object only.
+Keep proof to one sentence; the checker decides the verdict.
+Example: {"invariants":["0 <= i <= n"],"proof":"The upper bound holds at exit."}
 """
 
 
@@ -116,9 +108,12 @@ class StructuralReasoningBaseline(BaseBaseline):
                 reason="the model did not return a usable answer",
             )
 
-        invariants = [
-            str(item) for item in payload.get("invariants", []) if str(item).strip()
-        ]
+        candidates = payload.get("invariants")
+        invariants = (
+            [item for item in candidates if isinstance(item, str) and item.strip()]
+            if isinstance(candidates, list)
+            else []
+        )
         reason = str(payload.get("reason", "") or payload.get("proof", ""))
 
         if not invariants:
@@ -131,7 +126,7 @@ class StructuralReasoningBaseline(BaseBaseline):
             )
 
         verdict, detail = check_invariant_by_k_induction(
-            spec.source, claim.text, invariants
+            spec.source, claim.text, invariants, source_line=claim.source_line
         )
 
         return ClaimResult(
@@ -145,24 +140,10 @@ class StructuralReasoningBaseline(BaseBaseline):
 
 
 def check_invariant_by_k_induction(
-    source: str, claim_text: str, invariants: list[str]
+    source: str, claim_text: str, invariants: list[str], *, source_line: int = 0
 ) -> tuple[StatusEnum, str]:
-    """Check a candidate invariant by k-induction, without a solver.
-
-    The check has two halves:
-
-    * the **base case** -- the invariant must hold on the states the program
-      actually reaches, which are collected by executing it on a deterministic
-      input grid;
-    * the **inductive step** -- the invariant must be preserved by the
-      loop's body, which is checked by evaluating the invariant on the
-      symbolic states produced by the shared symbolic executor.
-
-    A candidate that passes both halves is accepted.
-
-    Returns:
-        ``(status, detail)``.
-    """
+    """Check that an invariant holds and implies the requested claim on every path."""
+    from ..shared.prover import VERDICT_VERIFIED, validate_loop_invariants
     from ..shared.structure import StructureError, analyze
     from ..shared.symexec import Explorer, SymExecError, coerce_bool, eval_expr
 
@@ -171,45 +152,58 @@ def check_invariant_by_k_induction(
     except (SyntaxError, StructureError) as exc:
         return StatusEnum.UNKNOWN_TIMEOUT, f"analysis failed: {exc}"
 
+    if shape.loop is not None:
+        proof = validate_loop_invariants(
+            source, claim_text, invariants, source_line=source_line
+        )
+        status = StatusEnum.VERIFIED if proof.verdict == VERDICT_VERIFIED else StatusEnum.UNKNOWN_TIMEOUT
+        return status, proof.reason
+
     try:
         explorer = Explorer(shape.params, var_prefix="k")
         exploration = explorer.explore(shape.func.body)
-    except (SymExecError, Exception) as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         return StatusEnum.UNKNOWN_TIMEOUT, f"symbolic exploration failed: {exc!r}"
 
-    if not exploration.assert_sites:
-        return StatusEnum.UNKNOWN_TIMEOUT, "no assert site was found"
-
-    # The symbolic state at the claim's site.
-    site = exploration.assert_sites[0]
-    claim_z3 = None
     try:
-        claim_z3 = eval_expr(site.node.test, site.env)
-    except SymExecError as exc:
+        claim_node = ast.parse(claim_text.strip(), mode="eval").body
+        if source_line > 0:
+            sites = [site for site in exploration.assert_sites if site.node.lineno == source_line]
+        else:
+            claim_key = ast.dump(claim_node)
+            sites = [site for site in exploration.assert_sites if ast.dump(site.node.test) == claim_key]
+            if len({site.node.lineno for site in sites}) != 1:
+                return StatusEnum.UNKNOWN_TIMEOUT, "the claim has no unique assert site"
+        if not sites:
+            return StatusEnum.UNKNOWN_TIMEOUT, "the claim's assert site was not found"
+        conditions = [coerce_bool(eval_expr(claim_node, site.env)) for site in sites]
+    except (SyntaxError, SymExecError, z3.Z3Exception) as exc:
         return StatusEnum.UNKNOWN_TIMEOUT, f"the claim could not be translated: {exc}"
 
-    import z3
-
-    claim_z3 = coerce_bool(claim_z3)
+    solver = z3.Solver()
+    solver.set("timeout", 10_000)
+    if solver.check(z3.Or(*(site.cond for site in sites))) != z3.sat:
+        return StatusEnum.UNKNOWN_TIMEOUT, "no reachable claim state could be established"
 
     for text in invariants:
         try:
-            invariant = coerce_bool(eval_expr(_parse_expr(text), site.env))
-        except Exception:  # noqa: BLE001 - an unparsable invariant is rejected
+            invariant_node = ast.parse(text.strip(), mode="eval").body
+            candidates = [coerce_bool(eval_expr(invariant_node, site.env)) for site in sites]
+        except (SyntaxError, SymExecError, z3.Z3Exception):
             continue
 
-        # Base case: the invariant must hold wherever the site is reached.
-        base = z3.Solver()
-        base.set("timeout", 10_000)
-        base.add(site.cond, z3.Not(invariant))
-        if base.check() == z3.sat:
+        base_failure = z3.Or(*(
+            z3.And(site.cond, z3.Not(invariant))
+            for site, invariant in zip(sites, candidates, strict=True)
+        ))
+        if solver.check(base_failure) != z3.unsat:
             continue
 
-        # Inductive step: the invariant must imply the claim at the site.
-        step = z3.Solver()
-        step.set("timeout", 10_000)
-        step.add(site.cond, invariant, z3.Not(claim_z3))
-        if step.check() == z3.unsat:
+        claim_failure = z3.Or(*(
+            z3.And(site.cond, invariant, z3.Not(condition))
+            for site, invariant, condition in zip(sites, candidates, conditions, strict=True)
+        ))
+        if solver.check(claim_failure) == z3.unsat:
             return (
                 StatusEnum.VERIFIED,
                 f"the invariant {text!r} holds at the site and implies the claim",
@@ -219,13 +213,6 @@ def check_invariant_by_k_induction(
         StatusEnum.UNKNOWN_TIMEOUT,
         "no candidate invariant survived the base case and the inductive step",
     )
-
-
-def _parse_expr(text: str):
-    """Parse a Python expression, raising ``ValueError`` when it fails."""
-    import ast
-
-    return ast.parse(text, mode="eval").body
 
 
 __all__ = ["StructuralReasoningBaseline", "check_invariant_by_k_induction"]

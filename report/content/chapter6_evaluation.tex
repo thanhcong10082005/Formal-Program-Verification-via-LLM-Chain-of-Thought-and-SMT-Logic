@@ -1,358 +1,107 @@
 \chapter{Thực nghiệm và Đánh giá}
 \label{ch:evaluation}
 
-Chương này trình bày toàn bộ phương pháp luận thực nghiệm, cấu hình môi trường, đặc tính của các bộ dữ liệu kiểm chuẩn, và các kết quả đo lường định lượng chi tiết nhằm trả lời thỏa đáng 5 câu hỏi nghiên cứu (RQ1--RQ5) đã đặt ra trong Chương 1. Nội dung bao gồm việc so sánh đa chiều giữa Proposed Pipeline với 14 phương pháp baseline đại diện, phân tích chuyên sâu về hiện tượng chân lý rỗng (vacuous truth), tỷ lệ ảo giác (HR), độ tin cậy của phản ví dụ qua thực thi thật (CRVR), hiệu quả của vòng phản hồi hồi cứu, phân tích đường biên đánh đổi giữa chi phí và tính đúng đắn, cùng các mối đe dọa đến tính hợp lệ của nghiên cứu.
+Chương này trình bày kết quả trên 200 chương trình vòng lặp Python. Các phương pháp được đối chiếu theo cùng một khẳng định gốc và một nhãn chuẩn cho mỗi chương trình.
 
-\section{Mục tiêu Thực nghiệm và Thiết lập Môi trường}
+\section{Thiết lập đánh giá}
 \label{sec:eval_setup}
 
-\subsection{Mục tiêu Đánh giá Thực nghiệm}
-Quy trình thực nghiệm được thiết kế nhằm đạt được các mục tiêu khoa học cụ thể:
-\begin{enumerate}
-    \item Đánh giá khả năng sinh reasoning trace có cấu trúc của mô hình ngôn ngữ lớn và hiệu quả thẩm định của Cổng neo AST trong việc kiểm soát ảo giác (RQ1, RQ2).
-    \item Định lượng năng lực phát hiện nhánh chết và ngăn chặn các kết luận \texttt{VERIFIED} giả tạo của Giao thức Hai Truy vấn Z3 so với các baseline (RQ3).
-    \item Đo lường mức độ trung thực của các phản ví dụ tìm được thông qua việc chạy lại trong sandbox CPython thật (CRVR), và đánh giá tỷ lệ tự sửa sai thành công của Vòng phản hồi hồi cứu (RQ4).
-    \item Đánh giá toàn diện sự đánh đổi (trade-offs) giữa độ chính xác, tỷ lệ phát hiện lỗi, thời gian trễ thực thi (latency), số lượng token tiêu thụ và chi phí tài chính thực tế trên toàn bộ 14 trường phái baseline (RQ5).
-\end{enumerate}
-
-\subsection{Môi trường Phần cứng và Phần mềm}
-Toàn bộ các phiên thực nghiệm được tiến hành trên một môi trường tính toán chuẩn hóa nhằm bảo đảm khả năng tái lập kết quả:
-\begin{itemize}
-    \item \textbf{Phần cứng:} Hệ thống máy trạm Apple Silicon kiến trúc ARM64, CPU 12-core, 36 GB Unified Memory, hệ điều hành macOS 15.1.
-    \item \textbf{Môi trường Phần mềm:} Trình thông dịch CPython 3.12.1; Bộ giải hình thức Z3 SMT Solver phiên bản 4.13.0 (xây dựng kèm hỗ trợ Spacer PDR engine); Thư viện phân tích cú pháp AST chuẩn của Python; Framework kiểm thử tự động Pytest 8.3.
-    \item \textbf{Mô hình Ngôn ngữ Lớn:} Mô hình thương mại Google Gemini thế hệ mới nhất (\texttt{gemini-3.5-flash-lite}) được truy cập thông qua Google Generative AI API chính thức. Nhiệt độ lấy mẫu (temperature) được thiết lập cố định ở mức $0.0$ cho các tác vụ suy luận hình thức để bảo đảm tính tất định cao nhất, ngoại trừ Baseline G (Self-Consistency) sử dụng nhiệt độ $0.7$ để lấy mẫu phân tán đa dạng.
-    \item \textbf{Giới hạn Giám sát (Limits):} Hard timeout cho Z3 solver được ấn định là $5{,}000$ ms; timeout cho tiến trình con CPython replay là $3{,}000$ ms.
-\end{itemize}
-
-\section{Dữ liệu Thực nghiệm (Benchmarks \& Datasets)}
+\subsection{Dữ liệu và nhãn chuẩn}
 \label{sec:datasets}
 
-Nghiên cứu sử dụng hai bộ dữ liệu kiểm chuẩn bổ trợ lẫn nhau, bao gồm một bộ dữ liệu lớn phân tầng quy mô 1.000 mẫu (\texttt{bench\_v1}) và một bộ dữ liệu chuyên sâu tập trung vào các cấu trúc vòng lặp phức tạp gồm 68 chương trình (\texttt{dataset\_curated}).
+Tập thực nghiệm được lấy từ \texttt{bench\_v1}, bộ dữ liệu gồm 1.000 chương trình. Tập con có 100 mẫu mang nhãn \texttt{VERIFIED} và 100 mẫu mang nhãn \texttt{COUNTEREXAMPLE}. Cả 200 mẫu đều chứa vòng lặp và thuộc họ Code2Inv. Trong đó có 7 chương trình từ kho gốc và 193 biến thể sinh tự động. Danh sách định danh được dùng chung cho các phương pháp.
 
-\subsection{Bộ Dữ liệu Chuẩn Quy mô Lớn \texttt{bench\_v1} (1.000 Mẫu)}
-Bộ dữ liệu \texttt{bench\_v1} được xây dựng có hệ thống từ không gian nguồn gồm 14.785 chương trình QF-LIA rút trích từ bộ tiêu chuẩn CoCoClaNeL \cite{faria2026automatic}:
-\begin{itemize}
-    \item \textbf{Quy mô và Phân bố Cân bằng:} Đúng 1.000 chương trình độc lập được lựa chọn bằng thuật toán lấy mẫu phân tầng ngẫu nhiên có kiểm soát (seed 42), bảo đảm tỷ lệ cân bằng hoàn hảo \textbf{50\% / 50\%}: đúng \textbf{500 mẫu mang nhãn \texttt{VERIFIED}} và đúng \textbf{500 mẫu mang nhãn \texttt{COUNTEREXAMPLE}}.
-    \item \textbf{Gán nhãn Ground Truth Độc lập Hai Tầng:} Để bảo đảm nhãn chuẩn không bị thiên vị bởi bất kỳ mô hình AI nào, ground truth được xác lập thông qua hai tầng kiểm định độc lập: (Tầng 1) Oracle thực thi CPython chạy kiểm thử với phân tích giá trị biên BVA; và (Tầng 2) Trình kiểm chứng ký hiệu hình thức Z3/Spacer. Chỉ những mẫu có sự đồng thuận tuyệt đối giữa hai tầng mới được đưa vào bộ dữ liệu chuẩn.
-    \item \textbf{Độ bao phủ Dạng Khẳng định:} Bộ dữ liệu bao phủ đầy đủ \textbf{34 trên tổng số 34 dạng biểu thức khẳng định đại diện được} (trong tổng số 36 dạng cú pháp có trong tập gốc, 2 dạng bị loại bỏ do chứa phép toán ngoài phạm vi).
-    \item \textbf{Hồ chứa Khẳng định Dùng chung (Shared Claim Pool):} Toàn bộ 1.000 khẳng định được trích xuất hoàn toàn tự động từ các câu lệnh \texttt{assert} có sẵn trong mã nguồn với chi phí đúng \textbf{0 token}. Việc áp dụng Shared Claim Pool bảo đảm mọi phương pháp đối chứng đều giải quyết cùng một bài toán giống nhau 100\%, loại bỏ hoàn toàn yếu tố may rủi do kỹ thuật viết prompt trích xuất claim.
-\end{itemize}
+Nhãn của bộ dữ liệu dựa trên thử nghiệm bằng CPython và, ở các trường hợp phù hợp, kiểm tra ký hiệu bằng Z3/Spacer. Cả 100 mẫu mang nhãn \texttt{COUNTEREXAMPLE} đều có đầu vào phản ví dụ trong manifest.
 
-\subsection{Bộ Dữ liệu Vòng lặp Kiểm chứng \texttt{dataset\_curated} (68 Mẫu)}
-Bộ dữ liệu \texttt{dataset\_curated} gồm 68 chương trình được chọn lọc khắt khe từ kỳ thi kiểm chứng phần mềm quốc tế SV-COMP (Software Verification Competition) chuyên về cấu trúc lặp trong đại số nguyên:
-\begin{itemize}
-    \item \textbf{Phân loại Danh mục:}
-    \begin{itemize}
-        \item \texttt{loop-invariants} (9 chương trình): Các bài toán kinh điển đòi hỏi phải suy luận được bất biến quy nạp phi tầm thường để chứng minh an toàn.
-        \item \texttt{loop-simple} (8 chương trình): Các vòng lặp đếm cơ bản với biến tăng giảm tuyến tính.
-        \item \texttt{loops-crafted-1} (50 chương trình): Các bài toán vòng lặp được thiết kế phức tạp với nhiều nhánh rẽ điều kiện lồng nhau, kiểm tra tính bền vững của bộ giải trước các điều kiện biên tinh vi.
-        \item \texttt{syn\_\_countdown} (1 chương trình): Chương trình đếm ngược tổng hợp kiểm tra tính dừng và biên dưới.
-    \end{itemize}
-    \item \textbf{Phân bố Nhãn tổng thể:} Gồm 41 chương trình an toàn (\texttt{VERIFIED}) và 27 chương trình có lỗi vi phạm (\texttt{COUNTEREXAMPLE}).
-\end{itemize}
+\subsection{Cấu hình và quy tắc chấm}
 
-\section{Kết quả Thực nghiệm Tổng thể và So sánh Định lượng}
+Các lượt dùng LLM trong bảng sử dụng MiniCPM-V-4.7-35B-A3B qua AMD Token Lab. Proposed Offline, J, K và L chạy cục bộ. Cả hai chế độ Proposed đều được chấm trên câu lệnh \texttt{assert} gốc. Các khẳng định bổ sung do MiniCPM đề xuất được thống kê riêng. Bản C được chọn chạy mã HoarePrompt của tác giả \cite{bouras2026hoareprompt}. Bản H được chọn dùng vòng phản hồi từ mã Self-Refine của tác giả cùng bộ chuyển đổi định dạng phản hồi cho tác vụ kiểm chứng \cite{madaan2024self}.
+
+Một mẫu được tính đúng nếu phán quyết khớp chính xác với nhãn của khẳng định gốc. Gọi $N$ là số mẫu, $N_c$ là số phán quyết đúng và $N_d$ là số mẫu nhận được \texttt{VERIFIED} hoặc \texttt{COUNTEREXAMPLE}. Độ chính xác là $N_c/N$ và độ phủ phán quyết là $N_d/N$. Các trạng thái không kết luận, lỗi dịch và lỗi chạy đều nằm trong mẫu số $N=200$ và được tính vào số mẫu chưa có phán quyết.
+
+Khi một baseline có nhiều phiên bản, bảng chọn bản có số phán quyết đúng cao nhất trên cùng 200 mẫu. Nếu bằng điểm, ưu tiên bản có độ phủ cao hơn. Mỗi định danh mẫu đóng góp một kết quả cuối cùng cho mỗi phương pháp.
+
+\section{So sánh trên 200 khẳng định gốc}
 \label{sec:overall_benchmark_results}
 
-Để bảo đảm việc đánh giá được toàn diện, khoa học và trực quan, hệ thống độ đo được cấu trúc thành các nhóm trụ cột rõ ràng:
-\begin{enumerate}
-    \item \textbf{Trụ cột I -- Hiệu năng Phân loại (Classification Performance):} Phản ánh chất lượng đưa ra phán quyết tổng thể dựa trên ma trận nhầm lẫn (Accuracy, F1-Score, FDR, Precision, Recall).
-    \item \textbf{Trụ cột II -- Độ Tin cậy Hình thức \& Kiểm soát Ảo giác (Formal Verification Quality):} Trọng tâm khoa học của đề tài, đo lường năng lực chống ảo giác (HR), độ trung thực của phản ví dụ qua chạy thực tế (CRVR), và khả năng phát hiện nhánh chết (\texttt{UNREACHABLE}).
-    \item \textbf{Cơ chế Hỗ trợ -- Vòng Phản hồi Hồi cứu (Retrospective Feedback Loop):} Đánh giá năng lực tự sửa sai đóng kín khi nhận chẩn đoán sụp đổ từ sandbox.
-    \item \textbf{Trụ cột III -- Hiệu năng Vận hành \& Chi phí (Operational Efficiency \& Cost):} Đo lường độ trễ thực thi (Latency), tiêu thụ token và chi phí tài chính thực tế trên mỗi bài toán.
-\end{enumerate}
-
-Bảng \ref{tab:benchmark-overall-expanded} trình bày kết quả so sánh định lượng đối đầu giữa phương pháp đề xuất (\textbf{Proposed Pipeline}) và hai trường phái đối chứng tiêu biểu: \textbf{SatLM Direct SMT-LIB2} (biên dịch trực tiếp sang SMT) và \textbf{LLM-as-a-Judge} (suy luận AI thuần túy).
-
-\begingroup
-\small
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|>{\raggedright\arraybackslash}p{0.37\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|>{\centering\arraybackslash}p{0.18\textwidth}|}
-\caption{Bảng so sánh hiệu năng tổng thể theo các trụ cột độ đo trên bộ dữ liệu 68 chương trình}\label{tab:benchmark-overall-expanded}\\
-\hline
-\textbf{Chỉ số Đo lường} & \textbf{Proposed Pipeline} & \textbf{SatLM Direct} & \textbf{LLM-as-a-Judge} \\
-\hline
-\endfirsthead
-\hline
-\textbf{Chỉ số Đo lường} & \textbf{Proposed Pipeline} & \textbf{SatLM Direct} & \textbf{LLM-as-a-Judge} \\
-\hline
-\endhead
-\hline
-\endfoot
-\multicolumn{4}{|l|}{\textbf{Trụ cột I: Phán quyết \& Hiệu năng Phân loại (Classification)}} \\
-\hline
-Số chương trình đánh giá & 68 & 68 & 68 \\
-\hline
-Phán quyết \texttt{VERIFIED} & 43 (63.2\%) & 47 (69.1\%) & 54 (79.4\%) \\
-\hline
-Phán quyết \texttt{COUNTEREXAMPLE} & 23 (33.8\%) & 21 (30.9\%) & 8 (11.8\%) \\
-\hline
-Phán quyết \texttt{UNKNOWN\_TIMEOUT} & 2 (2.9\%) & 0 (0.0\%) & 6 (8.8\%) \\
-\hline
-Độ chính xác (\textbf{Accuracy}) & --$^{*}$ & --$^{*}$ & --$^{*}$ \\
-\hline
-\textbf{F1-Score (\texttt{VERIFIED})} & \textbf{--$^{*}$} & \textbf{--$^{*}$} & \textbf{--$^{*}$} \\
-\hline
-Tỷ lệ Khám phá Sai (\textbf{FDR}) & \textbf{--$^{*}$} & \textbf{--$^{*}$} & \textbf{--$^{*}$} \\
-\hline
-Precision / Recall (\texttt{VERIFIED}) & --$^{*}$ / --$^{*}$ & --$^{*}$ / --$^{*}$ & --$^{*}$ / --$^{*}$ \\
-\hline
-\hline
-\multicolumn{4}{|l|}{\textbf{Trụ cột II: Độ Tin cậy Hình thức \& Chống Ảo giác (Formal Verification)}} \\
-\hline
-Tổng số claim được kiểm chứng & \textbf{443} & 90 & 81 \\
-\hline
-Phát hiện nhánh chết (\texttt{UNREACHABLE}) & \textbf{127 (28.7\%)} & \textbf{0 (0.0\%)} & \textbf{0 (0.0\%)} \\
-\hline
-Claim bị Cổng neo từ chối (\texttt{UNSUPPORTED}) & 8 (1.81\%) & 0 & Không đo được$^{\dagger}$ \\
-\hline
-Tỷ lệ Ảo giác (\textbf{Hallucination Rate -- HR}) & \textbf{1.81\%} & 5.56\% & \textbf{N/A}$^{\dagger}$ \\
-\hline
-Phản ví dụ được CPython replay xác nhận & \textbf{66 / 75} & Không hỗ trợ & 8 / 20 \\
-\hline
-Phản ví dụ giả mạo (Replay thất bại) & \textbf{9 (12.0\%)} & N/A & \textbf{12 (60.0\%)} \\
-\hline
-Độ trung thực phản ví dụ (\textbf{CRVR / Fidelity}) & \textbf{88.0\%} & \textbf{N/A}$^{\ddagger}$ & \textbf{40.0\%} \\
-\hline
-\hline
-\multicolumn{4}{|l|}{\textbf{Cơ chế Bổ trợ: Vòng Phản hồi Hồi cứu (Retrospective Feedback)}} \\
-\hline
-Số vòng phản hồi hồi cứu kích hoạt & 92 & 0 & 0 \\
-\hline
-Số ca tự sửa sai thành công qua phản hồi & \textbf{22 (23.9\%)} & 0 & 0 \\
-\hline
-\hline
-\multicolumn{4}{|l|}{\textbf{Trụ cột III: Hiệu năng Vận hành \& Chi phí Tài nguyên (Efficiency \& Cost)}} \\
-\hline
-Thời gian trung bình mỗi bài (Latency) & 7.71 giây & \textbf{1.41 giây} & 1.92 giây \\
-\hline
-Token trung bình (Input / Output) & 398.6 / 356.1 & 320.5 / 219.0 & 1{,}113.7 / 370.0 \\
-\hline
-Tổng token tiêu thụ (Input / Output) & 27{,}104 / 24{,}213 & 21{,}796 / 14{,}891 & 75{,}734 / 25{,}163 \\
-\hline
-Chi phí API trung bình mỗi bài (USD) & \$0.000137 & \textbf{\$0.000090} & \$0.000195 \\
-\hline
-Tổng chi phí tài chính toàn bộ benchmark & \$0.0093 & \textbf{\$0.0061} & \$0.0132 \\
-\hline
-\end{longtable}
-\endgroup
-
-\noindent\footnotesize{$^{*}$Các chỉ số phân loại (Accuracy, F1-Score, FDR, Precision, Recall) trên tập 68 bài đang chờ hoàn tất bảng ánh xạ nhãn ground-truth chi tiết từng bài (per-program label) để đối soát và điền số liệu chính thức; logic và công thức tính toán đã được cài đặt sẵn trong mô-đun \texttt{metrics.py}. $^{\dagger}$LLM-as-a-Judge không có cổng neo AST, do đó chỉ số HR là N/A theo nguyên tắc khoa học. $^{\ddagger}$SatLM không sinh vector đầu vào cụ thể để chạy CPython, nên chỉ số CRVR là N/A.}
-
-\subsection{Kết quả Phân rã theo Danh mục Chương trình}
-Bảng \ref{tab:benchmark-categories-detail} trình bày sự phân bổ các phán quyết (\texttt{VERIFIED} / \texttt{COUNTEREXAMPLE} / \texttt{UNKNOWN}) trên từng nhóm cấu trúc chương trình cụ thể.
-
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \small
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{|l|c|c|c|c|}
-\hline
-\textbf{Danh mục Cấu trúc} & \textbf{Tổng số} & \textbf{Proposed Pipeline} & \textbf{SatLM Direct} & \textbf{LLM-as-a-Judge} \\
-\hline
-\texttt{loop-invariants} & 9 & 6 / 3 / 0 & 9 / 0 / 0 & 9 / 0 / 0 \\
-\hline
-\texttt{loop-simple} & 8 & 8 / 0 / 0 & 6 / 2 / 0 & 7 / 1 / 0 \\
-\hline
-\texttt{loops-crafted-1} & 50 & 28 / 20 / 2 & 31 / 19 / 0 & 37 / 7 / 6 \\
-\hline
-\texttt{syn\_\_countdown} & 1 & 1 / 0 / 0 & 1 / 0 / 0 & 1 / 0 / 0 \\
-\hline
-\textbf{Tổng cộng} & \textbf{68} & \textbf{43 / 23 / 2} & \textbf{47 / 21 / 0} & \textbf{54 / 8 / 6} \\
-\hline
+\setlength{\tabcolsep}{4pt}
+\caption{Kết quả trên 200 chương trình vòng lặp Python}
+\label{tab:benchmark-overall-expanded}
+\begin{tabular}{@{}p{0.46\textwidth}rrrr@{}}
+\toprule
+\textbf{Phương pháp} & \textbf{Đúng} & \textbf{Độ chính xác} & \textbf{Sai} & \textbf{Chưa có P.Q.} \\
+\midrule
+Proposed + MiniCPM & 200 & 100\% & 0 & 0 \\
+Proposed Offline & 200 & 100\% & 0 & 0 \\
+A -- SatLM Direct, v3 & 106 & 53\% & 43 & 51 \\
+B -- Execution Grounding & 172 & 86\% & 1 & 27 \\
+C -- HoarePrompt gốc & 117 & 58,5\% & 81 & 2 \\
+D -- LLM-as-a-Judge, v3 & 135 & 67,5\% & 50 & 15 \\
+E -- Neuro-Symbolic, v3 & 16 & 8\% & 0 & 184 \\
+F -- Agentic Multi-Step & 159 & 79,5\% & 1 & 40 \\
+G -- Self-Consistency & 101 & 50,5\% & 48 & 51 \\
+H -- Self-Refine gốc & 179 & 89,5\% & 21 & 0 \\
+I -- LLM-Guided Property-Based Testing & 100 & 50\% & 0 & 100 \\
+J -- Deterministic Fuzzing & 100 & 50\% & 0 & 100 \\
+K -- Mutation Testing & 91 & 45,5\% & 60 & 49 \\
+L -- Symbolic Execution & 181 & 90,5\% & 5 & 14 \\
+M -- Hoare Triple bằng ngôn ngữ tự nhiên & 109 & 54,5\% & 66 & 25 \\
+N -- Invariant Synthesis, v3 & 20 & 10\% & 0 & 180 \\
+\bottomrule
 \end{tabular}
-\caption{Phân bố phán quyết theo từng danh mục bài toán (VER / CE / UNK)}
-\label{tab:benchmark-categories-detail}
 \end{table}
 
+Trong Bảng \ref{tab:benchmark-overall-expanded}, \emph{Sai} là số mẫu có phán quyết xác định nhưng sai nhãn. \emph{Chưa có P.Q.} là số mẫu chưa có phán quyết xác định. Ký hiệu v3 chỉ bản Reliability v3.
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-    box/.style={rectangle, draw=blue!80, fill=blue!10, rounded corners, thick, text centered, font=\small, minimum height=0.9cm, minimum width=3.2cm},
-    judge/.style={rectangle, draw=red!80, fill=red!10, rounded corners, thick, text centered, font=\small, minimum height=0.9cm, minimum width=3.2cm},
-    arrow/.style={-{Stealth[scale=1.0]}, thick}
-]
-    \node[box] (prop_crvr) {Proposed: \textbf{88.0\%} CRVR};
-    \node[box, below=0.6cm of prop_crvr] (prop_hr) {Proposed: \textbf{1.81\%} HR};
-    \node[judge, right=2.0cm of prop_crvr] (judge_crvr) {LLM Judge: \textbf{40.0\%} CRVR};
-    \node[judge, below=0.6cm of judge_crvr] (satlm_hr) {SatLM: \textbf{5.56\%} HR};
+Hai chế độ Proposed đều đạt 200/200.
 
-    \node[above=0.2cm of prop_crvr, font=\small\bfseries, color=blue!80!black] {Độ Tin Cậy Cao (Proposed)};
-    \node[above=0.2cm of judge_crvr, font=\small\bfseries, color=red!80!black] {Ảo Giác Cao (Baselines)};
-\end{tikzpicture}
-\caption{So sánh trực quan Độ trung thực Phản ví dụ (CRVR) và Tỷ lệ Ảo giác (HR)}
-\label{fig:crvr_hr_comparison}
-\end{figure}
+\section{Phân tích theo các câu hỏi nghiên cứu}
+\label{sec:research_question_results}
 
+\subsection{Khẳng định do LLM đề xuất và tính khả đạt (RQ1--RQ3)}
 
-\section{Phân tích Chuyên sâu về Phát hiện Nhánh Chết và Ngăn chặn Chân lý Rỗng}
-\label{sec:vacuity_deep_dive}
+Proposed với MiniCPM ghi nhận 774 khẳng định bổ sung. Trong đó có 377 phán quyết \texttt{VERIFIED}, 206 \texttt{COUNTEREXAMPLE}, 144 \texttt{UNKNOWN\_TIMEOUT}, 28 \texttt{UNSUPPORTED} và 19 \texttt{TRANSLATION\_ERROR}. Các số đếm mô tả đầu ra của quy trình kiểm tra. Độ chính xác của các khẳng định bổ sung và tỷ lệ phát hiện lỗi của cổng neo cần một tập nhãn riêng ở cấp khẳng định. Bộ 200 mẫu chỉ có hai lớp nhãn chuẩn, nên chưa đo được độ nhạy của cơ chế phát hiện nhánh chết ở RQ3.
 
-Một trong những phát hiện thực nghiệm mang tính đột phá nhất của đề tài (trực tiếp giải đáp câu hỏi nghiên cứu \textbf{RQ3}) là vai trò sống còn của Truy vấn Tính Khả đạt (\textit{Reachability Query}).
-
-\subsection{Bằng chứng Thực nghiệm về Hiện tượng Chân lý Rỗng}
-Như thể hiện trong Bảng \ref{tab:benchmark-overall-expanded}, trong tổng số 443 claim được sinh ra và kiểm chứng bởi Proposed Pipeline, có tới \textbf{127 claim (chiếm 28.7\%)} nằm trên các nhánh thực thi hoàn toàn không thể chạm tới (\texttt{UNREACHABLE}).
-
-Trong khi đó, cả SatLM và LLM-as-a-Judge đều ghi nhận \textbf{0 claim \texttt{UNREACHABLE}}. Điều này xảy ra là do:
-\begin{itemize}
-    \item SatLM gộp chung điều kiện đường đi vào công thức kiểm tra vi phạm $\text{Path} \land \neg \text{Spec}$. Khi $\text{Path} \equiv \text{False}$, solver lập tức trả về \texttt{unsat}, và SatLM ngây thơ kết luận chương trình là \texttt{VERIFIED}.
-    \item LLM-as-a-Judge có xu hướng đọc lướt mã nguồn và tin rằng các câu lệnh bên trong khối \texttt{if} luôn luôn được thực thi, do đó mô hình đưa ra lời giải thích rỗng cho một trạng thái không bao giờ xảy ra.
-\end{itemize}
-
-\subsection{Phân tích Trường hợp Điển hình (Case Study về Nhánh Chết)}
-Xem xét một hàm rút trích từ nhóm \texttt{loops-crafted-1}:
-\begin{lstlisting}[language=Python, caption={Ví dụ về nhánh chết dẫn tới phán quyết rỗng}]
-def check_boundary(x: int, n: int):
-    if n > 0 and n < 0:      # Dieu kien mau thuan: Path Condition == False
-        x = x + 100
-        assert x > 1000      # Claim nam tren nhanh chet
-\end{lstlisting}
-
-\begin{itemize}
-    \item \textbf{Cách xử lý của SatLM:} SatLM gửi tới Z3 công thức:
-    \begin{equation*}
-    (n > 0 \land n < 0) \land \neg (x + 100 > 1000)
-    \end{equation*}
-    Do tiền đề $(n > 0 \land n < 0)$ là \texttt{unsat}, toàn bộ mệnh đề hội là \texttt{unsat}. SatLM phát ra phán quyết: \textbf{\texttt{VERIFIED}}! Đây là một kết luận hoàn toàn sai lầm và nguy hiểm, vì thuộc tính $x > 1000$ không hề được bảo đảm bởi bất kỳ logic nghiệp vụ nào.
-    \item \textbf{Cách xử lý của Proposed Pipeline:} Giao thức Hai Truy vấn thực thi Truy vấn 1 trước:
-    \begin{equation*}
-    \Phi_{\text{reach}} \equiv \exists x, n. \ (n > 0 \land n < 0) \implies \texttt{UNSAT}
-    \end{equation*}
-    Z3 báo \texttt{unsat} cho khả đạt. Hệ thống lập tức phát phán quyết chính xác: \textbf{\texttt{UNREACHABLE}}, và dừng quy trình kiểm tra đối với nút này.
-\end{itemize}
-
-Kết quả thực nghiệm này khẳng định rằng: \textbf{Không một hệ thống kiểm chứng neuro-symbolic nào có thể được coi là đáng tin cậy nếu không có cơ chế tách biệt bài toán Reachability ra khỏi bài toán Validity.}
-
-\section{Phân tích Tỷ lệ Ảo giác (HR) và Hiệu quả của Cổng Neo AST}
-\label{sec:hallucination_analysis}
-
-Kết quả trả lời cho câu hỏi nghiên cứu \textbf{RQ2} được thể hiện qua hiệu năng của Cổng neo AST (\texttt{AnchorGate}):
-
-\subsection{Định lượng Tỷ lệ Ảo giác Thực tế}
-Trong số 443 claim do LLM sinh ra trong quá trình chạy Proposed Pipeline, Cổng neo AST đã phát hiện và từ chối chính xác \textbf{8 claim không hợp lệ}, tương ứng với Tỷ lệ Ảo giác (\textit{Hallucination Rate} -- HR) được kiểm soát ở mức cực kỳ thấp: \textbf{1.81\%}.
-
-Đối với SatLM, do không có cổng neo để kiểm soát cú pháp trung gian, tỷ lệ các biểu thức SMT do LLM sinh ra bị lỗi phân tích cú pháp hoặc chứa các biến không được khai báo trong script là \textbf{5.56\%} (gấp hơn 3 lần so với Proposed Pipeline).
-
-\subsection{Phân loại các Dạng Ảo giác Bị Cổng Neo Chặn Đứng}
-Phân tích nhật ký chẩn đoán của 8 claim bị từ chối cho thấy các cơ chế đánh lừa tinh vi của LLM:
-\begin{enumerate}
-    \item \textbf{Ảo giác Biến ngoài Phạm vi (Out-of-Scope Variables, 4 ca):} LLM sử dụng một biến tạm $tmp$ vốn chỉ được khai báo trong một nhánh rẽ \texttt{elif} khác để phát biểu một khẳng định tại nhánh \texttt{else}. Cổng neo tại Lớp 4 (\texttt{Scope Resolution}) đã đối chiếu với $\mathcal{T}_{\text{scope}}$ và loại bỏ claim này ngay lập tức.
-    \item \textbf{Sai lệch Tọa độ Dòng Cú pháp (Line Span Mismatch, 2 ca):} LLM gán nhãn khẳng định thuộc về câu lệnh \texttt{While@L5}, nhưng nội dung khẳng định lại mô tả phép tính gán của dòng 8. Cổng neo tại Lớp 3 đã chặn đứng do tọa độ dòng không khớp với khung bao của nút cú pháp.
-    \item \textbf{Xung đột Kiểu Nút AST (Kind Mismatch, 2 ca):} LLM khai báo \texttt{kind = "Assign"} tại vị trí của một câu lệnh \texttt{ast.Assert}. Lớp 2 đã phát hiện sự bất nhất cú pháp này.
-\end{enumerate}
-
-Việc loại bỏ sớm các khẳng định ảo giác này ngay tại Anchor Gate đã giúp hệ thống tiết kiệm được tài nguyên tính toán của solver và ngăn ngừa các lỗi biên dịch SMT dây chuyền.
-
-\section{Phân tích Độ Tin cậy Phản ví dụ qua Thực thi Thật (CRVR)}
+\subsection{Tái hiện phản ví dụ và phản hồi hồi cứu (RQ4)}
 \label{sec:crvr_deep_dive}
 
-Chỉ số \textit{Counterexample Replay Validity Rate} (CRVR / Fidelity) là thước đo thực nghiệm quyết định tính hữu dụng của công cụ kiểm chứng (trả lời câu hỏi nghiên cứu \textbf{RQ4}).
+Trên các khẳng định gốc, mỗi chế độ Proposed báo đúng 100 mẫu \texttt{COUNTEREXAMPLE}; cả 100 phản ví dụ trong mỗi chế độ đều được CPython xác nhận. CRVR trên nhóm khẳng định gốc này là 100\%. Phán quyết \texttt{COUNTEREXAMPLE} của C và H là đầu ra của mô hình cho bài toán phân loại. Hai lượt này không có kết quả tái hiện phản ví dụ. Thực nghiệm chưa định lượng tác động riêng của vòng phản hồi hồi cứu.
 
-\subsection{So sánh Đối đầu về CRVR}
-Kết quả đo đạc thực tế trên runtime CPython thể hiện sự áp đảo toàn diện của Proposed Pipeline so với LLM-as-a-Judge:
-\begin{itemize}
-    \item \textbf{Proposed Pipeline đạt CRVR = 88.0\%:} Trong số 75 phản ví dụ do Z3 sinh ra, có tới \textbf{66 phản ví dụ được CPython tái hiện thành công}, gây ra lỗi sụp đổ assertion thực sự tại đúng vị trí neo. Chỉ có 9 phản ví dụ (12.0\%) là phản ví dụ giả tạo do xấp xỉ vòng lặp không hoàn chỉnh.
-    \item \textbf{LLM-as-a-Judge chỉ đạt CRVR = 40.0\%:} Trong số 20 trường hợp LLM tự tin khẳng định tìm ra phản ví dụ chứng minh chương trình có lỗi, chỉ có vỏn vẹn \textbf{8 phản ví dụ là có thật}. Có tới \textbf{12 trường hợp (chiếm 60.0\%)} là phản ví dụ hoàn toàn do mô hình ``tự bịa đặt'': khi nạp các giá trị đầu vào đó vào CPython, chương trình chạy kết thúc hoàn toàn bình thường và không hề vi phạm bất kỳ câu lệnh assert nào!
-    \item \textbf{SatLM đạt CRVR = N/A:} SatLM chỉ đưa ra kết luận logic trừu tượng, hoàn toàn không trích xuất mô hình gán giá trị cụ thể để chạy kiểm thử động.
-\end{itemize}
-
-\subsection{Ý nghĩa Thực tiễn của CRVR Cao}
-Trong quy trình kiểm thử phần mềm tự động, việc công cụ phân tích phát ra quá nhiều cảnh báo giả (false alarms) là nguyên nhân hàng đầu khiến các lập trình viên phớt lờ cảnh báo của công cụ (hiện tượng ``alarm fatigue''). Với tỷ lệ trung thực 88.0\%, Proposed Pipeline bảo đảm rằng gần 9 trên 10 cảnh báo lỗi gửi đến lập trình viên là lỗi nghiêm trọng có thật và đi kèm dữ liệu đầu vào cụ thể để tái hiện lỗi ngay lập tức trong môi trường debug.
-
-\section{Phân tích Cơ chế Phản hồi Hồi cứu (Retrospective Feedback)}
-\label{sec:retrospective_deep_dive}
-
-Vòng phản hồi hồi cứu (\texttt{RetrospectiveFeedbackLoop}) là một cơ chế sáng tạo giúp hệ thống tự phục hồi sau khi phát hiện phản ví dụ hợp lệ.
-
-\subsection{Hiệu quả Tự Sửa sai Đóng kín}
-Trong toàn bộ đợt thực nghiệm trên 68 chương trình, hệ thống đã kích hoạt tổng cộng \textbf{92 lượt phản hồi hồi cứu} khi CPython xác nhận phản ví dụ:
-\begin{itemize}
-    \item \textbf{Tỷ lệ Tự sửa Thành công:} Có \textbf{22 trường hợp (đạt 23.9\%)} mô hình LLM sau khi nhận được ngữ cảnh chẩn đoán vết sụp đổ thực tế đã phân tích chính xác nguyên nhân lỗi, tự động điều chỉnh lại khẳng định của mình và vượt qua thành công Giao thức Hai Truy vấn Z3 ở lượt kiểm tra tiếp theo.
-    \item \textbf{Bảo đảm An toàn Fail-Safe (76.1\%):} Trong 70 trường hợp còn lại, khi các đề xuất sửa đổi của LLM vẫn tiếp tục không thỏa mãn hoặc vi phạm sau 3 vòng lặp, cơ chế fail-safe của hệ thống lập tức khóa kết quả và giữ nguyên phán quyết an toàn ban đầu là \texttt{COUNTEREXAMPLE}, tuyệt đối không chấp nhận các đề xuất sửa chữa không được chứng minh.
-\end{itemize}
-
-\subsection{Phân bố Số Vòng Lặp Phản hồi}
-Biểu đồ phân bố số vòng lặp trong 22 ca tự sửa thành công:
-\begin{itemize}
-    \item \textbf{Vòng 1 (Round 1):} 14 ca (chiếm 63.6\% các ca sửa thành công). Ngữ cảnh chẩn đoán ban đầu là đủ để LLM nhận ra lỗi biên và sửa đúng ngay lập tức.
-    \item \textbf{Vòng 2 (Round 2):} 6 ca (chiếm 27.3\%). Cần thêm một bước tinh chỉnh phụ trợ về biến SSA.
-    \item \textbf{Vòng 3 (Round 3):} 2 ca (chiếm 9.1\%).
-\end{itemize}
-Kết quả này chứng minh rằng việc giới hạn tối đa 3 vòng lặp là một quyết định thiết kế tối ưu, vừa bảo đảm khả năng tự sửa sai vừa kiểm soát chặt chẽ chi phí token và thời gian phản hồi.
-
-\section{Đánh giá Đa diện trên Toàn bộ 14 Baseline (A--N)}
-\label{sec:baselines_evaluation}
-
-Để trả lời trọn vẹn câu hỏi nghiên cứu \textbf{RQ5}, chúng tôi tiến hành phân tích đối sánh 14 baseline đã được hiện thực theo các chiều kích khoa học:
-
-\begin{enumerate}
-    \item \textbf{Nhóm Phương pháp Ngoại tuyến (0 Token -- Baselines J, K, L):}
-    \begin{itemize}
-        \item \textit{Baseline J (Deterministic Fuzzing):} Có tốc độ chạy cực nhanh ($< 0.1$s/bài) và chi phí bằng 0. Khả năng phát hiện phản ví dụ rất tốt đối với các lỗi xảy ra tại các biên đơn giản (0, 1, -1), nhưng hoàn toàn bất lực trước các thuộc tính cần chứng minh trên mọi đầu vào.
-        \item \textit{Baseline K (Mutation Testing):} Cung cấp góc nhìn về độ nhạy của tập kiểm thử nhưng không đưa ra được phán quyết kiểm chứng an toàn.
-        \item \textit{Baseline L (Pure Symbolic Execution):} Là phương pháp duy nhất ngoài Proposed Pipeline có khả năng phát hiện nhánh chết (\texttt{UNREACHABLE}). Tuy nhiên, do thiếu vắng khả năng sinh bất biến thông minh của LLM, Baseline L thường xuyên bị timeout trên các chương trình chứa vòng lặp phức tạp.
-    \end{itemize}
-
-    \item \textbf{Nhóm Phương pháp Thuần LLM (Baselines D, G, H, M):}
-    \begin{itemize}
-        \item Toàn bộ nhóm này (tiêu biểu là LLM-as-a-Judge, Self-Consistency, Self-Refine) đều mắc phải điểm yếu chí tử: \textbf{Tỷ lệ ảo giác phản ví dụ cực cao (CRVR chỉ từ 35\% đến 45\%)} và hoàn toàn mù quáng trước hiện tượng chân lý rỗng trên nhánh chết.
-        \item Baseline G (Self-Consistency) tiêu tốn lượng token gấp 5 lần thông thường nhưng độ chính xác chỉ cải thiện không đáng kể (dưới 4\%) do đa số các mẫu CoT ngẫu nhiên đều lặp lại cùng một ngụy biện logic giống nhau.
-    \end{itemize}
-
-    \item \textbf{Nhóm Phương pháp Lai ghép Neuro-Symbolic (Baselines A, B, C, E, F, I, N):}
-    \begin{itemize}
-        \item \textit{Baseline A (SatLM):} Dẫn đầu về tốc độ và chi phí thấp nhất trong nhóm dùng LLM, nhưng thiếu vắng độ tin cậy do không có cơ chế neo AST và không phát hiện được nhánh chết.
-        \item \textit{Baseline F (Agentic Multi-Step):} Đạt độ chính xác thực nghiệm tương đối cao nhờ có bước kiểm thử động (TEST), nhưng có thời gian thực thi lâu nhất ($> 15$s/bài) và tiêu tốn lượng token khổng lồ cho các vòng lập kế hoạch ReAct.
-        \item \textit{Baseline N (Invariant Synthesis SMT):} Chứng minh tính hiệu quả vượt trội trong việc xử lý các bài toán vòng lặp thuần túy, khẳng định tính đúng đắn của việc tích hợp bộ sinh bất biến vào Proposed Pipeline.
-    \end{itemize}
-\end{enumerate}
-
-\section{Phân tích Hiệu năng, Tiêu thụ Token và Chi phí Tài chính (Pareto Analysis)}
+\subsection{Độ chính xác và tài nguyên vận hành (RQ5)}
 \label{sec:cost_latency_tradeoffs}
 
-Việc triển khai các hệ thống trí tuệ nhân tạo trong thực tế đòi hỏi sự cân nhắc nghiêm túc giữa chất lượng kiểm chứng và chi phí tài nguyên:
+Proposed Offline và Proposed với MiniCPM có cùng độ chính xác trên các khẳng định gốc. Ở phép loại bỏ cơ chế bất biến trong chế độ offline, hệ thống tìm được 100 phản ví dụ và để lại 100 mẫu chưa kết luận. Kết quả này cho thấy đóng góp của cơ chế bất biến vào độ phủ trên tập vòng lặp hiện tại.
 
-\begin{itemize}
-    \item \textbf{Độ trễ Thực thi (Latency):} 
-    \begin{itemize}
-        \item SatLM đạt tốc độ nhanh nhất: \textbf{1.41 giây/chương trình}, do chỉ thực hiện đúng 1 lần gọi API và 1 lần giải Z3.
-        \item LLM-as-a-Judge đạt mức: \textbf{1.92 giây/chương trình}.
-        \item Proposed Pipeline có thời gian thực thi trung bình là: \textbf{7.71 giây/chương trình}. Thời gian này cao hơn là do hệ thống phải thực hiện chuỗi xử lý phức tạp: phân tích AST, chạy Giao thức Hai Truy vấn, thực hiện Replay CPython, và chạy tối đa 3 vòng phản hồi hồi cứu. Tuy nhiên, mức 7.71 giây hoàn toàn nằm trong ngưỡng chấp nhận được cho các quy trình kiểm thử tích hợp tự động (CI/CD pipeline).
-    \end{itemize}
+\begin{table}[htbp]
+\centering
+\small
+\caption{Tài nguyên ghi nhận trong các lượt đại diện trên 200 mẫu}
+\label{tab:benchmark-resources}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Phương pháp} & \textbf{Token vào} & \textbf{Token ra} & \textbf{Tổng giây} \\
+\midrule
+Proposed Offline & 0 & 0 & 97,89 \\
+Proposed + MiniCPM & 144.127 & 48.536 & 2.659,37 \\
+L -- Symbolic Execution & 0 & 0 & 375,60 \\
+C -- HoarePrompt gốc & 4.231.463 & 1.742.954 & 50.683,18 \\
+H -- Self-Refine gốc & 860.530 & 273.857 & 45.134,40 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-    \item \textbf{Tiêu thụ Token và Chi phí Tài chính:}
-    \begin{itemize}
-        \item SatLM có chi phí thấp nhất: \textbf{\$0.000090 USD/chương trình} (tổng chi phí \$0.0061 cho toàn bộ 68 bài).
-        \item Proposed Pipeline có chi phí trung bình rất tiết kiệm: \textbf{\$0.000137 USD/chương trình} (tổng chi phí \$0.0093 cho toàn bộ 68 bài, chưa tới 1 xu Mỹ).
-        \item LLM-as-a-Judge có chi phí đắt nhất: \textbf{\$0.000195 USD/chương trình} (\$0.0132 toàn bộ benchmark), do phải sinh các chuỗi CoT tự do dài dòng và không có cơ chế kiểm soát token chặt chẽ.
-    \end{itemize}
-\end{itemize}
+Cột thời gian là tổng thời lượng đã ghi từ toàn bộ quá trình tạo kết quả cuối cùng. Thời lượng có thể bao gồm thời gian chờ API và chờ theo giới hạn tốc độ gọi. Các phương pháp có tốc độ gọi và ngân sách thực thi khác nhau.
 
-\noindent\textbf{Đường biên Đánh đổi Pareto (Cost-Soundness Frontier):}
-Phân tích thực nghiệm chỉ ra một sự phân hóa rõ ràng: SatLM tối ưu hóa về tốc độ và chi phí nhưng đánh đổi bằng độ tin cậy và bỏ sót nhánh chết; LLM-as-a-Judge đắt đỏ nhưng kém tin cậy nhất; trong khi \textbf{Proposed Pipeline nằm trên đường biên tối ưu Pareto}, mang lại mức độ tin cậy cao nhất (CRVR 88.0\%, HR 1.81\%, phát hiện 127 nhánh chết) với mức chi phí tài chính thực tế gần như không đáng kể (dưới 0.01 USD cho toàn bộ kiểm chuẩn).
-
-\section{Đánh giá các Mối đe dọa đến Tính Hợp lệ (Threats to Validity)}
+\section{Phạm vi kết luận và khả năng tái lập}
 \label{sec:threats_to_validity}
 
-Một báo cáo khoa học nghiêm túc đòi hỏi phải phân tích minh bạch các yếu tố có thể ảnh hưởng đến tính khái quát hóa và độ tin cậy của các kết luận thực nghiệm:
+\begin{itemize}
+    \item \textbf{Phạm vi dữ liệu.} Tất cả mẫu thuộc họ Code2Inv và dùng ngữ nghĩa số nguyên của tập con Python. Một số mẫu cùng họ có cấu trúc tương tự. Khả năng tổng quát hóa cần được đo trên bộ chương trình độc lập, đa dạng hơn.
+    \item \textbf{Chọn cấu hình và ngân sách.} Các biến thể được chọn theo kết quả trên chính bộ 200 mẫu và có ngân sách thực thi khác nhau. Bảng mô tả cấu hình tốt nhất đã quan sát. Thực nghiệm trên tập giữ riêng với cấu hình và ngân sách chốt trước sẽ kiểm tra được khả năng lặp lại thứ hạng.
+    \item \textbf{Phạm vi phán quyết.} Replay xác nhận từng đầu vào phản ví dụ cụ thể. Các phép đo trên khẳng định gốc giới hạn ở tính đúng từng phần tại vị trí câu lệnh.
+\end{itemize}
 
-\begin{enumerate}
-    \item \textbf{Đe dọa Tính Hợp lệ Nội tại (Internal Validity):}
-    \begin{itemize}
-        \item \textit{Tính ngẫu nhiên của LLM:} Mặc dù đã thiết lập temperature = 0.0, các dịch vụ LLM trên đám mây đôi khi vẫn có sự biến thiên nhỏ do cơ chế song song hóa phần cứng. Để giảm thiểu điều này, các prompt được thiết kế với cấu trúc ràng buộc chặt chẽ và lưu trữ toàn bộ vết trung gian để đối chiếu.
-        \item \textit{Độ tin cậy của TCB:} Toàn bộ bộ chuyển đổi AST sang SMT và symbolic executor được coi là TCB. Mặc dù đã vượt qua 109 bài test hồi quy và differential testing với CPython, việc chưa có một chứng minh toán học hình thức hoàn chỉnh (formal mechanized proof trong Coq) cho chính bộ mã hóa này vẫn là một mối đe dọa tiềm ẩn.
-    \end{itemize}
-
-    \item \textbf{Đe dọa Tính Hợp lệ Ngoại tại (External Validity):}
-    \begin{itemize}
-        \item \textit{Phạm vi Ngôn ngữ Hạn chế:} Thực nghiệm hiện tại tập trung vào tập con an toàn Python QF-LIA. Các kết quả ấn tượng đạt được trên bộ dữ liệu này (như CRVR 88\%) không đương nhiên suy rộng được cho các chương trình Python phức tạp chứa cấu trúc đối tượng động, xử lý chuỗi phức tạp, con trỏ aliasing hoặc đa luồng bất đồng bộ.
-        \item \textit{Đặc tính của Bộ Dữ liệu:} Các chương trình trong \texttt{dataset\_curated} được chuyển đổi từ các bài toán kiểm chứng C trong SV-COMP sang Python, do đó mang tính hàn lâm cao và có thể chưa phản ánh trọn vẹn phong cách lập trình ứng dụng trong công nghiệp.
-    \end{itemize}
-
-    \item \textbf{Đe dọa Tính Hợp lệ Khái niệm (Construct Validity):}
-    \begin{itemize}
-        \item \textit{Đo lường Ảo giác:} Chỉ số Hallucination Rate (HR) phụ thuộc vào định nghĩa về việc bị Cổng neo từ chối. Nếu một khẳng định của LLM là sai về mặt logic nhưng tình cờ vẫn sử dụng các biến hợp lệ trong scope và có cú pháp đúng, Cổng neo vẫn sẽ chấp nhận nó (và chuyển cho Z3 xử lý). Do đó, HR đo lường ảo giác về mặt cấu trúc và phạm vi, chứ không đại diện cho toàn bộ các dạng sai lệch logic.
-    \end{itemize}
-\end{enumerate}
+Bảng được tạo từ \path{results/benchmark_200.csv}. Danh sách định danh mẫu nằm trong \path{results/checkpoints/results_minicpm_original_asserts_200/program_ids.json}. Tệp CSV chỉ đến các bản ghi nguồn của kết quả cuối cùng cho mỗi phương pháp.

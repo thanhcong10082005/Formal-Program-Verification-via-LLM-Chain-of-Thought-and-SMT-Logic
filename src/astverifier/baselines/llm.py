@@ -26,6 +26,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -246,6 +247,7 @@ class OpenAICompatibleClient:
         self.seed = seed
         self.max_tokens = max_tokens
         self.reasoning_effort = reasoning_effort
+        self._wait_for_attempt: Callable[[], None] | None = None
 
     def complete(
         self,
@@ -280,6 +282,8 @@ class OpenAICompatibleClient:
 
         last_exc: Exception | None = None
         for attempt in range(self.max_retries + 1):
+            if self._wait_for_attempt is not None:
+                self._wait_for_attempt()
             req = urllib.request.Request(url, data=body, headers=headers, method="POST")
             try:
                 with urllib.request.urlopen(req, timeout=self.timeout) as resp:
@@ -308,11 +312,14 @@ class OpenAICompatibleClient:
         raise RuntimeError(f"OpenAI-compatible request failed: {last_exc}")
 
     def _retry_delay(self, exc: urllib.error.HTTPError, attempt: int) -> float:
+        backoff = self.retry_base_delay * (2**attempt)
+        if exc.code == 429:
+            backoff = max(backoff, 15.0 * (2**attempt))
         retry_after = exc.headers.get("Retry-After") if exc.headers else None
         if retry_after:
             with contextlib.suppress(ValueError):
-                return max(0.1, float(retry_after))
-        return self.retry_base_delay * (2**attempt)
+                return max(backoff, float(retry_after))
+        return backoff
 
     def _parse_response(self, data: dict[str, Any]) -> LLMReply:
         choices = data.get("choices") or []
@@ -351,6 +358,8 @@ class RateLimitedClient:
         self._min_interval = 60.0 / rpm
         self._lock = threading.Lock()
         self._next_allowed = 0.0
+        if isinstance(inner, OpenAICompatibleClient):
+            inner._wait_for_attempt = self._wait
 
     def complete(
         self,
@@ -360,6 +369,11 @@ class RateLimitedClient:
         temperature: float = 0.0,
     ) -> LLMReply:
         """Wait if needed to honour ``rpm``, then delegate to the wrapped client."""
+        if not isinstance(self._inner, OpenAICompatibleClient):
+            self._wait()
+        return self._inner.complete(prompt, system=system, temperature=temperature)
+
+    def _wait(self) -> None:
         with self._lock:
             now = time.monotonic()
             wait = self._next_allowed - now
@@ -367,7 +381,6 @@ class RateLimitedClient:
                 time.sleep(wait)
                 now = time.monotonic()
             self._next_allowed = now + self._min_interval
-        return self._inner.complete(prompt, system=system, temperature=temperature)
 
 
 @dataclass

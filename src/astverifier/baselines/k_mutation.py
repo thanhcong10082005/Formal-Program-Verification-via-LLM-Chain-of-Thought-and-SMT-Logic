@@ -105,7 +105,7 @@ class MutationTestingBaseline(BaseBaseline):
 
         caught = 0
         survived = 0
-        witness: dict[str, int] | None = None
+        witnesses: list[dict[str, int]] = []
 
         for mutant in mutants:
             outcome = observe_program(
@@ -118,8 +118,8 @@ class MutationTestingBaseline(BaseBaseline):
             if outcome.observation == OBS_COUNTEREXAMPLE:
                 # The mutant broke the program: the claim catches it.
                 caught += 1
-                if witness is None and outcome.witness:
-                    witness = outcome.witness
+                if outcome.witness is not None and outcome.witness not in witnesses:
+                    witnesses.append(outcome.witness)
             elif outcome.observation == OBS_NO_VIOLATION:
                 # The mutant still satisfies the claim: the claim missed it.
                 survived += 1
@@ -130,25 +130,17 @@ class MutationTestingBaseline(BaseBaseline):
             f"({survived} survived)"
         )
 
-        if caught and not survived:
-            return ClaimResult(
-                claim_id=claim.claim_id,
-                claim_text=claim.text,
-                status=StatusEnum.VERIFIED,
-                anchor=self.anchor_info(claim),
-                reason=reason,
-                explanation="every injected mutant was rejected by the claim",
-            )
-
-        if witness is not None and survived:
-            return ClaimResult(
-                claim_id=claim.claim_id,
-                claim_text=claim.text,
-                status=StatusEnum.COUNTEREXAMPLE,
-                anchor=self.anchor_info(claim),
-                counterexample=self._counterexample(spec, claim, witness),
-                reason=reason,
-            )
+        for witness in witnesses:
+            candidate = self._counterexample(spec, claim, witness)
+            if candidate.replay_verdict:
+                return ClaimResult(
+                    claim_id=claim.claim_id,
+                    claim_text=claim.text,
+                    status=StatusEnum.COUNTEREXAMPLE,
+                    anchor=self.anchor_info(claim),
+                    counterexample=candidate,
+                    reason=reason,
+                )
 
         return ClaimResult(
             claim_id=claim.claim_id,
@@ -156,6 +148,7 @@ class MutationTestingBaseline(BaseBaseline):
             status=StatusEnum.UNKNOWN_TIMEOUT,
             anchor=self.anchor_info(claim),
             reason=reason,
+            explanation="mutation coverage does not establish a verdict for the original program",
         )
 
     def _counterexample(self, spec: ProgramSpec, claim, witness: dict[str, int]):

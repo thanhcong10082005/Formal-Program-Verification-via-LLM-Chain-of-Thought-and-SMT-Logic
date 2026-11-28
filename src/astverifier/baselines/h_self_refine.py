@@ -25,13 +25,12 @@ from .common import ask_json, normalize_verdict, program_prompt
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are a program verification assistant. You reason about
-whether a claim holds for a program, critique your own reasoning, and
-revise your answer.
-
-Answer with a JSON object of the form:
-{"verdict": "VERIFIED" | "COUNTEREXAMPLE" | "UNKNOWN",
- "reason": "<the reasoning>", "critique": "<what could be wrong>"}
+SYSTEM = """Judge the claim at its source line. Check branch guards and loop
+boundaries before deciding whether the claim holds for all permitted inputs.
+Return only one JSON object. Use VERIFIED, COUNTEREXAMPLE, or UNKNOWN as
+verdict. Keep reason and critique to one brief sentence each; use an empty
+critique when no revision is needed.
+Example: {"verdict":"UNKNOWN","reason":"The loop exit is unclear.","critique":"Check zero iterations."}
 """
 
 #: How many revise rounds are performed.
@@ -78,27 +77,35 @@ class SelfRefineBaseline(BaseBaseline):
 
         prompt = program_prompt(spec, task="Decide whether the claim holds.")
 
-        payload = ask_json(self.llm, prompt, system=SYSTEM, budget=self.budget)
+        payload = None
         history: list[str] = []
-
-        for round_index in range(N_ROUNDS - 1):
-            if not isinstance(payload, dict):
-                break
-            critique = str(payload.get("critique", "")).strip()
-            reason = str(payload.get("reason", "")).strip()
+        next_prompt = prompt
+        for round_index in range(N_ROUNDS):
+            revised = ask_json(
+                self.llm,
+                next_prompt,
+                system=SYSTEM,
+                budget=self.budget,
+            )
+            value = revised.get("verdict") if isinstance(revised, dict) else None
+            if normalize_verdict(value) == StatusEnum.UNKNOWN_TIMEOUT and (
+                not isinstance(value, str)
+                or value.strip().upper() not in {"UNKNOWN", "UNKNOWN_TIMEOUT"}
+            ):
+                history.append(f"round {round_index + 1}: no usable verdict")
+                if payload is not None:
+                    break
+                next_prompt = prompt + "\nReturn the JSON verdict and both text fields."
+                continue
+            payload = revised
+            reason = str(payload.get("reason") or "").strip()
+            critique = str(payload.get("critique") or "").strip()
             history.append(f"round {round_index + 1}: {reason}")
             if not critique:
                 break
-            payload = ask_json(
-                self.llm,
-                prompt
-                + "\n\nYour previous answer was:\n"
-                + reason
-                + "\n\nIts weakness is:\n"
-                + critique
-                + "\n\nRevise your answer.",
-                system=SYSTEM,
-                budget=self.budget,
+            next_prompt = (
+                f"{prompt}\n\nPrevious verdict: {value}\nReason: {reason}"
+                f"\nCritique: {critique}\nRevise and return one JSON object."
             )
 
         if not isinstance(payload, dict):

@@ -47,7 +47,7 @@ Nếu solver chỉ thực hiện một truy vấn kiểm tra tính hợp lệ (V
 \end{equation}
 Do $\Phi_{\text{path}}(\pi)$ là vô nghiệm (\texttt{UNSAT}), nên biểu thức phủ định $\Phi_{\text{validity}}$ hiển nhiên cũng trả về kết quả \texttt{UNSAT}. Một hệ thống kiểm chứng ngây thơ sẽ vội vàng thông dịch kết quả \texttt{UNSAT} này thành kết luận \texttt{VERIFIED} (Đã được kiểm chứng)! 
 
-Đây là một kết luận hoàn toàn sai lệch và giả mạo: chương trình không hề đúng đắn theo nghĩa thuộc tính được bảo toàn, mà thuộc tính đó chưa từng bao giờ được thực thi. Nếu LLM tự bịa ra một khẳng định vô lý trên một nhánh chết, hệ thống truyền thống sẽ tôn vinh khẳng định đó là ``được kiểm chứng hình thức''.
+Kết quả \texttt{UNSAT} phù hợp với ngữ nghĩa của phép kéo theo khi tiền đề sai. Nếu hệ thống chỉ báo \texttt{VERIFIED}, người đọc có thể hiểu nhầm rằng vị trí đích khả đạt và khẳng định đã được kiểm tra trên các trạng thái thực thi tại đó.
 
 \subsection{Sự thiếu vắng cơ chế Neo Ngữ nghĩa (Lack of Anchor Grounding)}
 Trong các hệ thống đánh giá dựa trên LLM thuần túy (LLM-as-a-Judge) \cite{gu2024cruxeval}, mô hình tự sinh ra chuỗi lý luận bằng ngôn ngữ tự nhiên và tự tuyên bố chương trình đúng hay sai. Tuy nhiên, không có bất kỳ mối liên kết cấu trúc nào giữa các câu chữ trong lời giải thích của LLM với các thành phần cú pháp cụ thể trong cây chương trình. Không có cơ chế kiểm tra xem biến $x$ mà mô hình đang nhắc tới ở bước 3 là biến $x$ ở dòng 2 hay biến $x$ ở dòng 15, hoặc trạng thái của biến sau phép lặp thứ hai có thực sự tuân theo phép gán trong mã hay không. Sự thiếu vắng một \textit{cơ chế neo ngữ nghĩa} (Semantic Anchor) khiến cho chuỗi lý luận trở nên mơ hồ, không thể truy vết xuất xứ (lack of provenance), và hoàn toàn không thể kiểm chứng tự động.
@@ -63,16 +63,16 @@ Khi các solver hình thức hoặc các mô hình LLM tuyên bố phát hiện 
 \textit{``Cây Cú pháp Trừu tượng (AST) và Trình thực thi ký hiệu tất định là Xương sống Tin cậy (Trusted Backbone) duy nhất; Mô hình Ngôn ngữ Lớn (LLM) chỉ là một Bộ Đề xuất Lý luận Không Tin cậy (Untrusted Generator). Mọi quyết định kiểm chứng tuyệt đối không bao giờ được xuất phát trực tiếp từ LLM.''}}}
 \end{center}
 
-Dựa trên nguyên tắc này, phương pháp đề xuất triển khai các cơ chế đột phá:
+Phương pháp đề xuất gồm các cơ chế sau.
 \begin{itemize}
     \item \textbf{Hai Nhánh Xử lý Song song:} Hệ thống chia quy trình phân tích thành hai luồng độc lập: (i) Nhánh Hình thức Tin cậy (Trusted Formal Branch) tự động phân tích cú pháp mã nguồn thành AST, gán định danh nút chính tắc (\texttt{NodeId}), phân tích bảng phạm vi ký hiệu (Scope Table), và sinh quan hệ chuyển trạng thái toán học theo chuẩn Static Single Assignment (SSA); (ii) Nhánh Trực giác AI (Untrusted AI Branch) kích hoạt LLM sinh chuỗi lý luận có cấu trúc từng bước kèm theo các khẳng định toán học.
-    \item \textbf{Cổng neo AST (Anchor Gate):} Đóng vai trò là bức tường lửa kiểm soát chất lượng. Mọi bước lý luận của LLM muốn được chuyển hóa thành nghĩa vụ chứng minh bắt buộc phải đi qua cổng này để kiểm tra: (1) Nút AST có tồn tại hay không; (2) Loại nút có khớp không; (3) Tọa độ dòng/cột nguồn có chính xác không; (4) Các biến sử dụng có nằm trong phạm vi khả kiến tại nút đó không; (5) Cú pháp của claim có thể phân tích cú pháp thành biểu thức toán học hợp lệ hay không. Bất kỳ claim nào vi phạm sẽ bị loại bỏ ngay lập tức và phân loại là `UNSUPPORTED`, trực tiếp đo lường Tỷ lệ Ảo giác (\textit{Hallucination Rate} -- HR) của mô hình.
+    \item \textbf{Cổng neo AST (Anchor Gate):} Gắn khẳng định với một câu lệnh AST dựa trên số dòng, kiểm tra cú pháp, tập con biểu thức và các tên biến khả kiến tại vị trí đó. Các lỗi được ghi nhận dưới dạng \texttt{UNSUPPORTED} hoặc \texttt{TRANSLATION\_ERROR}.
     \item \textbf{Giao thức Hai Truy vấn Z3 (Two-Query Z3 Decision Protocol):} Thay vì kiểm tra tính hợp lệ một cách mù quáng, hệ thống luôn thực hiện hai truy vấn SMT độc lập theo trình tự nghiêm ngặt cho mỗi claim:
     \begin{enumerate}
-        \item \textit{Truy vấn Tính Khả đạt (Reachability Query):} Kiểm tra xem có tồn tại bất kỳ trạng thái đầu vào hợp lệ nào dẫn tới được nút AST đích hay không. Nếu vô nghiệm (\texttt{UNSAT}), hệ thống kết luận dứt khoát trạng thái là \texttt{UNREACHABLE}, ngăn chặn hoàn toàn việc đưa ra kết luận \texttt{VERIFIED} giả mạo.
+        \item \textit{Truy vấn Tính Khả đạt (Reachability Query):} Kiểm tra tính thỏa mãn của quan hệ trạng thái trên từng đường đi được mô hình hóa. Khi mọi đường đều vô nghiệm và phạm vi bao phủ đầy đủ, claim nhận nhãn \texttt{UNREACHABLE}.
         \item \textit{Truy vấn Tính Hợp lệ (Validity Query):} Chỉ khi đường đi được xác nhận là khả đạt, solver mới tiến hành tìm kiếm phản ví dụ vi phạm claim.
     \end{enumerate}
-    \item \textbf{Tái hiện Phản ví dụ trong Sandbox CPython (Concrete Replay):} Khi solver tìm được mô hình phản ví dụ, hệ thống tự động trích xuất các giá trị số cụ thể, nạp vào một môi trường thực thi CPython cô lập và chạy thật chương trình. Phản ví dụ chỉ được công nhận là hợp lệ khi chương trình thực tế ném ra ngoại lệ \texttt{AssertionError} tại đúng vị trí neo. Tỷ lệ này được định lượng qua chỉ số \textit{Counterexample Replay Validity Rate} (CRVR).
+    \item \textbf{Tái hiện phản ví dụ trong CPython (Concrete Replay):} Chạy chương trình trong tiến trình con với đầu vào trích từ mô hình Z3 và kiểm tra vi phạm của claim tại vị trí neo. Tỷ lệ tái hiện thành công được đo bằng CRVR.
     \item \textbf{Vòng Phản hồi Hồi cứu (Retrospective Feedback Loop):} Khi phản ví dụ được CPython xác nhận, vết sụp đổ thực tế cùng trạng thái cụ thể của các biến tại dòng lỗi được đóng gói thành ngữ cảnh chẩn đoán (Diagnostic Feedback Context) và gửi ngược lại cho LLM. LLM được yêu cầu tự phân tích lý do suy luận sai và điều chỉnh lại khẳng định của mình trong một chu trình tối đa 3 vòng lặp.
     \item \textbf{Tổng hợp Bất biến Vòng lặp bằng $k$-Induction:} Tận dụng khả năng đề xuất của LLM để sinh ra các ứng viên bất biến vòng lặp (loop invariant candidates), sau đó dùng Z3 kiểm tra tính quy nạp hình thức (Base step và Inductive step), cho phép kiểm chứng các thuộc tính của vòng lặp mà không cần duỗi vòng lặp hữu hạn.
 \end{itemize}
@@ -87,11 +87,11 @@ Mục tiêu bao trùm của đề tài là thiết kế, xây dựng và đánh 
 Để hiện thực hóa mục tiêu tổng quát, đề tài giải quyết các nhiệm vụ nghiên cứu sau:
 \begin{enumerate}
     \item \textbf{Hình thức hóa Ngữ nghĩa Tập con Ngôn ngữ:} Xác định và đặc tả hình thức tập con an toàn Python Quantifier-Free Linear Integer Arithmetic (QF-LIA), xây dựng ngữ nghĩa chuyển trạng thái chuẩn tắc (Operational Semantics) và biểu diễn Static Single Assignment (SSA).
-    \item \textbf{Thiết kế và Cài đặt Cổng neo AST (Anchor Gate):} Xây dựng cơ chế cấp phát định danh nút chuẩn tắc (\texttt{NodeId}), thuật toán phân tích phạm vi biến từ vựng (Lexical Scope Analysis), và bộ kiểm định tương thích 5 lớp giữa claim của LLM và cấu trúc AST.
+    \item \textbf{Thiết kế và Cài đặt Cổng neo AST (Anchor Gate):} Xây dựng cơ chế cấp phát định danh nút chuẩn tắc (\texttt{NodeId}), thuật toán phân tích phạm vi biến và kiểm tra sự tương thích giữa claim của LLM với cấu trúc AST.
     \item \textbf{Hiện thực Giao thức Hai Truy vấn Z3:} Xây dựng bộ sinh nghĩa vụ chứng minh (Proof Obligation Generator) tự động chuyển đổi đường đi trong đồ thị luồng điều khiển (CFG) và claim thành các mệnh đề SMT-LIB2, tách biệt rạch ròi bài toán Reachability và bài toán Validity.
     \item \textbf{Xây dựng Sandbox Replay và Vòng Phản hồi Hồi cứu:} Phát triển bộ giải mã mô hình Z3 thành dữ liệu thực thi CPython, hệ thống bắt giữ trạng thái tại điểm sụp đổ, và giao thức đối thoại sửa sai có hướng dẫn cho LLM.
     \item \textbf{Hiện thực Toàn diện 14 Phương pháp Baseline (A--N):} Xây dựng một thư viện kiểm chuẩn độc lập gồm 14 baseline tiêu biểu trong tài liệu khoa học thế giới, tuân thủ nguyên tắc không phụ thuộc vào mã nguồn cốt lõi (`core/`) và sử dụng chung Hồ chứa Khẳng định (\textit{Shared Claim Pool}).
-    \item \textbf{Xây dựng Bộ Dữ liệu Chuẩn và Đo lường Thực nghiệm:} Xây dựng tập dữ liệu chuẩn 1.000 mẫu phân tầng (\texttt{bench\_v1}) với Ground Truth độc lập hai tầng (CPython Oracle + Z3/Spacer), tiến hành đo lường toàn diện các chỉ số FDR, F1, HR, CRVR, Token và Chi phí tài chính, so sánh định lượng giữa Proposed Pipeline và các baseline.
+    \item \textbf{Xây dựng dữ liệu và thiết kế đánh giá:} Chuẩn bị tập \texttt{bench\_v1} gồm 1.000 mẫu, gán nhãn bằng thực thi CPython kết hợp với Z3/Spacer và xác định các chỉ số dùng để so sánh với các baseline.
 \end{enumerate}
 
 \section{Câu hỏi Nghiên cứu (Research Questions)}
@@ -121,10 +121,10 @@ Báo cáo tập trung trả lời 5 câu hỏi nghiên cứu mang tính then ch�
 Đề tài mang lại các đóng góp khoa học và ứng dụng thực tiễn nổi bật sau:
 \begin{enumerate}
     \item \textbf{Kiến trúc Neuro-Symbolic Neo Cú pháp (AST-Grounded Architecture):} Đề xuất một mô hình kiến trúc chuẩn mực lấy AST làm xương sống tin cậy (trusted backbone) và nguồn sự thật duy nhất (single source of truth), giải quyết triệt để vấn đề phụ thuộc mù quáng vào kết quả sinh của mô hình ngôn ngữ lớn.
-    \item \textbf{Cơ chế Cổng neo AST và Định lượng Ảo giác Khách quan:} Xây dựng thành công thuật toán Anchor Gate 5 lớp, liên kết chặt chẽ từng phát biểu của LLM với nút AST cụ thể, cung cấp một phương pháp đo lường Tỷ lệ Ảo giác (HR) khách quan và có thể tự động hóa hoàn toàn.
-    \item \textbf{Giao thức Hai Truy vấn Z3 Loại trừ Chứng minh Rỗng:} Thiết kế và kiểm chứng giao thức Two-Query SMT, chứng minh trên thực nghiệm vai trò quyết định của việc kiểm tra tính khả đạt trước tính hợp lệ, giúp phát hiện 127 claim trên nhánh chết mà các công cụ khác hoàn toàn bỏ sót.
-    \item \textbf{Chu trình Tái hiện Phản ví dụ và Phản hồi Hồi cứu Đóng kín:} Tích hợp thành công sandbox CPython để kiểm tra chéo phản ví dụ đạt độ trung thực (CRVR) 88.0\%, kết hợp cơ chế phản hồi hồi cứu giúp mô hình tự sửa sai thành công 23.9\% trường hợp mà không cần sự can thiệp của con người.
-    \item \textbf{Bộ Dữ liệu Chuẩn 1.000 Mẫu và Thư viện 14 Baseline Toàn diện:} Xây dựng bộ benchmark \texttt{bench\_v1} được gán nhãn ground truth hai tầng độc lập, cùng việc hiện thực và kiểm thử thành công 14 baseline độc lập (A--N) tuân thủ nghiêm ngặt chuẩn kiến trúc không phụ thuộc mã nguồn lõi, tạo tiền đề vững chắc cho các nghiên cứu tiếp theo của cộng đồng.
+    \item \textbf{Cổng neo AST:} Hiện thực cơ chế gắn claim với nút AST và ghi nhận các lỗi neo hoặc lỗi dịch để phục vụ đánh giá.
+    \item \textbf{Giao thức Hai Truy vấn Z3:} Tách kiểm tra tính khả đạt khỏi kiểm tra vi phạm để phân biệt vị trí không khả đạt với vị trí có thể kiểm chứng claim.
+    \item \textbf{Replay phản ví dụ và phản hồi hồi cứu:} Kiểm tra đầu vào phản ví dụ trên CPython và dùng trạng thái quan sát được để yêu cầu LLM đề xuất claim mới. Claim mới được kiểm tra lại bằng Z3.
+    \item \textbf{Dữ liệu và phương pháp đối chứng:} Chuẩn bị \texttt{bench\_v1}, tập khẳng định dùng chung và 14 baseline (A--N) phục vụ đánh giá.
 \end{enumerate}
 
 \section{Bố cục của Báo cáo}
@@ -136,7 +136,7 @@ Báo cáo đồ án chuyên ngành được tổ chức thành 7 chương chính
     \item \textbf{Chương 3 -- Các Nghiên cứu Liên quan:} Tổng quan toàn diện các hướng nghiên cứu hiện đại về suy luận có thể kiểm chứng, execution grounding, tự động tổng hợp đặc tả chương trình, các hệ thống neuro-symbolic tiêu biểu (SatLM, Clover, Lemur, DafnyAnnotator), phân loại 14 trường phái baseline và phân tích khoảng trống nghiên cứu.
     \item \textbf{Chương 4 -- Phương pháp Đề xuất:} Trình bày chi tiết toán học và thuật toán của kiến trúc 7 giai đoạn: Safe Subset, AST Anchoring, Trusted Symbolic Execution, Structured Reasoning Trace, Anchor Gate, Two-Query Z3, Loop Invariant Synthesis, CPython Replay và Retrospective Feedback Loop.
     \item \textbf{Chương 5 -- Thiết kế và Hiện thực Hệ thống:} Trình bày kiến trúc phần mềm chuẩn PEP 8, luồng dữ liệu chi tiết, các cấu trúc dữ liệu cốt lõi, chi tiết hiện thực của 14 baseline A--N, các giải pháp đảm bảo an toàn, xử lý ngoại lệ, chịu lỗi và hệ thống kiểm thử tự động.
-    \item \textbf{Chương 6 -- Thực nghiệm và Đánh giá:} Phân tích chuyên sâu kết quả thực nghiệm trên các bộ dữ liệu \texttt{bench\_v1} (1.000 mẫu) và \texttt{dataset\_curated} (68 mẫu), đối chiếu chi tiết hiệu năng của Proposed Pipeline với các baseline về độ chính xác, tỷ lệ ảo giác, độ tin cậy phản ví dụ, nhánh chết, phân tích vòng phản hồi, tiêu thụ token, chi phí tài chính và đánh giá các mối đe dọa đến tính hợp lệ.
+    \item \textbf{Chương 6 -- Thực nghiệm và Đánh giá:} Mô tả dữ liệu, cấu hình và quy trình đánh giá dự kiến.
     \item \textbf{Chương 7 -- Kết luận và Hướng Phát triển:} Đánh giá tổng kết các thành tựu đạt được so với mục tiêu ban đầu, thẳng thắn nhìn nhận các giới hạn kỹ thuật và vạch ra lộ trình nghiên cứu mở rộng trong tương lai.
     \item \textbf{Các Phụ lục A, B, C, D, E:} Cung cấp toàn văn ngữ pháp EBNF của tập con an toàn, các schema dữ liệu JSON chuẩn, đặc tả chi tiết 14 baseline, toàn bộ các mẫu prompt templates sử dụng với mô hình ngôn ngữ, và các ca nghiên cứu thực tế (case studies) kèm mã nguồn và vết thực thi đầy đủ.
 \end{itemize}

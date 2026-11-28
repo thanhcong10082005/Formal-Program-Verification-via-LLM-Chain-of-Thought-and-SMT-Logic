@@ -209,14 +209,14 @@ Khi đó, với \textbf{bất kỳ} khẳng định $\text{Claim}(s)$ nào (kể
 \begin{equation}
 \text{SAT\_Query}\Big( R_{\pi}(s_0, s) \land \neg \text{Claim}(s) \Big) = \text{UNSAT}
 \end{equation}
-Do đó, nếu hệ thống quy ước mù quáng rằng \texttt{UNSAT} đồng nghĩa với \texttt{VERIFIED}, hệ thống sẽ cấp chứng chỉ tính đúng đắn cho một khẳng định rác rưởi.
+Do đó, riêng kết quả của truy vấn này không phân biệt được đường đi không khả đạt với đường đi khả đạt mà không có vi phạm.
 \end{theorem}
 
 \begin{proof}
 Vì $R_{\pi}(s_0, s) \equiv \text{False}$, phép hội logic $\text{False} \land \neg \text{Claim}(s) \equiv \text{False}$. Không tồn tại bất kỳ phép gán giá trị nào cho $s_0, s$ làm biểu thức nhận giá trị \texttt{True}. Do đó bộ giải SMT luôn luôn trả về \texttt{UNSAT}.
 \end{proof}
 
-Hệ quả trực tiếp của Định lý \ref{thm:vacuous_hazard} là: **Để bảo đảm tính sound, một hệ thống kiểm chứng bắt buộc phải tách rời việc kiểm tra tính khả đạt của đường đi ra khỏi việc kiểm tra tính hợp lệ của khẳng định.**
+Theo Định lý \ref{thm:vacuous_hazard}, có thể dùng thêm truy vấn khả đạt để phân biệt hai trường hợp và báo rõ khi vị trí kiểm tra không thể đạt được.
 
 \section{Bất biến Vòng lặp và Kỹ thuật $k$-Induction}
 \label{sec:loop_invariants_k_induction}
@@ -312,11 +312,11 @@ Tuy nhiên, như đã phân tích, các bước CoT này hoàn toàn không có 
 Để đánh giá toàn diện và khách quan hiệu năng của framework đề xuất cũng như so sánh với các baseline, đề tài thiết lập một hệ thống chỉ số đo lường đa chiều, kết hợp giữa các độ đo học máy cổ điển và các chỉ số đặc thù của kiểm chứng hình thức.
 
 \subsection{Ma trận Nhầm lẫn và Các Độ đo Phân loại Cổ điển}
-Trong bài toán kiểm chứng tính đúng đắn của chương trình, lớp tích cực (Positive Class) được quy ước chuẩn là nhãn \texttt{VERIFIED} (Chương trình an toàn, không có lỗi). Do đó:
+Trong phép phân loại nhị phân, \texttt{VERIFIED} là lớp dương. Các trạng thái dự đoán còn lại, kể cả \texttt{UNKNOWN\_TIMEOUT}, được xếp vào lớp âm. Hàm \texttt{aggregate} hiện đối chiếu từng claim kết quả với nhãn của chương trình tương ứng. Để tính chỉ số theo chương trình trên tập nhiều claim, cần xác định trước cách chọn hoặc tổng hợp phán quyết cho mỗi chương trình.
 \begin{itemize}
     \item \textbf{True Positive (TP):} Chương trình thực tế là an toàn và hệ thống kết luận chính xác là \texttt{VERIFIED}.
     \item \textbf{False Positive (FP):} Chương trình thực tế có chứa lỗi (hoặc vi phạm assertion), nhưng hệ thống kết luận sai lầm là \texttt{VERIFIED}. Đây là lỗi nghiêm trọng nhất trong kiểm chứng hình thức (Soundness violation).
-    \item \textbf{True Negative (TN):} Chương trình thực tế có chứa lỗi và hệ thống phát hiện chính xác lỗi, kết luận là \texttt{COUNTEREXAMPLE}.
+    \item \textbf{True Negative (TN):} Nhãn chuẩn thuộc lớp âm và dự đoán thuộc lớp âm. Chỉ trạng thái \texttt{COUNTEREXAMPLE} cho biết hệ thống đã báo một phản ví dụ.
     \item \textbf{False Negative (FN):} Chương trình thực tế là an toàn nhưng hệ thống lại báo động giả là có \texttt{COUNTEREXAMPLE} hoặc không thể kết luận.
 \end{itemize}
 
@@ -329,24 +329,26 @@ Từ ma trận nhầm lẫn, các chỉ số được tính toán như sau:
 \text{FDR (False Discovery Rate)} &= \frac{\text{FP}}{\text{TP} + \text{FP}} = 1 - \text{Precision}
 \end{align}
 
+Bảng kết quả thực nghiệm ở Chương \ref{ch:evaluation} dùng so khớp phán quyết trên đúng một \texttt{assert} gốc cho mỗi chương trình. Các trường hợp chưa có phán quyết nằm trong mẫu số độ chính xác và được báo riêng khi tính độ phủ.
+
 \subsection{Các Chỉ số Đặc thù của Kiểm chứng Neuro-Symbolic}
 
 \begin{enumerate}
     \item \textbf{Tỷ lệ Ảo giác (Hallucination Rate -- HR):}
-    Đo lường tần suất mô hình LLM phát sinh các khẳng định vô căn cứ, không thể neo được vào cấu trúc AST hoặc chứa các biến không tồn tại trong bảng phạm vi ký hiệu:
+    Chỉ số này phản ánh tỷ lệ lỗi neo hoặc lỗi dịch được ghi nhận. Mẫu số gồm toàn bộ claim được tổng hợp, kể cả claim trích từ \texttt{assert} nếu lượt chạy có sử dụng.
     \begin{equation}
     \text{HR} = \frac{N_{\text{UNSUPPORTED}} + N_{\text{TRANSLATION\_ERROR}}}{N_{\text{total\_claims}}}
     \end{equation}
-    Một hệ thống có HR càng thấp chứng tỏ khả năng kiểm soát ảo giác của cơ chế prompt và cổng neo càng tốt. Đối với các baseline không có cổng neo AST, chỉ số này được định danh chính xác là \textbf{N/A} (Not Applicable), không bao giờ được quy ước là 0.
+    HR phản ánh các lỗi cấu trúc được quy trình hiện tại phát hiện. Hàm tổng hợp trả về \texttt{N/A} khi không có kết quả claim nào ghi nhận việc neo AST.
 
     \item \textbf{Tỷ lệ Phản ví dụ Tái hiện Hợp lệ (Counterexample Replay Validity Rate -- CRVR / Fidelity):}
-    Đo lường mức độ trung thực của các phản ví dụ được báo cáo. Khi hệ thống tuyên bố tìm thấy phản ví dụ, giá trị cụ thể được nạp vào runtime CPython để chạy kiểm tra chéo:
+    Chỉ số này tính trên các kết quả \texttt{COUNTEREXAMPLE} có phán quyết replay.
     \begin{equation}
-    \text{CRVR} = \frac{N_{\text{replay\_confirmed}}}{N_{\text{counterexamples\_reported}}}
+    \text{CRVR} = \frac{N_{\text{replay\_confirmed}}}{N_{\text{counterexamples\_with\_replay\_verdict}}}
     \end{equation}
-    Nếu $\text{CRVR} = 100\%$, mọi phản ví dụ mà công cụ cảnh báo đều là lỗi thật của mã nguồn, hoàn toàn loại bỏ báo động giả.
+    Khi mẫu số bằng 0, chỉ số được báo là \texttt{N/A}.
 
-    \item \textbf{Tỷ lệ Phát hiện Nhánh Chết (Dead-Code Detection Rate):}
+    \item \textbf{Số claim không khả đạt:}
     Số lượng các claim được định vị chính xác là nằm trên các đường đi không thể đạt (\texttt{UNREACHABLE}) nhờ vào truy vấn Reachability:
     \begin{equation}
     \text{DeadCode\_Count} = N_{\text{UNREACHABLE}}
@@ -356,6 +358,6 @@ Từ ma trận nhầm lẫn, các chỉ số được tính toán như sau:
     \begin{itemize}
         \item \textbf{Latency (s):} Thời gian thực thi trung bình để hoàn thành phân tích một chương trình.
         \item \textbf{Token Consumption:} Số lượng token đầu vào (prompt tokens) và token đầu ra (completion tokens) tiêu thụ trung bình trên mỗi chương trình.
-        \item \textbf{API Financial Cost (USD):} Chi phí tài chính ước tính tính trên 1.000 yêu cầu API dựa trên bảng giá chuẩn thương mại của nhà cung cấp mô hình.
+        \item \textbf{API Financial Cost (USD):} Chi phí ước tính từ lượng token đầu vào và đầu ra đã ghi nhận nhân với đơn giá tương ứng của từng loại token.
     \end{itemize}
 \end{enumerate}

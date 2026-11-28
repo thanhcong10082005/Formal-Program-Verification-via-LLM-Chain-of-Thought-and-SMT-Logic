@@ -7,10 +7,9 @@ The model works through a fixed sequence of steps:
 3. **TEST** -- concrete inputs to try, which are then executed on real
    CPython;
 4. **VERIFY** -- the verdict given the plan, the analysis and the test
-   results;
-5. **REFINE** -- a new attempt when the verdict was inconclusive.
+   results.
 
-Each step is one model call, so a run costs four to five calls per claim.
+Each step is one model call, so a run costs four calls per program.
 The executed test inputs ground the final verdict, so a counterexample the
 agent reports is replayed and the Counterexample Replay Validity Rate is
 measurable for this baseline.
@@ -30,14 +29,9 @@ from .common import ask_json, normalize_verdict, parse_witness, program_prompt
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are an agentic verification assistant. You work through
-the steps PLAN, ANALYZE, TEST and VERIFY in order, one step per answer.
-
-Answer with a JSON object of the form:
-{"step": "PLAN" | "ANALYZE" | "TEST" | "VERIFY",
- "content": "<the content of this step>",
- "inputs": [{"name": "<param>", "value": <int>}],
- "verdict": "VERIFIED" | "COUNTEREXAMPLE" | "UNKNOWN"}
+SYSTEM = """Perform the requested verification step. Return one JSON object
+only. Keep content to one short sentence. Follow the keys specified for the
+current step.
 """
 
 #: The number of test inputs the agent is asked to propose.
@@ -89,8 +83,8 @@ class AgenticBaseline(BaseBaseline):
             task="Verify the claim through the agentic steps.",
         )
 
-        plan = self._step(base_prompt, "PLAN")
-        analysis = self._step(base_prompt, "ANALYZE", context=plan)
+        plan = self._content(self._step(base_prompt, "PLAN"))
+        analysis = self._content(self._step(base_prompt, "ANALYZE", context=plan))
         test = self._step(base_prompt, "TEST", context=analysis)
         observation = self._execute(spec, test)
         verdict_payload = self._step(
@@ -102,7 +96,9 @@ class AgenticBaseline(BaseBaseline):
             for claim in spec.claims
         ]
 
-        trace = " | ".join(part for part in (plan, analysis, test, observation) if part)
+        trace = " | ".join(
+            part for part in (plan, analysis, self._content(test), observation) if part
+        )
 
         return self.roll_up(
             spec,
@@ -116,29 +112,42 @@ class AgenticBaseline(BaseBaseline):
 
     # -- internals ------------------------------------------------------------
 
-    def _step(self, prompt: str, step: str, context: str = "") -> str:
-        """Run one agentic step and return its content."""
+    def _step(self, prompt: str, step: str, context: str = "") -> Any:
+        """Run one agentic step and preserve its structured result."""
         text = prompt + f"\n\nPerform the {step} step now."
         if context:
             text += f"\n\nSo far:\n{context}"
-        payload = ask_json(self.llm, text, system=SYSTEM, budget=self.budget)
-        if isinstance(payload, dict):
-            content = str(payload.get("content", ""))
-            extra = payload.get("inputs")
-            if extra:
-                content += f"\ninputs={extra}"
-            return content
-        return ""
+        if step == "TEST":
+            text += (
+                '\nReturn {"inputs":{"parameter":0},"content":"short reason"}. '
+                "Replace parameter with every actual parameter name and its integer value."
+            )
+        elif step == "VERIFY":
+            text += (
+                '\nReturn {"verdict":"UNKNOWN","witness":null,"content":"short reason"}. '
+                "Set verdict to VERIFIED, COUNTEREXAMPLE, or UNKNOWN. For COUNTEREXAMPLE, "
+                "set witness to an object mapping all parameters to integers."
+            )
+        else:
+            text += '\nReturn {"content":"one short sentence"}.'
+        return ask_json(self.llm, text, system=SYSTEM, budget=self.budget)
 
-    def _execute(self, spec: ProgramSpec, test: str) -> str:
+    @staticmethod
+    def _content(payload: Any) -> str:
+        return str(payload.get("content", "")) if isinstance(payload, dict) else ""
+
+    def _execute(self, spec: ProgramSpec, test: Any) -> str:
         """Execute the agent's proposed test inputs and report the outcome."""
         params = _parameters(spec.source)
-        grid = build_input_grid(params, seed=SEED)[:N_TEST_INPUTS] or [{}]
+        grid = build_input_grid(params, seed=SEED)
+        proposed = parse_witness(test)
+        if proposed and proposed.keys() == set(params):
+            grid = [proposed, *(case for case in grid if case != proposed)]
         outcome = observe_program(
             spec.source,
             spec.function_name,
             params,
-            grid=grid,
+            grid=grid[:N_TEST_INPUTS],
             program_timeout=10.0,
         )
         if outcome.observation == "COUNTEREXAMPLE":

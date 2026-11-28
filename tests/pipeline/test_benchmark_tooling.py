@@ -114,6 +114,32 @@ def test_rate_limited_client_delegates():
         RateLimitedClient(stub, rpm=0)
 
 
+@pytest.mark.parametrize(("status", "minimum_gap"), [(503, 5), (429, 15)])
+def test_rate_limiter_also_paces_http_retries(monkeypatch, status, minimum_gap):
+    import time
+    import urllib.error
+
+    now = 0.0
+    attempts = []
+
+    def sleep(seconds):
+        nonlocal now
+        now += seconds
+
+    def urlopen(req, timeout):
+        attempts.append(now)
+        if len(attempts) == 1:
+            raise urllib.error.HTTPError(req.full_url, status, "retry", {}, None)
+        return _FakeHTTPResponse({"choices": [{"message": {"content": "{}"}}]})
+
+    monkeypatch.setattr(time, "monotonic", lambda: now)
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    client = RateLimitedClient(OpenAICompatibleClient(max_retries=1), rpm=12)
+    assert client.complete("ping").json() == {}
+    assert attempts == [0.0, minimum_gap]
+
+
 def test_extended_metrics_pricing_and_counts():
     r1 = ProgramResult(
         program_id="loops/p1.py",

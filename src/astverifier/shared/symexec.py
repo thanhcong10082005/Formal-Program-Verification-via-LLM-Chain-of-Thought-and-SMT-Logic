@@ -261,24 +261,26 @@ class Explorer:
                         head_vars.add(target.id)
         head_vars = sorted(v for v in head_vars if not v.startswith(JUNK_PREFIX))
 
-        # Symbolic body branches, relative to the loop head state.
-        body_paths: list[tuple[z3.BoolRef, dict[str, z3.ExprRef]]] = []
-        body_paths, _, _ = self._exec_block(
+        # The executor returns SymPath objects; the loop summary stores pairs.
+        body_states, _, _ = self._exec_block(
             node.body, [SymPath(z3.BoolVal(True), dict(env0))]
         )
-        for path in body_paths:
-            body_paths_list = [(path.cond, dict(path.env))]
-            body_paths = body_paths_list + body_paths
-
-        # The post-loop state: fresh symbols for everything the loop owns.
-        exit_vars = {v: z3.Int(self._fresh(f"exit_{v}")) for v in head_vars}
+        written = {
+            target.id
+            for stmt in ast.walk(node)
+            if isinstance(stmt, (ast.Assign, ast.AugAssign))
+            for target in (stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target])
+            if isinstance(target, ast.Name)
+        }
+        # Keep read-only values tied to their incoming states.
+        exit_vars = {v: z3.Int(self._fresh(f"exit_{v}")) for v in sorted(written)}
         exit_guard = eval_expr(node.test, {**env0, **exit_vars})
 
         exit_paths: list[SymPath] = []
         for path in head_paths:
             env = {**path.env, **exit_vars}
             exit_paths.append(
-                SymPath(z3.And(path.cond, z3.Not(exit_guard)), env)
+                SymPath(z3.And(path.cond, z3.Not(coerce_bool(eval_expr(node.test, env)))), env)
             )
 
         spec = LoopSpec(
@@ -287,8 +289,8 @@ class Explorer:
             head_paths=head_paths,
             head_vars=head_vars,
             body_paths=[
-                (cond, {k: v for k, v in env.items() if k not in self.params})
-                for cond, env in body_paths
+                (state.cond, {k: v for k, v in state.env.items() if k not in self.params})
+                for state in body_states
             ],
         )
         # Attach the exit machinery through a private attribute-like field.

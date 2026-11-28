@@ -54,6 +54,14 @@ from astverifier.baselines import (  # noqa: E402
     StubClient,
     get_baseline,
 )
+from astverifier.baselines.hoareprompt_official import (  # noqa: E402
+    METHOD as HOAREPROMPT_OFFICIAL,
+    OfficialHoarePrompt,
+)
+from astverifier.baselines.self_refine_official import (  # noqa: E402
+    METHOD as SELF_REFINE_OFFICIAL,
+    OfficialSelfRefine,
+)
 from astverifier.core.invariants import LoopInvariantGenerator  # noqa: E402
 from astverifier.core.pipeline import (  # noqa: E402
     BASELINE_AST_ANCHORED,
@@ -99,7 +107,9 @@ OFFLINE_METHOD_SET: frozenset[str] = frozenset(
 PROPOSED_METHODS: frozenset[str] = frozenset(
     {"PROPOSED", "PROPOSED_NO_INV", "PROPOSED_NO_REPLAY", "PROPOSED_LLM"}
 )
-VALID_METHODS: frozenset[str] = PROPOSED_METHODS | frozenset(EXPECTED_IDS)
+VALID_METHODS: frozenset[str] = PROPOSED_METHODS | frozenset(
+    (*EXPECTED_IDS, HOAREPROMPT_OFFICIAL, SELF_REFINE_OFFICIAL)
+)
 
 
 def load_dotenv(env_path: Path | None = None) -> dict[str, str]:
@@ -476,6 +486,7 @@ def build_llm_client(args: argparse.Namespace) -> tuple[LLMClient, str]:
             model=model,
             api_key=args.api_key,
             timeout=args.timeout,
+            retry_base_delay=args.retry_base_delay,
             seed=args.seed,
             max_tokens=max_tokens,
             reasoning_effort=env_reasoning or None,
@@ -510,6 +521,7 @@ def build_llm_client(args: argparse.Namespace) -> tuple[LLMClient, str]:
             model=model,
             api_key=api_key,
             timeout=args.timeout,
+            retry_base_delay=args.retry_base_delay,
             seed=args.seed,
             max_tokens=max_tokens,
             reasoning_effort=reasoning_effort or None,
@@ -632,8 +644,28 @@ def run_method(
                 flush=True,
             )
 
+    official = None
+    if method_id == HOAREPROMPT_OFFICIAL:
+        official = OfficialHoarePrompt(
+            args.hoareprompt_upstream, args.hoareprompt_inputs, out_dir,
+            llm_client, llm_model, program_ids, sources, claim_pool,
+            call_limit=args.hoareprompt_call_limit, replay_logs=args.hoareprompt_replay_logs,
+        )
+    self_refine = None
+    if method_id == SELF_REFINE_OFFICIAL:
+        assert llm_client is not None
+        self_refine = OfficialSelfRefine(args.self_refine_upstream, out_dir, llm_client, llm_model)
     with jsonl_path.open(mode, encoding="utf-8") as fh:
-        if is_offline:
+        if official:
+            for pid in pending_ids:
+                _record(fh, official.run(pid, sources[pid], claim_pool[pid]))
+        elif self_refine:
+            for pid in pending_ids:
+                spec = ProgramSpec(
+                    program_id=pid, source=sources[pid], source_path=pid, claims=claim_pool[pid],
+                )
+                _record(fh, self_refine.run(spec))
+        elif is_offline:
             tasks = [
                 (
                     method_id,
@@ -732,7 +764,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Comma-separated methods or aliases: offline (PROPOSED,PROPOSED_NO_INV,J,K,L), "
             "ablation, llm, all, PROPOSED, PROPOSED_NO_INV, PROPOSED_NO_REPLAY, "
-            "PROPOSED_LLM, A..N."
+            "PROPOSED_LLM, A..N, HOAREPROMPT_OFFICIAL, SELF_REFINE_OFFICIAL."
         ),
     )
     parser.add_argument(
@@ -802,6 +834,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP request timeout in seconds for openai/ollama providers.",
     )
     parser.add_argument(
+        "--retry-base-delay",
+        type=float,
+        default=2.0,
+        help="Initial exponential backoff in seconds for openai/ollama retries.",
+    )
+    parser.add_argument(
         "--max-tokens",
         type=int,
         default=1024,
@@ -822,6 +860,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=50,
         help="Print a progress line every N completed programs.",
     )
+    parser.add_argument("--program-ids", type=Path, help="JSON array of exact dataset program IDs.")
+    parser.add_argument("--hoareprompt-upstream", type=Path, help="Checkout of msv-lab/HoarePrompt.")
+    parser.add_argument("--hoareprompt-inputs", type=Path, help="Directory from export_hoareprompt_cases.py.")
+    parser.add_argument("--hoareprompt-call-limit", type=int, default=30, help="Model calls per HoarePrompt sample.")
+    parser.add_argument("--hoareprompt-replay-logs", type=Path, help="Prior HoarePrompt traces for exact prompt replay.")
+    parser.add_argument("--self-refine-upstream", type=Path, help="Checkout of madaan/self-refine.")
     return parser
 
 
@@ -852,6 +896,23 @@ def main(argv: list[str] | None = None) -> int:
         stratified=args.stratified,
         seed=args.seed,
     )
+    if args.program_ids:
+        if args.stratified or args.limit:
+            parser.error("--program-ids cannot be combined with --stratified or --limit")
+        exact_ids = json.loads(args.program_ids.read_text())
+        if (
+            not isinstance(exact_ids, list)
+            or not all(isinstance(pid, str) and pid in program_ids for pid in exact_ids)
+            or len(set(exact_ids)) != len(exact_ids)
+        ):
+            parser.error("--program-ids must contain unique dataset program IDs")
+        program_ids = exact_ids
+    if HOAREPROMPT_OFFICIAL in methods and not (args.hoareprompt_upstream and args.hoareprompt_inputs):
+        parser.error("HOAREPROMPT_OFFICIAL requires --hoareprompt-upstream and --hoareprompt-inputs")
+    if args.hoareprompt_call_limit < 1:
+        parser.error("--hoareprompt-call-limit must be positive")
+    if SELF_REFINE_OFFICIAL in methods and not args.self_refine_upstream:
+        parser.error("SELF_REFINE_OFFICIAL requires --self-refine-upstream")
     if not program_ids:
         raise RuntimeError("No matching programs found in dataset.")
 
@@ -887,9 +948,15 @@ def main(argv: list[str] | None = None) -> int:
             llm_model=llm_model,
         )
 
+    score_command = (
+        f"python tools/score_original_asserts.py --results-dir {args.out_dir} "
+        f"--program-ids {args.program_ids} --dataset {args.dataset}"
+        if args.program_ids and {HOAREPROMPT_OFFICIAL, SELF_REFINE_OFFICIAL}.intersection(methods)
+        else f"python tools/aggregate_results.py --results-dir {args.out_dir}"
+    )
     print(
         f"\nAll methods finished in {time.perf_counter() - total_start:.1f}s. "
-        f"Run `python tools/aggregate_results.py --results-dir {args.out_dir}` to tabulate.",
+        f"Run `{score_command}` to tabulate.",
         flush=True,
     )
     return 0

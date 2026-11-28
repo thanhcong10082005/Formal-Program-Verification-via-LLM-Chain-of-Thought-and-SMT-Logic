@@ -308,6 +308,226 @@ def test_llm_baselines_report_their_token_usage(sample_spec: ProgramSpec) -> Non
         assert result.total_tokens_out > 0, f"{cls.id} did not account for its tokens"
 
 
+@pytest.mark.parametrize(
+    ("constraint", "expected"),
+    [("(= n 0)", StatusEnum.VERIFIED), ("(= n (- 1))", StatusEnum.COUNTEREXAMPLE)],
+)
+@pytest.mark.parametrize("as_list", [False, True])
+def test_direct_smt_uses_declared_symbols(
+    constraint: str, expected: StatusEnum, as_list: bool
+) -> None:
+    spec = ProgramSpec("toy.py", "def main(n):\n    assert n >= 0\n",
+                       claims=[Claim("c", "toy.py", "n >= 0", 2)])
+    commands = ["(declare-fun n () Int)", f"(assert {constraint})"]
+    response = json.dumps({"smt": commands if as_list else "\n".join(commands), "claim": "(>= n 0)"})
+    assert get_baseline("A")(StubClient(response)).run(spec).claim_results[0].status == expected
+
+
+def test_direct_smt_rejects_inconsistent_constraints() -> None:
+    spec = ProgramSpec(
+        "toy.py", "def main(n):\n    assert n >= 0\n",
+        claims=[Claim("c", "toy.py", "n >= 0", 2)],
+    )
+    response = '{"smt":["(assert false)"],"claim":"true"}'
+    result = get_baseline("A")(StubClient(response)).run(spec).claim_results[0]
+    assert result.status == StatusEnum.TRANSLATION_ERROR
+    assert "no state reaching the claim" in result.reason
+
+
+@pytest.mark.parametrize("method", ["C", "E"])
+def test_invariant_baselines_check_requested_assert_and_all_paths(method: str) -> None:
+    source = """\
+def main(n):
+    assert n == n
+    if n >= 0:
+        x = 0
+    else:
+        x = -1
+    assert x >= 0
+"""
+    spec = ProgramSpec(
+        "toy.py", source,
+        claims=[Claim("first", "toy.py", "n == n", 2), Claim("second", "toy.py", "x >= 0", 7)],
+    )
+    client = StubClient('{"invariants":["True"],"inv":"True"}')
+    result = get_baseline(method)(client).run(spec)
+    assert [c.status for c in result.claim_results] == [
+        StatusEnum.VERIFIED, StatusEnum.UNKNOWN_TIMEOUT
+    ]
+    if method == "E":
+        assert len(client.calls) == 3
+
+
+def test_agentic_executes_proposed_input_and_preserves_verdict() -> None:
+    spec = ProgramSpec("toy.py", "def main(n):\n    assert n != 123456\n",
+                       claims=[Claim("c", "toy.py", "n != 123456", 2)])
+    client = StubClient([
+        '{"content":"plan"}',
+        '{"content":"analysis"}',
+        '{"inputs":{"n":123456}}',
+        '{"verdict":"COUNTEREXAMPLE","witness":{"n":123456}}',
+    ])
+    result = get_baseline("F")(client).run(spec).claim_results[0]
+    assert "AssertionError" in client.calls[3]
+    assert result.status == StatusEnum.COUNTEREXAMPLE
+    assert result.counterexample is not None and result.counterexample.replay_verdict
+
+
+def test_property_based_uses_model_predicate(monkeypatch: pytest.MonkeyPatch) -> None:
+    from astverifier.baselines import i_property_based
+
+    monkeypatch.setattr(i_property_based, "build_input_grid", lambda *a, **kw: [{"n": 1}, {"n": 2}])
+    spec = ProgramSpec("toy.py", "def main(n):\n    assert n < 0\n",
+                       claims=[Claim("c", "toy.py", "n < 0", 2)])
+    client = StubClient('{"invariant":"n == 2"}')
+    result = get_baseline("I")(client).run(spec).claim_results[0]
+    assert result.counterexample is not None
+    assert result.counterexample.z3_model == {"n": 2}
+    assert result.counterexample.replay_verdict
+
+
+def test_symbolic_baseline_recovers_missing_witness(monkeypatch: pytest.MonkeyPatch) -> None:
+    from astverifier.baselines import l_symbolic
+    from astverifier.shared.prover import ProofResult
+
+    monkeypatch.setattr(
+        l_symbolic, "prove",
+        lambda *a, **kw: ProofResult(verdict="COUNTEREXAMPLE", reason="reachable failure"),
+    )
+    spec = ProgramSpec("toy.py", "def main(n):\n    if n == 0:\n        assert n != 0\n",
+                       claims=[Claim("c", "toy.py", "n != 0", 3)])
+    result = get_baseline("L")().run(spec).claim_results[0]
+    assert result.counterexample is not None
+    assert result.counterexample.z3_model == {"n": 0}
+    assert result.counterexample.replay_verdict
+
+
+def test_mutant_failure_does_not_label_the_original(monkeypatch: pytest.MonkeyPatch) -> None:
+    from astverifier.baselines import k_mutation
+    from astverifier.shared.oracle import OBS_COUNTEREXAMPLE, OracleOutcome
+
+    source = "def main(n):\n    assert n == n\n"
+    spec = ProgramSpec("toy.py", source, claims=[Claim("c", "toy.py", "n == n", 2)])
+    monkeypatch.setattr(k_mutation, "generate_mutants", lambda _: [
+        k_mutation._Mutant("def main(n):\n    assert n != n\n", "change assertion", 2)
+    ])
+    monkeypatch.setattr(k_mutation, "observe_program", lambda *a, **kw:
+        OracleOutcome(observation=OBS_COUNTEREXAMPLE, witness={"n": 0})
+    )
+    result = get_baseline("K")().run(spec).claim_results[0]
+    assert result.status == StatusEnum.UNKNOWN_TIMEOUT
+    assert result.counterexample is None
+    assert "1/1" in result.reason
+
+
+@pytest.mark.parametrize("method", ["C", "E"])
+def test_loop_exploration_keeps_read_only_values(method: str) -> None:
+    source = """\
+def main(n):
+    original = n
+    i = 0
+    while i < 3:
+        i += 1
+    assert original == n
+"""
+    spec = ProgramSpec("toy.py", source, claims=[Claim("c", "toy.py", "original == n", 6)])
+    client = StubClient('{"invariants":["True"],"inv":"True"}')
+    result = get_baseline(method)(client).run(spec)
+    assert result.claim_results[0].status == StatusEnum.VERIFIED
+
+
+@pytest.mark.parametrize(
+    ("candidate", "expected"),
+    [
+        ("0 <= i <= 3", StatusEnum.VERIFIED),
+        ("True", StatusEnum.UNKNOWN_TIMEOUT),
+        ("i == 0 or i == 3", StatusEnum.UNKNOWN_TIMEOUT),
+        ("i == 3", StatusEnum.UNKNOWN_TIMEOUT),
+        ("unbound <= 3", StatusEnum.UNKNOWN_TIMEOUT),
+    ],
+)
+def test_n_checks_the_actual_candidate(candidate: str, expected: StatusEnum) -> None:
+    source = "def main():\n    i = 0\n    while i < 3:\n        i += 1\n    assert i == 3\n"
+    spec = ProgramSpec("toy.py", source, claims=[Claim("c", "toy.py", "i == 3", 5)])
+    client = StubClient(json.dumps({"invariants": [candidate]}))
+    result = get_baseline("N")(client).run(spec)
+    assert result.claim_results[0].status == expected
+
+
+@pytest.mark.parametrize("method", ["C", "E", "N"])
+@pytest.mark.parametrize("changes_after_loop", [False, True])
+def test_loop_checker_requires_the_claim_on_every_exit_path(method, changes_after_loop):
+    source = "def main(n):\n    i = 0\n    while i < 3:\n        i += 1\n"
+    if changes_after_loop:
+        source += "    if n > 0:\n        i = -1\n"
+    source += "    assert i == 3\n"
+    line = len(source.splitlines())
+    spec = ProgramSpec("toy.py", source, claims=[Claim("c", "toy.py", "i == 3", line)])
+    client = StubClient('{"invariants":["0 <= i <= 3"],"inv":"0 <= i <= 3"}')
+    result = get_baseline(method)(client).run(spec).claim_results[0]
+    expected = StatusEnum.UNKNOWN_TIMEOUT if changes_after_loop else StatusEnum.VERIFIED
+    assert result.status == expected
+
+
+def test_e_recovers_from_a_malformed_spec():
+    source = "def main():\n    i = 0\n    while i < 3:\n        i += 1\n    assert i == 3\n"
+    spec = ProgramSpec("toy.py", source, claims=[Claim("c", "toy.py", "i == 3", 5)])
+    client = StubClient(["invalid response", '{"inv":"0 <= i <= 3","post":"i == 3"}'])
+    result = get_baseline("E")(client).run(spec).claim_results[0]
+    assert result.status == StatusEnum.VERIFIED
+    assert len(client.calls) == 2
+
+
+@pytest.mark.parametrize("first", ["invalid JSON", '{"verdict":"VERIFIED","critique":"Check"}'])
+def test_h_recovers_or_preserves_a_usable_answer(first: str) -> None:
+    spec = ProgramSpec(
+        "toy.py", "def main(n):\n    assert n == n\n",
+        claims=[Claim("c", "toy.py", "n == n", 2)],
+    )
+    second = '{"verdict":"VERIFIED","reason":"Identity."}' if first == "invalid JSON" else '{}'
+    client = StubClient([first, second])
+    result = get_baseline("H")(client).run(spec)
+    assert len(client.calls) == 2
+    assert result.claim_results[0].status == StatusEnum.VERIFIED
+
+
+@pytest.mark.parametrize(("witness", "expected"), [(-1, "COUNTEREXAMPLE"), (0, "VERIFIED")])
+def test_d_only_uses_replayed_boundary_witness(witness: int, expected: str) -> None:
+    spec = ProgramSpec(
+        "toy.py", "def main(n):\n    assert n >= 0\n",
+        claims=[Claim("c", "toy.py", "n >= 0", 2)],
+    )
+    client = StubClient([
+        '{"verdict":"VERIFIED"}',
+        json.dumps({"verdict": "COUNTEREXAMPLE", "witness": {"n": witness}}),
+    ])
+    result = get_baseline("D")(client).run(spec).claim_results[0]
+    assert result.status == expected
+    if result.counterexample:
+        assert result.counterexample.replay_verdict
+
+
+def test_default_a_repairs_once_and_explicit_prompt_is_single_shot() -> None:
+    from astverifier.baselines.a_direct_smt import SYSTEM_SSA_V2, SatLMDirectBaseline
+
+    spec = ProgramSpec(
+        "toy.py", "def main(n):\n    assert n >= 0\n",
+        claims=[Claim("c", "toy.py", "n >= 0", 2)],
+    )
+    invalid = '{"smt":["(assert false)"],"claim":"true"}'
+    valid = '{"smt":["(declare-fun n () Int)","(assert (= n 0))"],"claim":"(>= n 0)"}'
+    client = StubClient([invalid, valid])
+    result = SatLMDirectBaseline(client).run(spec)
+    assert result.claim_results[0].status == StatusEnum.VERIFIED
+    assert len(client.calls) == 2 and "failed validation" in client.calls[1]
+    assert "no state reaching the claim" in client.calls[1]
+    assert "(assert false)" in client.calls[1]
+    archived = StubClient([invalid, valid])
+    result = SatLMDirectBaseline(archived, system_prompt=SYSTEM_SSA_V2).run(spec)
+    assert result.claim_results[0].status == StatusEnum.TRANSLATION_ERROR
+    assert len(archived.calls) == 1
+
+
 def test_reachability_is_only_claimed_by_the_symbolic_baseline() -> None:
     """Only the symbolic-execution baseline can decide reachability."""
     with_reachability = {

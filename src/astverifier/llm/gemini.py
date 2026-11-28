@@ -17,8 +17,12 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from google import genai
-from google.genai import types
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:  # Gemini is optional for offline benchmark methods.
+    genai = None
+    types = None
 from pydantic import BaseModel, Field
 
 REQUEST_TIMEOUT_MS = 120_000
@@ -97,6 +101,11 @@ def make_client(api_key: str):
     The fallback keeps test doubles and older ``google-genai`` versions that
     do not expose ``http_options`` usable without changing semantics.
     """
+    if genai is None or types is None:
+        raise RuntimeError(
+            "Gemini support requires the optional 'google-genai' dependency. "
+            "Install astverifier with the 'llm' extra."
+        )
     try:
         return genai.Client(
             api_key=api_key,

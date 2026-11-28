@@ -78,57 +78,32 @@ Bảng \ref{tab:semantic_mapping_smt} mô tả quy tắc dịch tương đương
 \label{tab:semantic_mapping_smt}
 \end{table}
 
-\chapter{Lược đồ Dữ liệu JSON Chuẩn (Data Schemas)}
+\chapter{Cấu trúc Dữ liệu}
 \label{app:data_schemas}
 
-Phụ lục này trình bày định nghĩa hình thức lược đồ JSON Schema của các đối tượng dữ liệu trao đổi trong framework.
-
-\section{Lược đồ Khẳng định (Claim Schema)}
-\begin{lstlisting}[language=Python, caption={Lược đồ JSON của đối tượng Claim}]
+\section{Khẳng định dùng chung}
+Mỗi bản ghi trong \texttt{claim\_pool.json} chứa định danh khẳng định và chương trình, biểu thức Python, số dòng, thông tin neo và nhãn chuẩn. Ví dụ dưới đây trích từ tập dữ liệu.
+\begin{lstlisting}[caption={Một bản ghi trong tập khẳng định dùng chung}]
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Claim",
-  "type": "object",
-  "required": ["claim_id", "statement", "expression", "node_id", "line"],
-  "properties": {
-    "claim_id": {"type": "string", "pattern": "^claim_[0-9]+$"},
-    "statement": {"type": "string", "description": "Ma nguon bieu thuc goc"},
-    "expression": {"type": "string", "description": "Bieu thuc toan hoc can kiem chung"},
-    "node_id": {"type": "string", "pattern": "^[A-Za-z]+@L[0-9]+(_[0-9]+)?$"},
-    "line": {"type": "integer", "minimum": 1},
-    "column": {"type": "integer", "minimum": 0},
-    "source": {"type": "string", "enum": ["source_assert", "llm_cot", "invariant_generator"]},
-    "expected_verdict": {"type": "string", "enum": ["VERIFIED", "COUNTEREXAMPLE"]}
+  "claim_id": "bench_v1::arithmetic/p00009.py::assert_0",
+  "program_id": "arithmetic/p00009.py",
+  "kind": "postcondition",
+  "text": "_contract_result == x + y",
+  "source_line": 4,
+  "ast_anchor": "add@Assert:L4:C4#0",
+  "precondition": null,
+  "expected_verdict": "VERIFIED",
+  "gt_confidence": "high",
+  "provenance": "assert@L4",
+  "validated": {
+    "syntax_ok": true,
+    "anchor_ok": true
   }
 }
 \end{lstlisting}
 
-\section{Lược đồ Đặc tả Chương trình Đầu vào (ProgramSpec Schema)}
-\begin{lstlisting}[language=Python, caption={Lược đồ JSON của đối tượng ProgramSpec}]
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ProgramSpec",
-  "type": "object",
-  "required": ["program_id", "source"],
-  "properties": {
-    "program_id": {"type": "string"},
-    "source": {"type": "string", "description": "Toan van ma nguon Python"},
-    "source_path": {"type": "string"},
-    "claims": {
-      "type": "array",
-      "items": {"$ref": "#/definitions/Claim"}
-    },
-    "precondition": {"type": ["string", "null"], "description": "Tien dieu kien dau vao"},
-    "metadata": {
-      "type": "object",
-      "properties": {
-        "category": {"type": "string"},
-        "ground_truth": {"type": "string", "enum": ["VERIFIED", "COUNTEREXAMPLE"]}
-      }
-    }
-  }
-}
-\end{lstlisting}
+\section{Đặc tả đầu vào của baseline}
+Kiểu \texttt{ProgramSpec} có hai trường bắt buộc là \texttt{program\_id} và \texttt{source}. Các trường tùy chọn gồm \texttt{source\_path}, danh sách \texttt{claims}, \texttt{precondition} và từ điển \texttt{metadata}. Danh sách \texttt{claims} sử dụng kiểu dữ liệu định nghĩa trong \texttt{shared/claims.py}.
 
 \chapter{Đặc tả Chi tiết 14 Phương pháp Baseline (A--N)}
 \label{app:baselines_specification}
@@ -230,45 +205,19 @@ Phụ lục này cung cấp tài liệu kỹ thuật chi tiết về cơ chế v
     \item \textbf{Cơ chế:} LLM chỉ làm nhiệm vụ duy nhất là đề xuất từ 1 đến 3 ứng viên bất biến vòng lặp. Z3 solver đóng vai trò thẩm định viên độc lập, kiểm tra Base Case và Inductive Step. Nếu bất biến được chứng minh, Z3 dùng nó để xác minh assertion.
 \end{itemize}
 
-\chapter{Toàn văn Mẫu Nhắc lệnh (Prompt Templates)}
+\chapter{Mẫu Nhắc lệnh (Prompt Templates)}
 \label{app:prompt_templates}
 
-Phụ lục này lưu trữ toàn văn các mẫu nhắc nhở (Prompt Templates) chính được sử dụng để tương tác với mô hình ngôn ngữ lớn Gemini trong framework.
+\section{Sinh khẳng định từ mã nguồn}
+Mô hình nhận mã nguồn đánh số dòng và được yêu cầu trả về một đối tượng JSON gồm \texttt{cot\_trace} và \texttt{claims}. Mỗi đề xuất chỉ rõ một số dòng và một biểu thức Boolean Python. Biểu thức được kiểm tra ngay trước khi câu lệnh ở dòng đó thực thi.
 
-\section{System Prompt cho Bộ Sinh Trace (Reasoning Trace Generator)}
-\begin{lstlisting}[language=TeX, caption={System Prompt chuẩn cho Structured Trace Generation}]
-You are an expert formal program verifier and static analysis engine.
-Your task is to analyze a given Python program written in a safe QF-LIA subset and construct a strictly verified, step-by-step reasoning trace.
+\section{Phản hồi hồi cứu}
+Prompt cung cấp mã nguồn, diễn giải trước đó, claim ban đầu và phản ví dụ đã được CPython xác nhận. Ngữ cảnh gồm đầu vào, dòng vi phạm và trạng thái ghi nhận tại đó. Phản hồi có thể gồm \texttt{refined\_cot}, \texttt{refined\_claim} với hai trường \texttt{line} và \texttt{expression}, \texttt{explanation} và \texttt{accept\_ce}.
 
-CRITICAL ARCHITECTURAL CONSTRAINTS:
-1. Strict Single Static Assignment (SSA): Every variable update MUST introduce a strictly monotonically increasing integer version (e.g., x_1 = 5, x_2 = x_1 + 1). Never reuse an existing variable version on the LHS of an assignment.
-2. Canonical AST Anchoring: Every reasoning step MUST explicitly anchor to a valid AST node ID present in the provided source code (e.g., Assign@L4, If@L6, While@L10).
-3. Zero-Hallucination Policy: You are strictly forbidden from referencing variables that do not exist in the lexical scope of the program. Out-of-scope variable references will cause immediate gate rejection.
-4. Output Format: You MUST reply with a single valid JSON object adhering strictly to the ReasoningTrace JSON schema. Do not enclose your output in conversational markdown fluff outside the JSON block.
-\end{lstlisting}
-
-\section{Prompt cho Vòng Phản hồi Hồi cứu (Retrospective Feedback Prompt)}
-\begin{lstlisting}[language=TeX, caption={Prompt mẫu cho Vòng phản hồi hồi cứu}]
-[DIAGNOSTIC FAILURE CONTEXT - CPYTHON RUNTIME EXECUTION ERROR]
-A physical runtime execution in CPython sandbox has CONFIRMED that your previous reasoning trace and asserted claim failed with a concrete counterexample.
-
-- Target AST Node: {node_id} at line {crash_line}
-- Input Concrete Vector: {concrete_inputs}
-- Concrete Variable State at Crash: {state_at_crash}
-- Failed Claim Expression: {failed_claim}
-- Runtime Exception: AssertionError physically triggered at line {crash_line}
-
-YOUR TASK:
-1. Analyze the exact mathematical reason why the program violated the assertion under the given input vector.
-2. Identify whether the error stems from an invalid loop invariant, boundary case oversight, or incorrect branch guard propagation.
-3. Propose a REVISED, mathematically sound claim or inductive loop invariant that correctly characterizes the true semantics of the program.
-4. Output your revised step in the standard JSON format.
-\end{lstlisting}
-
-\chapter{Các Ca Nghiên cứu Thực tế Điển hình (Case Studies)}
+\chapter{Các Ví dụ Minh họa}
 \label{app:case_studies}
 
-Phụ lục này trình bày ba ca nghiên cứu thực tế được trích xuất trực tiếp từ các phiên chạy benchmark của framework, minh họa sinh động năng lực của phương pháp đề xuất.
+Phụ lục này dùng ba chương trình nhỏ để minh họa cách lập nghĩa vụ chứng minh, kiểm tra bất biến và tái hiện phản ví dụ. Các bước dưới đây được diễn giải từ mã nguồn và công thức của từng ví dụ.
 
 \section{Ca Nghiên cứu 1: Kiểm chứng Vòng lặp với Bất biến Quy nạp}
 \begin{lstlisting}[language=Python, caption={Mã nguồn bài toán loop\_sum\_safe}]
@@ -284,8 +233,8 @@ def loop_sum(n: int) -> int:
 \end{lstlisting}
 
 \begin{itemize}
-    \item \textbf{Cổng neo AST:} Neo thành công các bước: \texttt{Assign@L3} ($s_1 = 0$), \texttt{Assign@L4} ($i_1 = 0$), \texttt{While@L5} (Guard: $i < n$), và \texttt{Assert@L9} ($s == n$).
-    \item \textbf{Tổng hợp Bất biến:} LLM đề xuất ứng viên bất biến:
+    \item \textbf{Cổng neo AST:} Khẳng định \texttt{s == n} gắn với câu lệnh \texttt{assert} ở dòng 8 và được xét trên trạng thái ngay trước khi câu lệnh chạy.
+    \item \textbf{Tổng hợp bất biến:} Xét ứng viên bất biến sau.
     \begin{equation*}
     I(s, i, n) \equiv (s == i) \land (0 \le i \le n)
     \end{equation*}
@@ -310,7 +259,7 @@ def step_two(n: int) -> int:
 \end{lstlisting}
 
 \begin{itemize}
-    \item \textbf{Phân tích Ban đầu của LLM:} LLM ngây thơ tuyên bố assertion luôn đúng vì $x$ tăng dần tới $n$.
+    \item \textbf{Khẳng định ban đầu:} \texttt{x == n} tại dòng 6.
     \item \textbf{Z3 Validity Query:} Solver tìm được nghiệm phản ví dụ: $n = 1$.
     \begin{itemize}
         \item Khởi tạo: $x = 0$. Vòng lặp kiểm tra: $0 < 1$ (True).
@@ -318,13 +267,13 @@ def step_two(n: int) -> int:
         \item Vòng lặp kiểm tra tiếp: $2 < 1$ (False) $\implies$ Thoát vòng lặp.
         \item Tại dòng assert: kiểm tra $x == n \iff 2 == 1 \implies$ Sai!
     \end{itemize}
-    \item \textbf{CPython Replay:} Nạp $n = 1$ vào CPython. Runtime ném ngoại lệ \texttt{AssertionError} tại dòng 6. Replay thành công 100\% (\texttt{CRVR = True}).
-    \item \textbf{Vòng Phản hồi Hồi cứu (Round 1):} Ngữ cảnh chẩn đoán với $n = 1, x = 2$ được gửi lại cho LLM. LLM nhận ra rằng $x == n$ chỉ đúng khi $n$ là số chẵn.
-    \item \textbf{Khẳng định Đã Sửa đổi:} LLM đề xuất lại claim có điều kiện:
+    \item \textbf{CPython replay:} Với $n = 1$, câu lệnh \texttt{assert} tại dòng 6 nhận $x = 2$ và phát sinh \texttt{AssertionError}.
+    \item \textbf{Phản hồi hồi cứu:} Trạng thái $n = 1, x = 2$ cung cấp ngữ cảnh để đề xuất một khẳng định phụ thuộc vào tính chẵn lẻ của $n$.
+    \item \textbf{Khẳng định được tinh chỉnh:} Xét tính chất sau tại vị trí neo.
     \begin{equation*}
     \text{Revised Claim:} \quad (n \% 2 == 0 \implies x == n) \land (n \% 2 == 1 \implies x == n + 1)
     \end{equation*}
-    \item \textbf{Z3 Kiểm chứng Lại:} Claim mới được Z3 chứng minh thành công. Hệ thống ghi nhận: \textbf{Tự sửa sai thành công sau 1 vòng phản hồi}.
+    \item \textbf{Kiểm chứng lại:} Nếu chứng minh được khẳng định tinh chỉnh, phán quyết áp dụng cho chính khẳng định đó. Với $n = 1$, câu lệnh \texttt{assert x == n} gốc vẫn vi phạm.
 \end{itemize}
 
 \section{Ca Nghiên cứu 3: Ngăn chặn Chứng minh Rỗng trên Nhánh Chết}
@@ -338,10 +287,10 @@ def dead_code_demo(a: int):
 \end{lstlisting}
 
 \begin{itemize}
-    \item \textbf{SatLM:} Bỏ qua reachability, gửi $(a > 10 \land a < 5) \land \neg (1 == 0)$ cho Z3. Solver trả về \texttt{unsat} vì tiền đề mâu thuẫn. SatLM kết luận sai lầm: \textbf{\texttt{VERIFIED}} cho khẳng định $1 == 0$!
+    \item \textbf{Kiểm tra tính hợp lệ:} Truy vấn $(a > 10 \land a < 5) \land \neg (1 == 0)$ vô nghiệm do điều kiện đường đi mâu thuẫn.
     \item \textbf{Proposed Pipeline:} Giao thức Hai Truy vấn thực thi Truy vấn 1 (Reachability):
     \begin{equation*}
     \Phi_{\text{reach}} \equiv \exists a. \ (a > 10 \land a < 5) \implies \texttt{UNSAT}
     \end{equation*}
-    Hệ thống phát hiện đường đi không thể đạt. Phán quyết phát ra: \textbf{\texttt{UNREACHABLE}}. Khẳng định rỗng $1 == 0$ bị loại bỏ, hoàn toàn bảo vệ tính Soundness của hệ thống.
+    Truy vấn khả đạt cho phép gắn nhãn \texttt{UNREACHABLE} cho khẳng định tại vị trí này.
 \end{itemize}

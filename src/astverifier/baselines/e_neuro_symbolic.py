@@ -30,15 +30,11 @@ from .common import ask_json, program_prompt
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are a neuro-symbolic verification assistant.
-
-You propose a specification for a program: a precondition, a postcondition
-and a loop invariant, each a Python boolean expression over the program's
-integer variables.
-
-Answer with a JSON object of the form:
-{"pre": "<precondition or null>", "post": "<postcondition or null>",
- "inv": "<loop invariant or null>", "reason": "<why>"}
+SYSTEM = """Propose a specification with Python Boolean expressions.
+Use actual variable names. The invariant must hold at entry and survive each
+iteration. The postcondition must hold at the claim's line. Return one JSON
+object with a one-sentence reason; use JSON null for an unavailable field.
+Example: {"pre":"n >= 0","post":"i == n","inv":"0 <= i <= n","reason":"The loop advances i by one."}
 """
 
 #: How many refinement rounds are allowed.
@@ -91,63 +87,48 @@ class NeuroSymbolicBaseline(BaseBaseline):
             ),
         )
 
-        payload = ask_json(self.llm, prompt, system=SYSTEM, budget=self.budget)
         history: list[str] = []
-        accepted = None
+        accepted: dict[int, str] = {}
+        next_prompt = prompt
 
         for round_index in range(K_ROUNDS):
+            payload = ask_json(self.llm, next_prompt, system=SYSTEM, budget=self.budget)
             if not isinstance(payload, dict):
-                break
+                next_prompt = prompt + "\nReturn exactly one JSON object with pre, post, inv, and reason."
+                continue
             candidate = _extract_spec(payload)
             history.append(f"round {round_index + 1}: {candidate}")
-            verdict, detail = check_spec(spec.source, candidate)
-            if verdict == StatusEnum.VERIFIED:
-                accepted = (candidate, detail)
+            rejected = []
+            for index, claim in enumerate(spec.claims):
+                if index in accepted:
+                    continue
+                verdict, detail = check_spec(
+                    spec.source, candidate, claim_text=claim.text, source_line=claim.source_line
+                )
+                if verdict == StatusEnum.VERIFIED:
+                    accepted[index] = detail
+                else:
+                    rejected.append(f"Line {claim.source_line}: {detail}")
+            if not rejected or round_index + 1 == K_ROUNDS:
                 break
-            payload = ask_json(
-                self.llm,
+            next_prompt = (
                 prompt
                 + "\n\nYour previous specification was rejected:\n"
-                + detail
-                + "\n\nRefine it.",
-                system=SYSTEM,
-                budget=self.budget,
+                + "\n".join(rejected)
+                + "\n\nRefine it and return one JSON object."
             )
 
-        if accepted is None:
-            return self.roll_up(
-                spec,
-                self.id,
-                [
-                    ClaimResult(
-                        claim_id=claim.claim_id,
-                        claim_text=claim.text,
-                        status=StatusEnum.UNKNOWN_TIMEOUT,
-                        anchor=self.anchor_info(claim),
-                        reason=(
-                            f"no acceptable specification after {K_ROUNDS} rounds"
-                        ),
-                        explanation=" | ".join(history),
-                    )
-                    for claim in spec.claims
-                ],
-                started=started,
-                tokens_in=self.budget.tokens_in,
-                tokens_out=self.budget.tokens_out,
-                cot_trace=" | ".join(history),
-            )
-
-        candidate, detail = accepted
+        trace = " | ".join(history)
         claim_results = [
             ClaimResult(
                 claim_id=claim.claim_id,
                 claim_text=claim.text,
-                status=StatusEnum.VERIFIED,
+                status=StatusEnum.VERIFIED if index in accepted else StatusEnum.UNKNOWN_TIMEOUT,
                 anchor=self.anchor_info(claim),
-                reason=detail,
-                explanation=f"accepted spec: {candidate}",
+                reason=accepted.get(index, f"no acceptable specification after {len(history)} rounds"),
+                explanation=trace,
             )
-            for claim in spec.claims
+            for index, claim in enumerate(spec.claims)
         ]
 
         return self.roll_up(
@@ -157,7 +138,7 @@ class NeuroSymbolicBaseline(BaseBaseline):
             started=started,
             tokens_in=self.budget.tokens_in,
             tokens_out=self.budget.tokens_out,
-            cot_trace=" | ".join(history),
+            cot_trace=trace,
         )
 
 
@@ -176,16 +157,10 @@ def _as_text(value: Any) -> str | None:
     return None
 
 
-def check_spec(source: str, candidate: dict[str, str | None]) -> tuple[StatusEnum, str]:
-    """Check a proposed specification against the program.
-
-    The check is symbolic but solver-free: the postcondition is evaluated on
-    the concrete states the program reaches, and the invariant is checked by
-    k-induction over the program's own transition relation.
-
-    Returns:
-        ``(status, detail)``.
-    """
+def check_spec(
+    source: str, candidate: dict[str, str | None], *, claim_text: str, source_line: int
+) -> tuple[StatusEnum, str]:
+    """Check the requested claim and any proposed postcondition at its site."""
     from .c_structural import check_invariant_by_k_induction
 
     invariant = candidate.get("inv")
@@ -194,10 +169,15 @@ def check_spec(source: str, candidate: dict[str, str | None]) -> tuple[StatusEnu
         return StatusEnum.UNKNOWN_TIMEOUT, "the specification is empty"
 
     if invariant:
-        verdict, detail = check_invariant_by_k_induction(source, post or "True", [invariant])
-        if verdict == StatusEnum.VERIFIED:
-            return verdict, detail
-        return StatusEnum.UNKNOWN_TIMEOUT, detail
+        if post and post != claim_text:
+            verdict, detail = check_invariant_by_k_induction(
+                source, post, [invariant], source_line=source_line
+            )
+            if verdict != StatusEnum.VERIFIED:
+                return verdict, detail
+        return check_invariant_by_k_induction(
+            source, claim_text, [invariant], source_line=source_line
+        )
 
     return (
         StatusEnum.UNKNOWN_TIMEOUT,

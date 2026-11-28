@@ -16,13 +16,17 @@ testing. It has no anchor gate, so the Hallucination Rate is ``N/A``.
 
 from __future__ import annotations
 
+import ast
 import time
 from typing import Any
+
+import z3
 
 from ..shared.oracle import OBS_COUNTEREXAMPLE, OBS_NO_VIOLATION, build_input_grid
 from ..shared.oracle import observe as observe_program
 from ..shared.replay import replay_counterexample
 from ..shared.schemas import ClaimResult, CounterexampleInfo, StatusEnum
+from ..shared.symexec import SymExecError, coerce_bool, eval_expr
 from .base import BaseBaseline, ProgramSpec
 from .common import ask_json, program_prompt
 from .llm import LLMClient, TokenBudget
@@ -30,12 +34,9 @@ from .registry import register
 
 SYSTEM = """You are a property-based testing assistant.
 
-You are given a program and a claim. Propose a *strategy* -- an invariant
-over the program's parameters that a valid input should satisfy, plus the
-ranges of interesting inputs.
-
-Answer with a JSON object of the form:
-{"invariant": "<an expression over the parameters>", "reason": "<why>"}
+Suggest a Python Boolean expression over the function parameters. Inputs
+satisfying the expression will be tested first. Return one JSON object with a
+short reason, for example {"invariant":"n >= 0 and n <= 2","reason":"Try boundaries."}
 """
 
 #: How many inputs the search explores.
@@ -96,12 +97,12 @@ class PropertyBasedTestingBaseline(BaseBaseline):
             invariant = str(payload.get("invariant", ""))
 
         params = _parameters(spec.source)
-        grid = build_input_grid(params, seed=SEED)[:N_INPUTS] or [{}]
+        grid = _prioritize_inputs(build_input_grid(params, seed=SEED), params, invariant)
         outcome = observe_program(
             spec.source,
             spec.function_name,
             params,
-            grid=grid,
+            grid=grid[:N_INPUTS],
             program_timeout=15.0,
         )
 
@@ -168,10 +169,28 @@ class PropertyBasedTestingBaseline(BaseBaseline):
         )
 
 
+def _prioritize_inputs(
+    grid: list[dict[str, int]], params: list[str], predicate: str
+) -> list[dict[str, int]]:
+    """Rank inputs by the proposed predicate without executing model text."""
+    if not predicate.strip():
+        return grid
+    symbols = {name: z3.Int(name) for name in params}
+    try:
+        expression = ast.parse(predicate.strip(), mode="eval").body
+        criterion = coerce_bool(eval_expr(expression, symbols))
+    except (SyntaxError, SymExecError, z3.Z3Exception):
+        return grid
+
+    def preferred(case: dict[str, int]) -> bool:
+        substitutions = [(symbol, z3.IntVal(case[name])) for name, symbol in symbols.items()]
+        return z3.is_true(z3.simplify(z3.substitute(criterion, *substitutions)))
+
+    return sorted(grid, key=preferred, reverse=True)
+
+
 def _parameters(source: str) -> list[str]:
     """Return the parameter names of the function under verification."""
-    import ast
-
     try:
         tree = ast.parse(source)
     except SyntaxError:

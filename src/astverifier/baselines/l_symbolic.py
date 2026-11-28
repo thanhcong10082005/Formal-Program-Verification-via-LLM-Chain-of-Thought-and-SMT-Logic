@@ -18,6 +18,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from ..shared.oracle import OBS_COUNTEREXAMPLE, observe
 from ..shared.prover import (
     VERDICT_COUNTEREXAMPLE,
     VERDICT_INCONCLUSIVE,
@@ -29,6 +30,7 @@ from ..shared.prover import (
 from ..shared.replay import replay_counterexample
 from ..shared.schemas import ClaimResult, CounterexampleInfo, StatusEnum
 from .base import BaseBaseline, ProgramSpec
+from .common import find_function
 from .registry import register
 
 
@@ -105,13 +107,19 @@ class SymbolicExecutionBaseline(BaseBaseline):
             )
 
         if proof.verdict == VERDICT_COUNTEREXAMPLE:
+            counterexample, recovered = self._replay_witness(
+                spec, claim, proof.witness, allow_search=not proof.precondition
+            )
             return ClaimResult(
                 claim_id=claim.claim_id,
                 claim_text=claim.text,
                 status=StatusEnum.COUNTEREXAMPLE,
                 anchor=self.anchor_info(claim),
-                counterexample=self._counterexample(spec, claim, proof.witness or {}),
-                reason=proof.reason,
+                counterexample=counterexample,
+                reason=(
+                    f"{proof.reason}; input recovered by bounded execution"
+                    if recovered else proof.reason
+                ),
             )
 
         if proof.verdict == VERDICT_UNREACHABLE:
@@ -146,6 +154,25 @@ class SymbolicExecutionBaseline(BaseBaseline):
             anchor=self.anchor_info(claim),
             reason=proof.reason or f"prover was {VERDICT_INCONCLUSIVE}",
         )
+
+    def _replay_witness(
+        self, spec: ProgramSpec, claim, witness: dict[str, int] | None, *, allow_search: bool
+    ) -> tuple[CounterexampleInfo | None, bool]:
+        """Recover a concrete input when a symbolic answer has no replayable witness."""
+        original = self._counterexample(spec, claim, witness) if witness is not None else None
+        if not allow_search or (original is not None and original.replay_verdict):
+            return original, False
+
+        func = find_function(spec.source)
+        if func is None:
+            return original, False
+        params = [arg.arg for arg in [*func.args.posonlyargs, *func.args.args]]
+        outcome = observe(spec.source, func.name, params, program_timeout=2.0)
+        if outcome.observation == OBS_COUNTEREXAMPLE and outcome.witness is not None:
+            candidate = self._counterexample(spec, claim, outcome.witness)
+            if candidate.replay_verdict:
+                return candidate, True
+        return original, False
 
     def _counterexample(self, spec: ProgramSpec, claim, witness: dict[str, int]):
         """Build the counterexample record, replayed on real CPython."""

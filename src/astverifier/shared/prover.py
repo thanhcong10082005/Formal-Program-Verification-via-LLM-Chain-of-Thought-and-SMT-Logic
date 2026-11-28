@@ -73,8 +73,8 @@ from dataclasses import dataclass, field
 
 import z3
 
-from .structure import AssertSite, ProgramShape, StructureError, analyze
-from .symexec import SymExecError, eval_expr
+from .structure import AssertSite, ProgramShape, StructureError, analyze, site_precondition
+from .symexec import Explorer, SymExecError, SymPath, coerce_bool, eval_expr
 
 VERDICT_VERIFIED = "VERIFIED"
 VERDICT_COUNTEREXAMPLE = "COUNTEREXAMPLE"
@@ -152,6 +152,12 @@ class _Encoding:
     live_symbols: dict[str, z3.ExprRef]
     sites: list[_Site]
     """Every assert site, with the exact condition under which it is reached."""
+    entry_condition: z3.BoolRef
+    entry_env: dict[str, z3.ExprRef]
+    head_env: dict[str, z3.ExprRef]
+    guard: z3.ExprRef
+    branches: list[tuple[z3.BoolRef, dict[str, z3.ExprRef]]]
+    suffix: list[ast.stmt]
 
 
 # --- The encoding -------------------------------------------------------------
@@ -317,6 +323,8 @@ def _encode(shape: ProgramShape, tag: str) -> _Encoding:
     loop_index = next(
         (i for i, s in enumerate(body) if isinstance(s, ast.While)), -1
     )
+    if loop_index < 0:
+        raise ProverError("only a top-level loop is supported")
     prefix = body[:loop_index]
     loop = shape.loop
     suffix = body[loop_index + 1:]
@@ -334,7 +342,7 @@ def _encode(shape: ProgramShape, tag: str) -> _Encoding:
         elif isinstance(stmt, ast.If):
             # An early-return guard: execution continues only when the
             # guard's test does *not* hold.
-            if not all(isinstance(s, ast.Return) for s in stmt.body):
+            if stmt.orelse or not all(isinstance(s, ast.Return) for s in stmt.body):
                 raise SymExecError("only return guards are supported")
             path = z3.And(path, z3.Not(eval_expr(stmt.test, env)))
         else:
@@ -463,6 +471,78 @@ def _encode(shape: ProgramShape, tag: str) -> _Encoding:
         param_symbols=param_symbols,
         live_symbols=live_symbols,
         sites=sites,
+        entry_condition=path,
+        entry_env={**env, **dict(zip(live, entry, strict=True))},
+        head_env=head_env,
+        guard=guard,
+        branches=branches,
+        suffix=suffix,
+    )
+
+
+def validate_loop_invariants(
+    source: str,
+    claim_text: str,
+    candidates: list[str],
+    *,
+    source_line: int = 0,
+    precondition: str | None = None,
+) -> ProofResult:
+    """Prove a claim using only model candidates that pass induction checks."""
+    try:
+        shape = analyze(source)
+        encoding = _encode(shape, "candidate")
+        explorer = Explorer(encoding.params, var_prefix="candidate_suffix")
+        exit_cond = z3.And(encoding.entry_condition, z3.Not(coerce_bool(encoding.guard)))
+        _, _, exit_sites = explorer._exec_block(
+            encoding.suffix, [SymPath(exit_cond, dict(encoding.head_env))]
+        )
+        sites = [
+            site for site in exit_sites
+            if (site.node.lineno == source_line if source_line else ast.unparse(site.node.test) == claim_text)
+        ]
+        if not sites:
+            return ProofResult(VERDICT_INCONCLUSIVE, "the claim's assert site was not found")
+        assumption = z3.BoolVal(True)
+        # Extracted path conditions can reference locals. They are already
+        # encoded by the selected sites in the correct program state.
+        selected_nodes = {site.node for site in sites}
+        source_sites = [site for site in shape.sites if site.node in selected_nodes]
+        if precondition and not all(site_precondition(s) == precondition for s in source_sites):
+            parsed = ast.parse(precondition.strip(), mode="eval").body
+            assumption = coerce_bool(eval_expr(parsed, encoding.param_symbols))
+        claim = ast.parse(claim_text.strip(), mode="eval").body
+        violations = z3.Or(*(
+            z3.And(site.cond, z3.Not(coerce_bool(eval_expr(claim, site.env))))
+            for site in sites
+        ))
+    except (SyntaxError, StructureError, ProverError, SymExecError, z3.Z3Exception) as exc:
+        return ProofResult(VERDICT_INCONCLUSIVE, f"invariant checking setup failed: {exc}")
+
+    solver = z3.Solver()
+    solver.set("timeout", SOLVER_TIMEOUT_MS)
+    solver.add(assumption, encoding.entry_condition)
+    if solver.check() != z3.sat:
+        return ProofResult(VERDICT_INCONCLUSIVE, "no feasible loop entry was established")
+    for candidate in candidates:
+        try:
+            node = ast.parse(candidate.strip(), mode="eval").body
+            initial = coerce_bool(eval_expr(node, encoding.entry_env))
+            head = coerce_bool(eval_expr(node, encoding.head_env))
+            step_failure = z3.Or(*(
+                z3.And(cond, z3.Not(coerce_bool(eval_expr(node, env))))
+                for cond, env in encoding.branches
+            ))
+        except (SyntaxError, SymExecError, z3.Z3Exception):
+            continue
+        if (
+            solver.check(z3.Not(initial)) == z3.unsat
+            and solver.check(head, coerce_bool(encoding.guard), step_failure) == z3.unsat
+            and solver.check(head, violations) == z3.unsat
+        ):
+            return ProofResult(VERDICT_VERIFIED, f"inductive invariant {candidate!r} implies the claim")
+    return ProofResult(
+        VERDICT_INCONCLUSIVE, "no candidate invariant survived the entry, step and exit checks"
     )
 
 

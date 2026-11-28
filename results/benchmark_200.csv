@@ -1,0 +1,17 @@
+﻿baseline,version,correct,total,accuracy_pct,verdicts,coverage_pct,wrong_verdicts,no_verdict,retry_attempts,recovered_verdicts,status,ground_truth,sources
+A,Reliability v3,106,200,53.0,149,74.5,43,51,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_llm_tokenlab_minicpm_reliability_v3_stratified_200/A.jsonl
+B,Lượt chính,172,200,86.0,173,86.5,1,27,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/B.jsonl
+C,HoarePrompt gốc + retry,117,200,58.5,198,99.0,81,2,50,48,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/HOAREPROMPT_OFFICIAL.jsonl | results/checkpoints/results_minicpm_original_asserts_200_retry60/HOAREPROMPT_OFFICIAL.jsonl
+D,Reliability v3,135,200,67.5,185,92.5,50,15,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_llm_tokenlab_minicpm_reliability_v3_stratified_200/D.jsonl
+E,Reliability v3,16,200,8.0,16,8.0,0,184,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_llm_tokenlab_minicpm_reliability_v3_stratified_200/E.jsonl
+F,Lượt chính,159,200,79.5,160,80.0,1,40,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/F.jsonl
+G,Lượt chính,101,200,50.5,149,74.5,48,51,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/G.jsonl
+H,Self-Refine gốc + retry + sửa parser + retry cuối,179,200,89.5,200,100.0,21,0,42,24,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_self_refine_official_minicpm_stratified_200/SELF_REFINE_OFFICIAL.jsonl | results/checkpoints/results_self_refine_official_minicpm_stratified_200_retry/SELF_REFINE_OFFICIAL.jsonl | results/checkpoints/results_self_refine_official_minicpm_stratified_200_repair14/SELF_REFINE_OFFICIAL.jsonl | results/checkpoints/results_self_refine_official_minicpm_stratified_200_repair4/SELF_REFINE_OFFICIAL.jsonl
+I,Lượt chính,100,200,50.0,100,50.0,0,100,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/I.jsonl
+J,Lượt chính,100,200,50.0,100,50.0,0,100,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/J.jsonl
+K,Lượt chính,91,200,45.5,151,75.5,60,49,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/K.jsonl
+L,Lượt chính,181,200,90.5,186,93.0,5,14,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/L.jsonl
+M,Lượt chính,109,200,54.5,175,87.5,66,25,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/M.jsonl
+N,Reliability v3,20,200,10.0,20,10.0,0,180,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_llm_tokenlab_minicpm_reliability_v3_stratified_200/N.jsonl
+PROPOSED_LLM,MiniCPM,200,200,100.0,200,100.0,0,0,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/PROPOSED_LLM.jsonl
+PROPOSED,Offline,200,200,100.0,200,100.0,0,0,0,0,Hoàn tất,results/benchmark_200_label_audit/manifest.json,results/checkpoints/results_minicpm_original_asserts_200/PROPOSED.jsonl

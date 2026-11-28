@@ -23,15 +23,19 @@ from .common import ask_json, normalize_verdict, parse_witness, program_prompt
 from .llm import LLMClient, TokenBudget
 from .registry import register
 
-SYSTEM = """You are a meticulous program verification judge.
+SYSTEM = """You are a program verification judge. Decide whether the claim holds
+for all inputs satisfying the precondition and reaching the claim's line.
+Before choosing VERIFIED, check branch conditions and loop boundaries for a
+violating input. Choose UNKNOWN if you cannot justify the universal claim or
+give a concrete counterexample.
 
-You are given a program and a claim. Reason step by step, then decide
-whether the claim holds for every input.
-
-Answer with a JSON object of the form:
-{"verdict": "VERIFIED" | "COUNTEREXAMPLE" | "UNKNOWN",
- "reason": "<the reasoning>",
- "witness": {"<param>": <int>}}
+Return exactly one JSON object with keys verdict, witness, and reason. Use
+VERIFIED, COUNTEREXAMPLE, or UNKNOWN for verdict. For COUNTEREXAMPLE, witness
+must map the exact function parameter names to integers. Check that this input
+passes all early returns, reaches the claim's line, and makes it false.
+Otherwise, use null for witness. Keep reason to one sentence of at most 20
+words. Example:
+{"verdict":"UNKNOWN","witness":null,"reason":"The loop exit value is unclear."}
 """
 
 #: The boundary values the sanity check asks about.
@@ -101,25 +105,37 @@ class LLMJudgeBaseline(BaseBaseline):
 
     # -- internals ------------------------------------------------------------
 
-    def _sanity_check(self, spec: ProgramSpec) -> str:
+    def _sanity_check(self, spec: ProgramSpec) -> dict | None:
         """Ask the model about the boundary values as a second stage."""
         prompt = program_prompt(
             spec,
             task=(
                 "Sanity check: consider the boundary inputs "
-                f"{list(EDGE_VALUES)}. Does the claim hold there too? "
-                "Answer with the same JSON format."
+                f"{list(EDGE_VALUES)}. Check which inputs satisfy the precondition "
+                "and reach the claim, then look for a concrete violation there."
             ),
         )
         answer = ask_json(self.llm, prompt, system=SYSTEM, budget=self.budget)
-        if isinstance(answer, dict):
-            return str(answer.get("reason", ""))
-        return ""
+        return answer if isinstance(answer, dict) else None
 
     def _decide(
-        self, spec: ProgramSpec, claim, payload: Any, sanity: str
+        self, spec: ProgramSpec, claim, payload: Any, sanity: dict | None
     ) -> ClaimResult:
         """Turn the judge's answer into a claim result."""
+        sanity_reason = str(sanity.get("reason") or "") if sanity else ""
+        if sanity and normalize_verdict(sanity.get("verdict")) == StatusEnum.COUNTEREXAMPLE:
+            boundary_witness = parse_witness(sanity)
+            if boundary_witness:
+                boundary = self._counterexample(spec, claim, boundary_witness)
+                if boundary.replay_verdict:
+                    return ClaimResult(
+                        claim_id=claim.claim_id,
+                        claim_text=claim.text,
+                        status=StatusEnum.COUNTEREXAMPLE,
+                        anchor=self.anchor_info(claim),
+                        counterexample=boundary,
+                        reason=sanity_reason or "the boundary witness reproduced the violation",
+                    )
         if not isinstance(payload, dict):
             return ClaimResult(
                 claim_id=claim.claim_id,
@@ -131,8 +147,8 @@ class LLMJudgeBaseline(BaseBaseline):
 
         verdict = normalize_verdict(payload.get("verdict"))
         reason = str(payload.get("reason", ""))
-        if sanity:
-            reason = f"{reason} | sanity check: {sanity}".strip(" |")
+        if sanity_reason:
+            reason = f"{reason} | sanity check: {sanity_reason}".strip(" |")
 
         if verdict == StatusEnum.COUNTEREXAMPLE:
             witness = parse_witness(payload)
