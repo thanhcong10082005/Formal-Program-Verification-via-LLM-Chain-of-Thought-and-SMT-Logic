@@ -15,46 +15,46 @@ Nhãn của bộ dữ liệu dựa trên thử nghiệm bằng CPython và, ở 
 
 \subsection{Cấu hình và quy tắc chấm}
 
-Các lượt dùng LLM trong bảng sử dụng MiniCPM-V-4.7-35B-A3B qua AMD Token Lab. Proposed Offline, J, K và L chạy cục bộ. Cả hai chế độ Proposed đều được chấm trên câu lệnh \texttt{assert} gốc. Các khẳng định bổ sung do MiniCPM đề xuất được thống kê riêng. Bản C được chọn chạy mã HoarePrompt của tác giả \cite{bouras2026hoareprompt}. Bản H được chọn dùng vòng phản hồi từ mã Self-Refine của tác giả cùng bộ chuyển đổi định dạng phản hồi cho tác vụ kiểm chứng \cite{madaan2024self}.
+Các lượt dùng LLM trong bảng sử dụng MiniCPM-V-4.7-35B-A3B qua AMD Token Lab. Proposed Offline, J, K và L chạy cục bộ. Cả hai chế độ Proposed đều được chấm trên câu lệnh \texttt{assert} gốc. Các khẳng định bổ sung do MiniCPM đề xuất được thống kê riêng.
 
 Một mẫu được tính đúng nếu phán quyết khớp chính xác với nhãn của khẳng định gốc. Gọi $N$ là số mẫu, $N_c$ là số phán quyết đúng và $N_d$ là số mẫu nhận được \texttt{VERIFIED} hoặc \texttt{COUNTEREXAMPLE}. Độ chính xác là $N_c/N$ và độ phủ phán quyết là $N_d/N$. Các trạng thái không kết luận, lỗi dịch và lỗi chạy đều nằm trong mẫu số $N=200$ và được tính vào số mẫu chưa có phán quyết.
 
-Khi một baseline có nhiều phiên bản, bảng chọn bản có số phán quyết đúng cao nhất trên cùng 200 mẫu. Nếu bằng điểm, ưu tiên bản có độ phủ cao hơn. Mỗi định danh mẫu đóng góp một kết quả cuối cùng cho mỗi phương pháp.
+Mỗi định danh mẫu đóng góp một kết quả cuối cùng cho mỗi phương pháp.
 
 \section{So sánh trên 200 khẳng định gốc}
 \label{sec:overall_benchmark_results}
 
 \begin{table}[htbp]
 \centering
-\small
-\setlength{\tabcolsep}{4pt}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
 \caption{Kết quả trên 200 chương trình vòng lặp Python}
 \label{tab:benchmark-overall-expanded}
-\begin{tabular}{@{}p{0.46\textwidth}rrrr@{}}
+\begin{tabular}{@{}p{0.335\textwidth}rrrrrrrr@{}}
 \toprule
-\textbf{Phương pháp} & \textbf{Đúng} & \textbf{Độ chính xác} & \textbf{Sai} & \textbf{Chưa có P.Q.} \\
+\textbf{Phương pháp} & \textbf{Đúng} & \textbf{Sai} & \makecell[r]{\textbf{Chưa}\\\textbf{kết luận}} & \makecell[r]{\textbf{Độ}\\\textbf{chính xác}} & \textbf{Độ phủ} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
 \midrule
-Proposed + MiniCPM & 200 & 100\% & 0 & 0 \\
-Proposed Offline & 200 & 100\% & 0 & 0 \\
-A -- SatLM Direct, v3 & 106 & 53\% & 43 & 51 \\
-B -- Execution Grounding & 172 & 86\% & 1 & 27 \\
-C -- HoarePrompt gốc & 117 & 58,5\% & 81 & 2 \\
-D -- LLM-as-a-Judge, v3 & 135 & 67,5\% & 50 & 15 \\
-E -- Neuro-Symbolic, v3 & 16 & 8\% & 0 & 184 \\
-F -- Agentic Multi-Step & 159 & 79,5\% & 1 & 40 \\
-G -- Self-Consistency & 101 & 50,5\% & 48 & 51 \\
-H -- Self-Refine gốc & 179 & 89,5\% & 21 & 0 \\
-I -- LLM-Guided Property-Based Testing & 100 & 50\% & 0 & 100 \\
-J -- Deterministic Fuzzing & 100 & 50\% & 0 & 100 \\
-K -- Mutation Testing & 91 & 45,5\% & 60 & 49 \\
-L -- Symbolic Execution & 181 & 90,5\% & 5 & 14 \\
-M -- Hoare Triple bằng ngôn ngữ tự nhiên & 109 & 54,5\% & 66 & 25 \\
-N -- Invariant Synthesis, v3 & 20 & 10\% & 0 & 180 \\
+Proposed + MiniCPM & 200 & 0 & 0 & 100\% & 100\% & 100\% & 100\% & 100\% \\
+Proposed Offline & 200 & 0 & 0 & 100\% & 100\% & 100\% & 100\% & 100\% \\
+A -- SatLM Direct & 106 & 43 & 51 & 53\% & 74,5\% & 73,02\% & 46\% & 56,44\% \\
+B -- Execution Grounding & 172 & 1 & 27 & 86\% & 86,5\% & 100\% & 72\% & 83,72\% \\
+C -- HoarePrompt & 117 & 81 & 2 & 58,5\% & 99\% & 55,56\% & 85\% & 67,19\% \\
+D -- LLM-as-a-Judge & 135 & 50 & 15 & 67,5\% & 92,5\% & 66,06\% & 72\% & 68,9\% \\
+E -- Neuro-Symbolic & 16 & 0 & 184 & 8\% & 8\% & 100\% & 16\% & 27,59\% \\
+F -- Agentic Multi-Step & 159 & 1 & 40 & 79,5\% & 80\% & 98,78\% & 81\% & 89,01\% \\
+G -- Self-Consistency & 101 & 48 & 51 & 50,5\% & 74,5\% & 59,82\% & 67\% & 63,21\% \\
+H -- Self-Refine & 179 & 21 & 0 & 89,5\% & 100\% & 86,24\% & 94\% & 89,95\% \\
+I -- LLM-Guided Property-Based Testing & 100 & 0 & 100 & 50\% & 50\% & -- & 0\% & 0\% \\
+J -- Deterministic Fuzzing & 100 & 0 & 100 & 50\% & 50\% & -- & 0\% & 0\% \\
+K -- Mutation Testing & 91 & 60 & 49 & 45,5\% & 75,5\% & 34,48\% & 10\% & 15,5\% \\
+L -- Symbolic Execution & 181 & 5 & 14 & 90,5\% & 93\% & 100\% & 81\% & 89,5\% \\
+M -- Hoare Triple bằng ngôn ngữ tự nhiên & 109 & 66 & 25 & 54,5\% & 87,5\% & 59,2\% & 74\% & 65,78\% \\
+N -- Invariant Synthesis & 20 & 0 & 180 & 10\% & 10\% & 100\% & 20\% & 33,33\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Trong Bảng \ref{tab:benchmark-overall-expanded}, \emph{Sai} là số mẫu có phán quyết xác định nhưng sai nhãn. \emph{Chưa có P.Q.} là số mẫu chưa có phán quyết xác định. Ký hiệu v3 chỉ bản Reliability v3.
+Trong Bảng \ref{tab:benchmark-overall-expanded}, \emph{Sai} đếm các phán quyết xác định nhưng sai nhãn. \emph{Chưa kết luận} đếm các mẫu chưa có phán quyết xác định. Precision, Recall và F1 lấy \texttt{VERIFIED} làm lớp dương. Precision là tỷ lệ đúng trong số phán quyết \texttt{VERIFIED}, còn Recall tính trên toàn bộ 100 mẫu có nhãn \texttt{VERIFIED}. Do đó, mẫu chưa kết luận có nhãn \texttt{VERIFIED} làm giảm Recall. Dấu gạch ngang ở cột Precision cho biết phương pháp chưa đưa ra phán quyết \texttt{VERIFIED} nào.
 
 Hai chế độ Proposed đều đạt 200/200.
 
@@ -87,8 +87,8 @@ Proposed Offline và Proposed với MiniCPM có cùng độ chính xác trên c�
 Proposed Offline & 0 & 0 & 97,89 \\
 Proposed + MiniCPM & 144.127 & 48.536 & 2.659,37 \\
 L -- Symbolic Execution & 0 & 0 & 375,60 \\
-C -- HoarePrompt gốc & 4.231.463 & 1.742.954 & 50.683,18 \\
-H -- Self-Refine gốc & 860.530 & 273.857 & 45.134,40 \\
+C -- HoarePrompt & 4.231.463 & 1.742.954 & 50.683,18 \\
+H -- Self-Refine & 860.530 & 273.857 & 45.134,40 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -100,7 +100,6 @@ Cột thời gian là tổng thời lượng đã ghi từ toàn bộ quá trìn
 
 \begin{itemize}
     \item \textbf{Phạm vi dữ liệu.} Tất cả mẫu thuộc họ Code2Inv và dùng ngữ nghĩa số nguyên của tập con Python. Một số mẫu cùng họ có cấu trúc tương tự. Khả năng tổng quát hóa cần được đo trên bộ chương trình độc lập, đa dạng hơn.
-    \item \textbf{Chọn cấu hình và ngân sách.} Các biến thể được chọn theo kết quả trên chính bộ 200 mẫu và có ngân sách thực thi khác nhau. Bảng mô tả cấu hình tốt nhất đã quan sát. Thực nghiệm trên tập giữ riêng với cấu hình và ngân sách chốt trước sẽ kiểm tra được khả năng lặp lại thứ hạng.
     \item \textbf{Phạm vi phán quyết.} Replay xác nhận từng đầu vào phản ví dụ cụ thể. Các phép đo trên khẳng định gốc giới hạn ở tính đúng từng phần tại vị trí câu lệnh.
 \end{itemize}
 

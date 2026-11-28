@@ -27,6 +27,7 @@ def score(
             raise ValueError(f"Expected an original assertion with a binary label: {pid}")
         original[pid] = claim
     sources = {pid: (dataset / pid).read_text() for pid in program_ids}
+    actual_verified = sum(labels[pid] == "VERIFIED" for pid in program_ids)
     predictions = {}
     summary = {}
     for path in sorted(results_dir.glob("*.jsonl")):
@@ -58,13 +59,22 @@ def score(
         stats = Counter(by_id[pid][0] if pid in by_id else "MISSING" for pid in program_ids)
         correct = sum(status == labels[pid] for pid, (status, _, _, _) in by_id.items())
         covered = sum(stats[s] for s in DECISIVE)
+        predicted_verified = stats["VERIFIED"]
+        false_verified = sum(s == "VERIFIED" and labels[p] == "COUNTEREXAMPLE"
+                             for p, (s, _, _, _) in by_id.items())
+        true_verified = predicted_verified - false_verified
         summary[method] = {
             "expected": len(program_ids), "logged": len(by_id), "correct": correct,
             "accuracy_pct": round(100 * correct / len(program_ids), 2),
             "coverage_pct": round(100 * covered / len(program_ids), 2),
+            "verified_precision_pct": round(100 * true_verified / predicted_verified, 2)
+                                      if predicted_verified else None,
+            "verified_recall_pct": round(100 * true_verified / actual_verified, 2)
+                                   if actual_verified else None,
+            "verified_f1_pct": round(200 * true_verified / (predicted_verified + actual_verified), 2)
+                               if predicted_verified + actual_verified else None,
             "statuses": dict(sorted(stats.items())),
-            "false_verified": sum(s == "VERIFIED" and labels[p] == "COUNTEREXAMPLE"
-                                  for p, (s, _, _, _) in by_id.items()),
+            "false_verified": false_verified,
             "false_counterexample": sum(s == "COUNTEREXAMPLE" and labels[p] == "VERIFIED"
                                         for p, (s, _, _, _) in by_id.items()),
             "replayed_counterexamples": sum(s == "COUNTEREXAMPLE" and ok

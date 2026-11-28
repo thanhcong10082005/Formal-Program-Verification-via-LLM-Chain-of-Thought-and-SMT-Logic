@@ -149,6 +149,9 @@ def main() -> None:
             "accuracy_pct": result["accuracy_pct"],
             "verdicts": covered,
             "coverage_pct": result["coverage_pct"],
+            "verified_precision_pct": result["verified_precision_pct"],
+            "verified_recall_pct": result["verified_recall_pct"],
+            "verified_f1_pct": result["verified_f1_pct"],
             "wrong_verdicts": covered - correct,
             "no_verdict": len(cohort) - covered,
             "retry_attempts": selected.retry_attempts,
@@ -161,7 +164,7 @@ def main() -> None:
     with TemporaryDirectory(dir=OUTPUT.parent) as temporary_path:
         temporary = Path(temporary_path) / OUTPUT.name
         with temporary.open("w", encoding="utf-8-sig", newline="") as output:
-            writer = csv.DictWriter(output, fieldnames=list(table[0]))
+            writer = csv.DictWriter(output, fieldnames=list(table[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(table)
         temporary.replace(OUTPUT)
